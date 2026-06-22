@@ -1,0 +1,15 @@
+J and R Construction Manager v3.4 QA Checklist
+
+UI polish applied:
+- Official Start Center uses compact 2-column card layout.
+- Button text shortened.
+- Buttons use equal card sizes and even spacing.
+- Color palette normalized to deep navy/charcoal with green action and blue info accents.
+- Files/logs moved into a small sub-menu to reduce main-menu clutter.
+
+Checks performed before packaging:
+- Python compile check for app files.
+- ZIP integrity test.
+- Installer version updated to 3.4.0.
+- One desktop shortcut behavior preserved.
+- Business data preservation behavior preserved.

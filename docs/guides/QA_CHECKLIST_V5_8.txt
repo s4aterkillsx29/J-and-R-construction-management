@@ -1,0 +1,14 @@
+JRC v5.8 QA Checklist
+
+- Python compile check passes.
+- Installer version label updated to v5.8.
+- Installer preserves business data folders.
+- Installer launches First Setup/Login after successful install.
+- Login form includes opt-in remembered-device checkbox.
+- Remembered-device cookie max age is 90 days.
+- Device table includes verification/expiration fields.
+- Setup Complete page loads after verified login when launched from setup flow.
+- Customer/non-company/admin/manager/worker/viewer dashboard separation remains in place.
+- Self Setup + Verify remains available in Start Center.
+- Internet/Cloud Security Verify remains available.
+- Auto Host Repair remains available.

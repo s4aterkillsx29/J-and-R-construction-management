@@ -1,0 +1,9 @@
+J and R Construction Manager v4.2
+
+Adds a public worker/job application page at /apply. Applicants do not need to install the program. Owner/admin users review applications in /applications, track IP/device source, export application CSVs, and collect insurance/onboarding details for review.
+
+Security notes:
+- Applications do not automatically create login access.
+- Passwords and account approvals remain separate from applications.
+- Do not collect SSNs in this app. Use secure official forms for tax/HR needs.
+- Insurance information collected is for owner/agent review only and does not grant coverage automatically.

@@ -1,0 +1,12 @@
+QA CHECKLIST - v4.3 Remote Mobile Access
+
+[ ] Install/update preserves existing database and business data.
+[ ] One desktop shortcut opens Start Center.
+[ ] Start Center opens Remote Mobile setup page.
+[ ] /remote-mobile requires admin/hosting permission.
+[ ] Remote base URL can be saved.
+[ ] /mobile still loads after login.
+[ ] /register still saves account requests.
+[ ] /apply still saves job applications.
+[ ] System Check runs after install.
+[ ] Secure-cookie rules remain unchanged from v4.2/v3.9.

@@ -1,0 +1,31 @@
+# Python/cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+
+# Runtime data and local-only files
+*.db
+*.sqlite
+*.sqlite3
+logs/
+backups/*.zip
+exports/*.pdf
+exports/*.xlsx
+
+# Secrets/environment
+.env
+.env.*
+!.env.example
+!cloud_templates/.env.example
+!cloud_hosting/env.example
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

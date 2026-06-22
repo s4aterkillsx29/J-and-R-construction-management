@@ -1,0 +1,24 @@
+J and R Construction Manager v3.6 QA Checklist
+
+Package checks performed before delivery:
+- Python compile check on all app/*.py files.
+- ZIP integrity test after packaging.
+- Installer still does not run Python/pip during installation.
+- Installer preserves data, exports, evidence, backups, ChatGPT imports, business standards, logs, uploads, and Dropbox files.
+- One desktop shortcut only.
+- Admin account requests remain pending until owner/admin approval.
+- Registration page remains available at /register when shared host is running.
+- New account request passwords are hashed, not exported or stored as readable text.
+- Account request page now applies stronger password rule and IP rate-limit protection.
+- Admin panel shows username, role, IP address, device/browser, login time, and last-seen time.
+- System Check auto-repairs key session/account/security tables and closes stale sessions.
+
+Recommended test after install:
+1. Open J and R Construction Manager.
+2. Run System Check.
+3. Start Shared Session Host.
+4. Open /register on phone/browser.
+5. Submit a worker account request.
+6. Approve it in Admin.
+7. Log in as that worker and verify read-only access.
+8. Change default admin/admin password before real shared use.

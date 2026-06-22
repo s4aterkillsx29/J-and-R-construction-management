@@ -1,0 +1,39 @@
+J & R Construction Manager v5.4
+Auto Host Repair + Log Diagnostics
+
+Purpose
+- Fix the local host repair process so it is actually useful.
+- Automatically read recent logs instead of making the owner manually hunt through files.
+- Detect common hosting/mobile failures.
+- Apply safe local repairs without deleting business data.
+
+What changed
+1. Added Auto Repair Host to the Start Center.
+2. Added Auto Host Repair to Tools / Repair.
+3. Added app/auto_host_repair.py.
+4. Fixed Cloud Access/Start Center JSON settings support.
+5. Added safe local port checking and nearby-port auto-selection if port 8765 is occupied by a non-JRC process.
+6. Added automatic report output to exports.
+
+What the repair checks
+- Required folders exist.
+- Required program files exist.
+- Flask/waitress/reportlab dependency status.
+- Local host port availability.
+- Whether existing health/mobile endpoints answer.
+- Recent logs for known problems such as missing Flask, port-in-use, connection refused, permission denied, database locked, and missing files.
+- Firewall helper presence.
+
+What it does not do
+- It does not expose your laptop to the public internet.
+- It does not bypass Windows security.
+- It does not delete business data.
+- It does not replace cloud hosting for remote users outside your Wi-Fi.
+
+Best use
+1. Open Start Center.
+2. Click Auto Repair Host.
+3. Click Start Local Host.
+4. Click Mobile Links after the host verifies.
+5. If phone fails on same Wi-Fi, run Allow Phone Access.
+6. For other locations, use Cloud Access / hosted server.

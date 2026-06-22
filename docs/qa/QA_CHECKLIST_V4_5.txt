@@ -1,0 +1,12 @@
+JRC Construction Manager v4.5 QA Checklist
+
+- Python compile check passed.
+- ZIP integrity test passed.
+- Start Center run_hidden function repaired.
+- Duplicate/broken Start Center network helper definitions removed.
+- Start Center cards use clear text labels, not unstable icons.
+- Desktop app starts without visible cmd when pythonw is available.
+- Shared host starts hidden with logs.
+- Mobile Access starts host automatically when needed.
+- Job application /apply link included in Start Center.
+- Installer remains data-safe and no-Python during install.

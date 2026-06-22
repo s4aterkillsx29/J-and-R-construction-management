@@ -1,0 +1,11 @@
+JRC v6.6 QA Checklist
+
+Checked:
+- Python compile of app files
+- Local Login Gate source present and compilable
+- First Setup uses Local Login Gate fallback
+- Installer opens Local Login Gate after install
+- Start Center Open Login no longer depends on local host verification
+- Admin default preservation/blocking markers present
+- Network server still blocks remote admin/admin
+- Zip integrity validated

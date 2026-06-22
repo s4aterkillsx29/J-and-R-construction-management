@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: jrc-construction-manager
+    env: docker
+    dockerfilePath: ./cloud_hosting/Dockerfile
+    healthCheckPath: /api/live/ready
+    autoDeploy: false
+    envVars:
+      - key: JRC_PUBLIC_HOST_MODE
+        value: '1'
+      - key: JRC_CLOUD_PRIMARY_MODE
+        value: '1'
+      - key: JRC_DATA_DIR
+        value: /var/data/jrc
+      - key: JRC_SESSION_TIMEOUT_MINUTES
+        value: '120'
+      - key: JRC_DEVICE_COOKIE_SAMESITE
+        value: Lax
+      - key: JRC_SECRET_KEY
+        generateValue: true
+      - key: JRC_INITIAL_ADMIN_PASSWORD
+        sync: false
+      - key: JRC_TRUSTED_HOSTS
+        sync: false
+      - key: JRC_CLOUD_BASE_URL
+        sync: false
+    disks:
+      - name: jrc-data
+        mountPath: /var/data/jrc
+        sizeGB: 2

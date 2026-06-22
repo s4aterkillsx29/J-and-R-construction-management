@@ -1,0 +1,25 @@
+J & R CONSTRUCTION MANAGER v6.3 - LIVE DEPLOYMENT MASTER CHECKLIST
+
+Purpose: make the program ready for a real live cloud/tunnel/VPN deployment while keeping the desktop program useful locally.
+
+Before sharing with customers/workers:
+[ ] Install v6.3 locally and log in as owner/admin.
+[ ] Change default admin/admin password if still present.
+[ ] Run Self Setup + Verify.
+[ ] Run System Check.
+[ ] Run Permission View Check.
+[ ] Run Security Perspective Audit.
+[ ] Run Dashboard Role Check.
+[ ] Run Live Deployment Readiness.
+[ ] Pick a live hosting method: Render, Railway, Fly.io, Docker VPS, or Cloudflare Tunnel.
+[ ] Set JRC_PUBLIC_HOST_MODE=1 on the real host.
+[ ] Set a long random JRC_SECRET_KEY on the real host.
+[ ] Set JRC_TRUSTED_HOSTS to your real domain/host.
+[ ] Set JRC_CLOUD_BASE_URL to the real HTTPS URL.
+[ ] Confirm /api/health, /api/connection, /connect, /login, /mobile, /register, /apply, /customer/request.
+[ ] Create admin backup before inviting users.
+[ ] Create test accounts for manager, worker, viewer, customer, and non-company.
+[ ] Confirm each test account only sees its allowed dashboard.
+[ ] Share only the correct live links.
+
+Important: remote users can connect while your PC is off only when a real hosted server/tunnel/VPN is running. Local host is only for same-Wi-Fi/VPN testing.

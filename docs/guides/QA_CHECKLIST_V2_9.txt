@@ -1,0 +1,18 @@
+J and R Construction Manager v2.9 QA Checklist
+
+Checked/updated:
+- Python compile check for app modules.
+- Start Center launches without a command prompt menu.
+- Background shared host uses hidden process launch on Windows.
+- System Check now runs app/system_check.py and writes a report.
+- Touch-friendly CSS and larger Start Center buttons added.
+- Installer keeps one desktop shortcut and points to hidden VBS launcher.
+- Business data folders preserved during updates.
+
+User test steps:
+1. Install/update.
+2. Open desktop shortcut.
+3. Click Run System Check.
+4. Click Start Shared Session Host in Background.
+5. Open local URL and mobile URL on phone/LAN.
+6. Log in as admin and change password.

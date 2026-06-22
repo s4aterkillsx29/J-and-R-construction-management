@@ -1,0 +1,20 @@
+JRC v6.0 QA Checklist
+
+Automated checks added:
+- v6 Final Readiness
+- System Check
+- Permission View Check
+- Security Perspective Audit
+- Dashboard Role Check
+- Final Program Verify
+- Cloud Deploy Check
+- Internet / Cloud Security Verify
+- Auto Host Repair
+
+Manual checks for Jacob:
+- Login as admin and change default password.
+- Confirm customer role sees only customer portal/request pages.
+- Confirm non-company role sees only shared items.
+- Confirm worker/viewer roles do not see payroll/expenses/bookkeeping admin.
+- Confirm manager/admin see office tools.
+- Confirm Cloud Access URL is set only to a real HTTPS or tunnel URL.

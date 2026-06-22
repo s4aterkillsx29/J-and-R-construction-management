@@ -1,0 +1,27 @@
+JRC v5.6 QA CHECKLIST
+
+Build-time checks performed:
+- Python compile check
+- Final Program Verify static checks
+- Cloud Deploy Check
+- ZIP integrity test
+
+After install on Jacob's Windows PC:
+1. Open Start Center.
+2. Open Tools / Repair.
+3. Run System Check.
+4. Run Permission View Check.
+5. Run Security Perspective Audit.
+6. Run Dashboard Role Check.
+7. Run Final Program Verify.
+8. Run Cloud Deploy Check.
+9. For local phone test, run Auto Repair Host, then Start Local Host, then Host Monitor.
+10. For other locations, deploy cloud_hosting and set Cloud Access URL.
+
+Perspective checks:
+- Admin sees business/admin tools.
+- Manager sees operational tools without owner recovery.
+- Worker sees limited shared/mobile/job information.
+- Viewer sees read-only shared/mobile information.
+- Non-company sees minimal shared portal only.
+- Customer sees only customer portal and customer job requests.

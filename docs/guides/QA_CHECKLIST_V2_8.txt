@@ -1,0 +1,22 @@
+J and R Construction Manager v2.8 QA Checklist
+
+Checks completed in package build:
+- Python syntax compile check for all app/*.py files passed.
+- Official Start Center added as app/start_center.py.
+- Command prompt menu replaced by graphical launcher.
+- run_jr_manager.bat now opens Start Center only.
+- Mobile Access Center added at /mobile.
+- Mobile Jobs page added at /mobile/jobs.
+- Mobile Job Detail page added at /mobile/job/<id>.
+- Mobile Files page added at /mobile/files.
+- PWA manifest updated.
+- Basic service worker route added.
+- Installer version updated to 2.8.0.
+- Existing one-shortcut installer behavior preserved.
+
+Runtime checks after install:
+- Login with admin/admin, then change password.
+- Start shared host and open http://127.0.0.1:8765/mobile.
+- Open phone on same Wi-Fi using http://<LAN IP>:8765/mobile.
+- Refresh file sources and verify Dropbox-synced folder indexes.
+- Test worker/viewer accounts for read-only behavior.

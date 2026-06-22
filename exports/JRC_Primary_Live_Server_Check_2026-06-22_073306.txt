@@ -1,0 +1,46 @@
+JRC v7.1 Primary Live Server Check
+Generated: 2026-06-22T07:33:06
+
+Errors: 0
+Warnings: 4
+
+ERRORS:
+- None
+
+WARNINGS:
+- Environment variable set on this machine: JRC_SECRET_KEY
+- Environment variable set on this machine: JRC_INITIAL_ADMIN_PASSWORD
+- Environment variable set on this machine: JRC_TRUSTED_HOSTS
+- Environment variable set on this machine: JRC_CLOUD_BASE_URL
+
+PASSED:
+- Required file exists: app/network_server.py
+- Required file exists: app/start_center.py
+- Required file exists: app/local_login_gate.py
+- Required file exists: app/admin_security_final_check.py
+- Required file exists: app/customer_request_final_check.py
+- Required file exists: app/ui_dashboard_final_check.py
+- Required file exists: app/cloud_primary_final_check.py
+- Required file exists: cloud_hosting/Dockerfile
+- Required file exists: cloud_hosting/render.yaml
+- Required file exists: cloud_hosting/docker-compose.yml
+- Required file exists: cloud_hosting/Procfile
+- Required file exists: cloud_hosting/env.example
+- Required file exists: cloud_hosting/cloud_entry.py
+- Version label v7.1 in network server
+- Version label v7.1 in start center
+- Installer label v7.1
+- Login-first no-host gate present
+- Default admin not public cloud default
+- Cloud primary env flag
+- Persistent data dir /var/data/jrc configured
+- Render health check path configured
+- Docker uses gunicorn
+- Procfile uses gunicorn
+- Live readiness endpoint present
+- Role list includes customer and non_company
+- Customer requests are present
+- Admin security checks present
+- Remembered device opt-in/90 day markers
+- Security headers present
+- Start Center has Primary Live Server card

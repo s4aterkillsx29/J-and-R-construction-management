@@ -1,0 +1,17 @@
+J and R Construction Manager v3.3 QA checklist
+
+Completed before packaging:
+- ZIP integrity checked
+- Python compile check run on app files
+- Installer rewritten to avoid all Python execution during install
+- Installer scans common old install locations
+- Installer archives old copies before removal
+- Installer migrates safe business data folders
+- Installer removes extra old shortcuts
+- Installer creates only one desktop shortcut
+- Business data folders preserved
+- Dropbox files are not modified
+
+User should run after install:
+- Start Center > System Check
+- Repair optional Network/Mobile/PDF features only if needed

@@ -1,0 +1,19 @@
+J AND R CONSTRUCTION MANAGER - DEPLOYMENT CHECKLIST
+
+Before allowing other users:
+[ ] Change default admin/admin password.
+[ ] Add users individually; do not share one login.
+[ ] Assign roles carefully: admin, manager, worker, viewer.
+[ ] Run health check.
+[ ] Create a backup ZIP.
+[ ] Add local Dropbox-sync folder as a file source.
+[ ] Confirm Dropbox app is syncing on the host PC.
+[ ] Confirm Windows firewall allows private-network access only if using LAN.
+[ ] Do not expose port 8765 to the public internet without HTTPS/VPN/tunnel.
+
+For outside internet users:
+[ ] Use HTTPS/VPN/tunnel or a dedicated cloud host.
+[ ] Use strong passwords.
+[ ] Review online users often.
+[ ] Revoke unknown sessions immediately.
+[ ] Backup before major changes.

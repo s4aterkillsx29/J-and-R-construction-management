@@ -1,0 +1,15 @@
+JRC Construction Manager v6.3 - Local Login + Host Repair
+
+Purpose:
+- Separate Login from Dashboard.
+- Offer Login first from Start Center.
+- Verify /login before requiring full mobile endpoint checks.
+- Keep default admin/admin working on first setup and repair admin if missing/inactive.
+- Add Host Login Verify report for troubleshooting.
+
+Use:
+1. Open Start Center.
+2. Click Open Login.
+3. Log in with admin/admin on first setup if unchanged.
+4. After login, open Dashboard.
+5. Start Local Host only for same-Wi-Fi/VPN mobile testing.

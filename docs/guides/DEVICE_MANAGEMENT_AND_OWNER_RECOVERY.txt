@@ -1,0 +1,23 @@
+J and R Construction Manager v3.8
+Device Management + Owner Recovery Notes
+
+This version adds safer device identification and owner recovery without hidden access.
+
+What it does:
+- Remembers browser devices with a first-party security cookie.
+- Tracks username, role, IP address, browser/device details, login time, last-seen time, and trust status.
+- Adds Admin > Devices to mark a remembered device as trusted, observed, or blocked.
+- Blocked remembered devices are prevented from logging in.
+- Adds Owner Emergency Recovery only from Jacob's trusted local host computer at 127.0.0.1.
+- Owner recovery can reset the admin password if needed, and every use is logged.
+
+What it does NOT do:
+- It does not create a hidden backdoor.
+- It does not access other users' computers or files outside the program.
+- It does not leave actions unlogged.
+- It does not expose stored passwords.
+
+Recommended use:
+- Keep admin/admin only for first setup, then change it.
+- Use Admin > Devices to review who is connecting and from where.
+- Use trusted LAN/VPN or a secured cloud host with HTTPS for remote users.

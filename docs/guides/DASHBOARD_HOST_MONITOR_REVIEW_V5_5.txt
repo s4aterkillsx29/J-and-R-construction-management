@@ -1,0 +1,25 @@
+JRC Construction Manager v5.5 - Dashboard + Host Monitor Review
+
+Purpose:
+- Make dashboards easier to understand by account classification.
+- Add a Login / Dashboard handoff so each user lands on the correct dashboard after login.
+- Add a small Host Monitor for local server status, mobile links, port, and quick tools.
+- Keep the installer from handling passwords directly; login is handled by the secure web app after install or cloud/host launch.
+
+Role dashboards:
+- Admin: Owner Command Center with jobs, customer requests, worker applications, job costs, and users.
+- Manager: Manager Command Center with jobs, requests, applications, and payroll where permitted.
+- Worker: shared/assigned work and mobile access, without money/admin areas.
+- Viewer: read-only shared/job information, without edit/money/admin areas.
+- Non-company/external: shared items only.
+- Customer: customer-only dashboard, job requests, status history, and customer-visible notes only.
+
+Host Monitor:
+- Shows local host state, port, LAN IP, connect link, mobile link, and cloud URL.
+- Quick buttons for Refresh, Open Connect, Mobile, Auto Repair, and Logs.
+
+Security:
+- Dashboard menus are built from account permissions.
+- Customer/external dashboards avoid internal notes, payroll, expenses, bookkeeping, job costing, and admin settings.
+- Installer does not ask for passwords because installers should not collect/store credentials.
+- Start Center can open Login / Dashboard after cloud/local host is ready.

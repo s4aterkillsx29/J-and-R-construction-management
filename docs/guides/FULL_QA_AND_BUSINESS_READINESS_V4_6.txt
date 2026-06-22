@@ -1,0 +1,11 @@
+JRC Construction Manager v4.6 - Full QA and Business Readiness
+
+This release adds a deeper offline Full QA Test. It checks required files, folders, Python syntax, database integrity, key tables, route definitions, security patterns, account/application features, payroll/job cost features, filekeeping/bookkeeping features, installer safety, and documentation.
+
+Use after install:
+1. Open J and R Construction Manager.
+2. Click System Check.
+3. Click Full QA Test.
+4. Review the generated report in exports.
+
+Important: this automated QA cannot replace manually clicking every screen on your Windows PC, but it catches the common structural, syntax, database, route, and packaging issues before daily business use.

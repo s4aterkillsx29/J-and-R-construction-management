@@ -1,0 +1,28 @@
+J and R Construction Manager v3.1
+Shareable Account Requests and Session Identity
+
+Purpose
+- Let workers or trusted users request access without installing the desktop program.
+- Let admins identify online users by username, role, IP address, and browser/device information.
+- Keep permission classes separated so some users are read-only.
+
+How account requests work
+1. Start the shared-session host from the Start Center.
+2. Share this URL with the worker/user: http://<HOST-IP>:8765/register
+3. The user fills out name, username, password, email, phone, worker type, skills, preferred rate, and notes.
+4. The request is saved in Jacob's J&R database as Pending.
+5. An admin logs in, opens Admin, and approves or denies the request.
+6. On approval, the user account is created and the worker profile is saved.
+
+Default permissions
+- admin: full control.
+- manager: can edit jobs, money, workers, files, and share info.
+- worker: read-only job/file/mobile access by default.
+- viewer: read-only job/file/mobile access.
+
+Security notes
+- Passwords are hashed in SQLite.
+- Pending account requests store password hashes, not readable passwords.
+- Do not expose the laptop host directly to the public internet.
+- Use trusted LAN, VPN, secure tunnel, or properly hosted cloud server with HTTPS.
+- Change default admin/admin before sharing access.

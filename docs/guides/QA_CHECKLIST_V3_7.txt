@@ -1,0 +1,9 @@
+QA checklist v3.7
+- Python compile check for app files.
+- ZIP integrity test.
+- Installer no-Python/no-pip no-hang design preserved.
+- Payroll schema auto-repair added.
+- Payroll Center route protected by view_workers/manage_payroll permissions.
+- Job Cost Dashboard route protected by view_money.
+- CSV exports use exports folder.
+- Existing business data folders preserved by installer.

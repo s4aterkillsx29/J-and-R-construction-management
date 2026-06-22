@@ -1,0 +1,49 @@
+J and R Construction Manager v2.4 Hosting Guide
+
+Host path 1: Local laptop only
+- Best for one-person/offline use.
+- Start from desktop shortcut.
+
+Host path 2: Jacob laptop as LAN host
+- Best immediate shared-session option.
+- Run START_LOCAL_LAN_HOST.bat.
+- Users on the same Wi-Fi/LAN can connect to the LAN URL.
+- Admin can see/revoke sessions.
+
+Host path 3: Secure tunnel or VPN
+- Best safer remote-user option before full cloud.
+- Run START_SECURE_HOST_MODE.bat behind a trusted tunnel/VPN.
+- Change admin password first.
+- Do not share public URLs with untrusted users.
+
+Host path 4: Cloud/VPS/Docker
+- Best long-term internet-hosted option.
+- Use Dockerfile and docker-compose.yml.
+- Add HTTPS reverse proxy.
+- Enable firewall only for HTTP/HTTPS/SSH.
+- Back up data daily.
+- Do not store live SQLite DB in Dropbox sync.
+
+Checks and balances
+- Admin users can revoke sessions.
+- Health checks warn on default admin/admin.
+- Data Management checks DB integrity and source status.
+- Backups are built into the app.
+
+
+VERSION 2.5 BUSINESS STANDARDS UPDATE
+- Active J&R document standards are built into the program and editable from the Standards tab.
+- Customer estimates/invoices use branded header, phone, timestamp, 50/50 payment terms, unknown-condition protection, and customer/internal separation rules.
+- Address, email, license, and signature lines stay off by default unless an admin enables them.
+- Standards export to business_standards/JRC_Business_Document_Standards.json and .csv.
+- Use the Standards tab any time business wording, payment terms, or document rules need to change.
+
+
+V2.7 SHARED SESSION HOSTING OPTIONS
+
+1. Local desktop only: single-user office use.
+2. Local LAN host: Jacob's admin laptop runs shared host; users connect from the same trusted network.
+3. Secure VPN/tunnel: remote trusted users connect through a protected private network/tunnel.
+4. Cloud/VPS: install on a server, use Docker/systemd/nginx templates, enable HTTPS, firewall, daily backups, and strong admin passwords.
+
+Do not store or sync the live SQLite database directly through Dropbox for simultaneous multi-user editing. Dropbox should be used as evidence/file storage and backups, not as the live database engine for multiple writers.

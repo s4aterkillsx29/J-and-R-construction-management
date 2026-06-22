@@ -1,0 +1,21 @@
+JRC Construction Manager v5.3 - Security Verified Dashboards
+
+Purpose:
+- Deep-check permissions and security from every account perspective.
+- Verify customer and non-company users only see safe, limited information.
+- Verify admin-only tools remain protected.
+- Add a Security Perspective Audit tool to Tools / Repair and /security-audit.
+
+Important boundaries:
+- This program does not promise public internet access unless deployed behind proper HTTPS cloud/VPN/tunnel hosting.
+- Customer accounts cannot see payroll, expenses, internal notes, job costs, bookkeeping, file explorer, admin pages, devices, or other customers.
+- Non-company accounts can only use minimal shared-item access.
+- Admin pages and sensitive routes use no-store cache control and security headers.
+
+Run after installing:
+1. Open J and R Construction Manager.
+2. Open Tools / Repair.
+3. Run System Check.
+4. Run Permission View Check.
+5. Run Security Perspective Audit.
+6. Review reports in exports/logs.

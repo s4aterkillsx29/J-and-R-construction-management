@@ -1,0 +1,19 @@
+J and R Construction Manager v4.1 - Secure Bookkeeping + Filekeeping Automation
+
+Added/improved:
+- Filekeeping Control Center at /filekeeping.
+- Runs source refresh, checks active file sources, duplicate file names, receipt/evidence-like files, and missing receipt review.
+- Creates visible admin alerts instead of silently hiding problems.
+- Adds bookkeeping + filekeeping summary report download.
+- Bookkeeping ledger now links to the Filekeeping Center.
+- Flask session cookies configured with HttpOnly, SameSite=Strict, named session cookie, and controlled session lifetime.
+- Remembered-device cookies remain opaque random tokens. Only SHA-256 fingerprints are stored in the database.
+- No hidden backdoor or no-footprint access is included. Owner recovery remains visible, local-host-only, permission-based, and logged.
+
+Recommended workflow:
+1. Install/update.
+2. Open J and R Construction Manager.
+3. Run System Check.
+4. Open Filekeeping and run Filekeeping Review + Refresh.
+5. Open Bookkeeping and run Reconcile Bookkeeping Now.
+6. Export summaries/CSV files when needed for review.

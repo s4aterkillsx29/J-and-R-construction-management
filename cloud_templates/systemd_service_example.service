@@ -1,0 +1,16 @@
+[Unit]
+Description=J and R Construction Manager
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/jrc-manager
+Environment=JRC_PUBLIC_HOST_MODE=1
+Environment=JRC_SESSION_TIMEOUT_MINUTES=60
+Environment=JRC_PORT=8765
+ExecStart=/opt/jrc-manager/.venv/bin/python app/network_server.py
+Restart=always
+RestartSec=10
+User=jrcmanager
+
+[Install]
+WantedBy=multi-user.target

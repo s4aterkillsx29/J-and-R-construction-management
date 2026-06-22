@@ -1,0 +1,18 @@
+QA Checklist v5.0 - Permission-Safe Dashboards + External User Access
+
+Checked in build/package:
+- Python compile check passes for app files.
+- System Check runs without errors in the build environment.
+- Permission View Check script added and available in Tools / Repair.
+- Permission View Check static mode reports 0 errors in this environment.
+- Start Center Tools / Repair includes Permission View Check.
+- VERSION.txt updated to v5.0.
+- ZIP integrity tested after packaging.
+
+After installing on Jacob's PC:
+1. Open Start Center.
+2. Open Tools / Repair.
+3. Run Permission View Check.
+4. Open the report in Exports.
+5. Confirm non-company users see only Shared Items/Mobile and no money/job/file/admin tools.
+6. Change default admin/admin before sharing any mobile or cloud link.

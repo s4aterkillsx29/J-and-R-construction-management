@@ -1,0 +1,14 @@
+J and R Construction Manager v4.1 QA Checklist
+
+Checked before packaging:
+- Python compile check passed.
+- ZIP integrity check passed.
+- Installer no-hang policy preserved: installer does not run Python/pip/database initialization.
+- One desktop shortcut behavior retained.
+- Old install detection/update behavior retained.
+- Business data preservation retained.
+- Secure device cookie policy retained and documented.
+- Session cookie settings hardened.
+- Filekeeping tables and alerts added to system check/auto repair.
+- Bookkeeping ledger and summary exports retained.
+- Payroll/job cost/shared accounts/trusted devices retained.

@@ -1,0 +1,30 @@
+J and R Construction Manager v2.7 - Shared Sessions and Permissions
+
+This version supports shared sessions through the network server.
+
+Recommended use:
+1. Jacob starts the shared host on the administrator laptop or a secured cloud/VPS host.
+2. Other users open the host URL in a browser and log in with their account.
+3. Everyone is using the same live database and same current file index from that host.
+
+Do not have multiple separate PCs each editing their own local database if you expect shared live data. One host should be the source of truth.
+
+Account classes:
+- admin: full owner/admin control, user management, sessions, files, jobs, money, backup, AI/source settings.
+- manager: job/money/file/worker editing, backups, sharing.
+- worker: read-only job/file access and mobile access.
+- viewer: read-only job/file/mobile access.
+
+File sharing:
+- Admins and managers can upload evidence files into the host evidence folder.
+- Admins and managers can share indexed files and jobs by role.
+- Workers/viewers can open allowed shared files but cannot upload or edit.
+
+Mobile:
+- Phones connect to the same host URL and use /mobile.
+- Add /mobile to the home screen for a simple mobile-app-like experience.
+
+ChatGPT / AI:
+- The program can scan files placed in chatgpt_imports.
+- It can later use an intentionally configured API workflow.
+- It cannot directly read private ChatGPT Business conversations by itself.

@@ -1,0 +1,25 @@
+app = 'jrc-construction-manager'
+primary_region = 'atl'
+
+[env]
+  JRC_PUBLIC_HOST_MODE = '1'
+  JRC_CLOUD_PRIMARY_MODE = '1'
+  JRC_DATA_DIR = '/var/data/jrc'
+  JRC_SESSION_TIMEOUT_MINUTES = '120'
+
+[[mounts]]
+  source = 'jrc_data'
+  destination = '/var/data/jrc'
+
+[http_service]
+  internal_port = 8765
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

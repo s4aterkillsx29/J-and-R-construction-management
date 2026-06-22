@@ -1,0 +1,11 @@
+JRC Construction Manager v5.7 - Self Setup + Secure Cloud Verified
+
+What changed:
+- Added First Setup / Login bridge after install. The installer itself does not collect or store passwords.
+- Added Self Setup + Verify to run safe checks automatically and create a report.
+- Added Internet / Cloud Security Verify for HTTPS, secure cookies, cloud files, env secrets, and role separation.
+- Updated installer labeling from legacy v3.6 wording to v5.7.
+- Added cloud host support markers for JRC_SECRET_KEY and JRC_TRUSTED_HOSTS.
+
+Important:
+Remote users can connect while this PC is off only through a real running cloud/tunnel/VPN host. Use HTTPS and strong admin passwords.

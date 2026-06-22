@@ -1,0 +1,7 @@
+QA Checklist v4.9
+- Python compile check passed in build environment.
+- Cloud readiness files included.
+- Start Center includes Cloud Options and Cloud Readiness tool.
+- Local host remains optional.
+- Existing business data preservation behavior unchanged.
+- ZIP integrity checked.

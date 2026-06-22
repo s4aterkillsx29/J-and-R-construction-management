@@ -1,0 +1,31 @@
+J&R Construction Manager v5.2 - Customer Portal + Job Requests
+
+This update adds a customer account classification and customer-only dashboard.
+
+Customer users can:
+- log in to a customer dashboard
+- create job requests from /customer/request
+- review their own requests at /customer/requests
+- use a customer-safe mobile portal
+
+Customer users cannot see:
+- internal J&R job costing
+- payroll or worker pay
+- expenses/bookkeeping/tax records
+- full file explorer
+- other customers
+- admin, hosting, devices, or program settings
+
+Owner/admin review:
+- Admin/manager users with application-management permission can review customer job requests at /customers/requests.
+- Internal notes are hidden from customers.
+- Customer-visible notes can be posted for the customer dashboard.
+
+Installer / login behavior:
+- The installer still preserves business data and does not require every user to install the desktop program.
+- The web login automatically sends users to the dashboard that matches their account role.
+- Customer users get the customer dashboard. Admins get the full business dashboard.
+
+Security model:
+- Customer accounts are separate from worker/company accounts.
+- Customers do not automatically create internal jobs or prices. Requests remain pending until owner/admin review.

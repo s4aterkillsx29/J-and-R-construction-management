@@ -1,0 +1,17 @@
+JRC v5.5 QA Checklist
+
+Checks included:
+1. Python compile check for all app files.
+2. Dashboard Role Check for all perspectives.
+3. Start Center checks for Login / Dashboard and Host Monitor.
+4. Security header and cookie helper checks.
+5. ZIP integrity check.
+
+After install on Jacob's PC:
+1. Open desktop shortcut.
+2. Click Login / Dashboard.
+3. Login as admin and confirm Owner Command Center appears.
+4. Run Tools / Repair > Dashboard Role Check.
+5. Run Tools / Repair > System Check.
+6. Click Start Local Host and watch Host Monitor.
+7. If remote users are needed, set Cloud Access instead of relying on laptop host.

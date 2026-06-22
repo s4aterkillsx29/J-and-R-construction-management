@@ -1,0 +1,32 @@
+J & R CONSTRUCTION MANAGER v5.6 - FINAL CLOUD + PERSPECTIVE VERIFIED
+
+This stage focuses on:
+- role-based dashboards and login perspectives
+- cloud-ready remote access when the PC host is off
+- customer, non-company, worker, viewer, manager, and admin permissions
+- repair and verification tools
+- cloud deployment files for Docker/VPS, Render, Railway, Fly.io, and Cloudflare Tunnel
+
+Important:
+- Desktop/local office work does not require the host.
+- Other users can connect while Jacob's PC is off only if the cloud/tunnel/VPS host is running.
+- Installer does not collect account passwords. Login happens in the secure app after installation or through the hosted/cloud web app.
+- Change admin/admin before sharing access.
+- Use HTTPS for cloud/remote access.
+
+New tools:
+- Tools / Repair > Final Program Verify
+- Tools / Repair > Cloud Deploy Check
+- /cloud-status admin page
+- /api/cloud/status endpoint
+
+Cloud files added:
+- cloud_hosting/README_CLOUD_HOSTING_JRC_V5_6.txt
+- cloud_hosting/Dockerfile
+- cloud_hosting/docker-compose.yml
+- cloud_hosting/render.yaml
+- cloud_hosting/railway.json
+- cloud_hosting/fly.toml
+- cloud_hosting/Procfile
+- cloud_hosting/env.example
+- cloud_hosting/cloudflare_tunnel_example.yml

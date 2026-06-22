@@ -1,0 +1,19 @@
+J and R Construction Manager v3.6 - Secure Account Requests and Session Sharing
+
+How workers/users create accounts without installing the program:
+1. Start the Shared Session Host from the Start Center.
+2. Admin opens the Admin panel and copies the Account Request Link.
+3. Send the link to the worker/user.
+4. The user fills out the form from a phone or computer.
+5. The request is stored as Pending in Jacob's J&R database.
+6. Admin approves or denies the request.
+
+Security behavior:
+- Passwords are hashed with PBKDF2, not stored as readable text.
+- New public requests can only request worker/viewer access.
+- Admin chooses the final role during approval.
+- Worker/viewer roles are read-only by default.
+- Admin panel identifies online users by username, role, IP address, browser/device, login time, and last seen.
+- Admin can revoke active sessions.
+- System Check can repair missing account/session/security tables and close stale sessions.
+- Do not expose the laptop directly to the public internet. Use trusted LAN/VPN or a properly secured HTTPS cloud host for remote use.

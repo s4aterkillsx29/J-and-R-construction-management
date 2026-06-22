@@ -1,0 +1,25 @@
+J and R Construction Manager v2.9.2 - Python Installer Troubleshooting
+
+What was fixed:
+- The installer no longer uses a blocking output-reading loop that could look frozen while Python, pip, or venv was running.
+- Python, pip, and package install steps now have timeouts and clearer error messages.
+- Pip install runs with --no-input so it should not wait for typed answers.
+
+If the installer says Python is required:
+1. Install Python 3.11 or newer from https://www.python.org/downloads/windows/
+2. During Python install, check "Add python.exe to PATH".
+3. Close and reopen the J and R installer.
+4. Run INSTALL_J_AND_R_MANAGER.vbs again.
+
+If Windows blocks the VBS installer:
+- Run INSTALL_JR_JOB_MANAGER.bat as the fallback installer.
+
+If package install fails:
+- Make sure the PC is connected to the internet.
+- Run the installer again.
+- If it still fails, open the logs folder in:
+  %LOCALAPPDATA%\J_and_R_Construction_Manager\logs
+
+
+=== v2.9.3 installer freeze fix ===
+This version avoids the old hidden-pipe pip hang by redirecting package installation to log files. If optional packages cannot install in time, the main program still finishes installing. Open the Start Center > Run System Check later to repair optional network/PDF dependencies.

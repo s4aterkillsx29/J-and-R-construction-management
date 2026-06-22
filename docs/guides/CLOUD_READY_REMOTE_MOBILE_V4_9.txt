@@ -1,0 +1,16 @@
+JRC Construction Manager v4.9 - Cloud Ready Remote Mobile + Local Host Stability
+
+This update changes the strategy:
+- Local hosting remains available for same-Wi-Fi/VPN testing.
+- Remote mobile access from other locations should use cloud/VPS/tunnel hosting with HTTPS.
+- The Start Center now has Cloud Options and Cloud Readiness.
+- The cloud_hosting folder includes deploy templates and guidance.
+
+Why this matters:
+Local Windows laptop hosting can fail even when the app is installed correctly because of firewall, router/NAT, sleep mode, antivirus, and changing IP addresses. Cloud hosting is more stable for workers/applicants outside your location.
+
+Important:
+- Change admin/admin before sharing.
+- Do not expose your laptop directly to the internet.
+- Keep Dropbox as evidence/file storage, not as a live SQLite database.
+- Back up before cloud deployment.

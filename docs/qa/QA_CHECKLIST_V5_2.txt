@@ -1,0 +1,17 @@
+J&R Construction Manager v5.2 QA Checklist
+
+Checked in build environment:
+- Python compile for app files
+- System Check schema repair
+- Permission View Check with admin/manager/worker/viewer/non_company/customer roles
+- ZIP integrity
+
+User-side final checks after install:
+1. Open desktop shortcut.
+2. Log in as admin.
+3. Run System Check.
+4. Run Permission View Check.
+5. Create a test customer account or approve a customer account request.
+6. Log in as customer and confirm only customer dashboard/request pages show.
+7. Submit a test request.
+8. Log back in as admin and review it under customer requests.

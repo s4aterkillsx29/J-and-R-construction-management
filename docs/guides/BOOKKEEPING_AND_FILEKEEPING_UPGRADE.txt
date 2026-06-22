@@ -1,0 +1,24 @@
+J and R Construction Manager v4.0 - Bookkeeping and Filekeeping Upgrade
+
+Added:
+- Bookkeeping Control Center at /bookkeeping.
+- Reconcile job income, expenses, worker/helper pay, worker cost fees, receipts, and evidence into a ledger.
+- Export JRC bookkeeping ledger CSV for tax review.
+- Missing receipt count, receivables, estimated profit, duplicate-file warnings, and reconciliation run history.
+- Bookkeeping rules for J&R categories like materials, worker pay, vehicle/truck, insurance/admin, tools/equipment, and income/payments.
+- System Check auto-repairs bookkeeping tables on older installs.
+
+Security kept:
+- Remembered-device cookies are random tokens only.
+- Database stores only cookie fingerprints, not raw cookie values.
+- HttpOnly + SameSite=Strict are used.
+- Secure cookies are used in HTTPS/public-host mode; local LAN HTTP uses browser-compatible cookies with server-side hashing and audit logs.
+- No hidden backdoor/no-footprint access is included. Owner recovery is visible, local-host-only, and logged.
+
+Use:
+1. Install/update normally.
+2. Open J and R Construction Manager.
+3. Run System Check.
+4. Open Bookkeeping.
+5. Click Reconcile Bookkeeping Now.
+6. Export CSV when needed for tax/bookkeeping review.

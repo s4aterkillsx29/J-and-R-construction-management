@@ -1,0 +1,4 @@
+Network sessions are included in app/network_server.py.
+Run START_NETWORK_SERVER.bat on Jacob's administrator laptop.
+Admin panel URL after server starts: http://127.0.0.1:8765/admin
+Health check URL after server starts: http://127.0.0.1:8765/health

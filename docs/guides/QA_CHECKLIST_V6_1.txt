@@ -1,0 +1,35 @@
+JRC v6.3 QA CHECKLIST
+
+Automated checks run in build:
+[ ] Python compile
+[ ] Live Deployment Readiness
+[ ] ZIP integrity
+
+Checks to run on installed PC/cloud with dependencies:
+[ ] Self Setup + Verify
+[ ] System Check
+[ ] Permission View Check
+[ ] Security Perspective Audit
+[ ] Dashboard Role Check
+[ ] Final Program Verify
+[ ] Cloud Deploy Check
+[ ] Internet / Cloud Security Verify
+[ ] Live Deployment Readiness
+
+Manual test accounts:
+[ ] admin owner account
+[ ] manager account
+[ ] worker account
+[ ] viewer account
+[ ] customer account
+[ ] non-company/external account
+
+Live cloud URLs:
+[ ] /api/health
+[ ] /api/connection
+[ ] /connect
+[ ] /login
+[ ] /mobile
+[ ] /register
+[ ] /apply
+[ ] /customer/request

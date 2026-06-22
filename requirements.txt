@@ -1,0 +1,4 @@
+reportlab
+flask
+waitress
+gunicorn

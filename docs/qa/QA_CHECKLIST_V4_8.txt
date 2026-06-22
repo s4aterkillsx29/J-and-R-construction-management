@@ -1,0 +1,6 @@
+JRC v4.8 QA Checklist
+- Python compile check passed before packaging.
+- Host quick test script added.
+- Start Center no longer fails host quick test after only one short check.
+- Mobile Links waits for host verification.
+- ZIP integrity verified before delivery.

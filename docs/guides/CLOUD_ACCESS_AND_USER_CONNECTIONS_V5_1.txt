@@ -1,0 +1,22 @@
+JRC Construction Manager v5.1 - Cloud Access + User Connection Readiness
+
+Purpose:
+This update separates desktop/local work from remote user access so the program remains usable even when the local host is not running.
+
+Important truth:
+Other users cannot connect to your private program while every host is off. For users to connect from other locations without your PC host active, JRC Manager must be deployed on a cloud/VPS/tunnel/VPN host that stays running.
+
+What changed:
+- Open Office works locally without starting the host.
+- Mobile Links can now use a saved Cloud Access URL when local host is off.
+- Cloud Access button lets Jacob save/edit the remote base URL.
+- Worker Forms use cloud links if a Cloud Access URL is saved.
+- Access Mode Check verifies desktop, cloud, local-host, and role-perspective readiness.
+- Non-company users remain limited to shared/mobile shell access.
+
+Recommended path:
+1. Use the desktop program for local J&R office work.
+2. Use local host only for same-Wi-Fi testing.
+3. Deploy cloud_hosting on a real host or secure tunnel with HTTPS.
+4. Save that URL through Cloud Access.
+5. Share /mobile, /register, or /apply links only with approved people.

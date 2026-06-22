@@ -1,0 +1,17 @@
+J & R Construction Manager v5.8 - Automated Setup + 90-Day Device Consent
+
+Purpose:
+- Make install/setup more automatic after installation while keeping passwords inside the secured app, not the installer.
+- Open First Setup/Login after install, then show a Setup Complete screen after verified login.
+- Remember PCs/phones only when the user checks the consent box during login.
+- Remembered-device consent expires after 90 days and requires another successful login/checkbox verification.
+- Preserve role-based dashboards and customer/non-company separation.
+- Keep UI colors professional for J&R business use.
+
+Security notes:
+- Installer does not collect, store, or transmit passwords.
+- Passwords remain hashed inside the app database.
+- Remembered-device cookie is opaque, HttpOnly, SameSite, and server-side hashed/fingerprinted.
+- Secure cookie flag is used when HTTPS/public host mode is active.
+- Local HTTP cannot use Secure cookies because browsers would reject them.
+- No hidden backdoor, no silent access, and no access to user devices outside the program.

@@ -1,0 +1,20 @@
+J and R Construction Manager v4.0 - Secure Device Cookie Policy
+
+Remembered devices are used to identify browsers/devices for business security and session management.
+
+Security design:
+- The browser cookie contains only a random opaque token.
+- The database stores only a SHA-256 fingerprint of that token.
+- The cookie is HttpOnly, so normal browser scripts cannot read it.
+- The cookie uses SameSite=Strict by default.
+- In HTTPS/public host mode, the cookie also uses Secure=True.
+- On local LAN HTTP, Secure=True cannot be used because browsers would drop the cookie; the program still uses HttpOnly, SameSite, hashing, IP/session logs, and admin-visible device records.
+- Admins can mark devices observed, trusted, blocked, or forgotten.
+- Users can forget their current browser/device.
+- No hidden backdoor or no-footprint access is included. Owner recovery is visible, local-host-only, permission-based, and logged.
+
+Recommended:
+- Change default admin/admin immediately.
+- Use HTTPS or a VPN/tunnel for remote users.
+- Review Admin > Devices and Admin > Sessions regularly.
+- Block unknown devices if needed.

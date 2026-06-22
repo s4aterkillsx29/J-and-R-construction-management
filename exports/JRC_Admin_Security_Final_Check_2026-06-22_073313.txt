@@ -1,0 +1,17 @@
+JRC Admin Security Final Check
+Status: PASS
+Timestamp: 2026-06-22T07:33:13
+
+Checks performed:
+- Default admin/admin is local first-setup only.
+- Remote/customer/cloud default-admin attempts are blocked.
+- Changed admin password is preserved across updates.
+- Password-change route requires the current password.
+- Admin password change disables default admin state and revokes other admin sessions.
+- Remembered devices stay opt-in with 90-day expiration.
+
+Errors:
+None
+
+Warnings:
+None

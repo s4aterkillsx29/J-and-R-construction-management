@@ -1,0 +1,9 @@
+QA checklist v5.7:
+1. Install/update preserves data.
+2. Open Setup/Login button opens Start Center and secure app login.
+3. First Setup / Login does not store passwords in installer.
+4. Self Setup + Verify writes report to exports.
+5. Internet / Cloud Security Verify writes report to exports.
+6. Cloud host uses JRC_SECRET_KEY and optional JRC_TRUSTED_HOSTS.
+7. Customers/non-company users remain limited.
+8. Admin changes default admin/admin before sharing access.

@@ -1,0 +1,13 @@
+J and R Construction Manager v3.9 QA Checklist
+
+Checked before packaging:
+- Python compile check for all app files.
+- ZIP integrity check.
+- Version updated to v3.9.0.
+- Secure remembered-device cookie helper added.
+- Device cookie uses opaque token; DB stores hash only.
+- Session cookies use HttpOnly + SameSite=Strict.
+- HTTPS/public mode uses Secure cookies.
+- Forget-this-device route added.
+- Admin device policy text updated.
+- Installer remains no-hang and one-desktop-shortcut only.

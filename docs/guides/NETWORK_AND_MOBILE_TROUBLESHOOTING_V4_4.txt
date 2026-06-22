@@ -1,0 +1,27 @@
+J AND R CONSTRUCTION MANAGER v4.4 - NETWORK AND MOBILE REPAIR
+
+This release focuses only on shared host and mobile connection reliability.
+
+Correct use:
+1. Open J and R Construction Manager.
+2. Click Shared Host.
+3. Wait for the Start Center to confirm: Shared Host Verified.
+4. Click Mobile Access.
+5. First test /connect from the phone.
+
+If the phone cannot connect:
+- Make sure the phone and host PC are on the same Wi-Fi or VPN.
+- Run ALLOW_LAN_FIREWALL_ACCESS.bat from the program folder.
+- Make sure your network is private/trusted, not public/guest Wi-Fi.
+- Use Remote Mobile only with a secure tunnel/VPN/cloud host for outside locations.
+
+New test pages:
+/connect - public connection test and link hub
+/mobile/ping - very simple phone connection test
+/api/connection - JSON connection details
+/api/health - server health status
+
+Security notes:
+- Do not expose the laptop directly to public internet.
+- Change default admin/admin password before sharing links.
+- Use HTTPS/tunnel/cloud hosting for remote access outside your LAN.

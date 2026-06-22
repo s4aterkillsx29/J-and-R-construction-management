@@ -1,0 +1,17 @@
+JRC Construction Manager v4.8 - Host Quick Test Reliability
+
+This focused repair improves the shared/mobile host startup test.
+
+Changes:
+- Start Host now waits up to about 24 seconds for the server to answer instead of checking once too early.
+- Quick test verifies API Health, Mobile Ping, and Connection API endpoints.
+- Mobile Links only opens after the host passes quick test.
+- Added Tools / Repair > Run Host Quick Test.
+- Added app/host_quick_test.py which writes a JSON report to exports.
+- If host fails, the Start Center shows endpoint results and the last part of shared_host_last.log.
+
+If phone access still fails:
+1. Start Host and wait for Host Started and Verified.
+2. Open the Connection Test link on the phone.
+3. If the phone cannot connect but the laptop can, run Allow Phone Access.
+4. Verify both devices are on the same Wi-Fi/VPN/tunnel.

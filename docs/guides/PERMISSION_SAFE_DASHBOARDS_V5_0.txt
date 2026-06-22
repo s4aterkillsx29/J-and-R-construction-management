@@ -1,0 +1,26 @@
+JRC Construction Manager v5.0 - Permission-Safe Dashboards + External User Access
+
+Purpose:
+This update improves how the program looks and behaves for limited-permission accounts. It is focused on keeping the owner/admin view powerful while making worker, viewer, and non-company accounts simple, safer, and less confusing.
+
+Main improvements:
+- Adds a new non_company / external user account classification.
+- Non-company users get minimal permissions only: dashboard, shared items, and mobile shell.
+- Non-company users cannot access the full jobs list, full file explorer, expenses, payroll, bookkeeping, admin tools, hosting, devices, or system settings.
+- Navigation now hides menu items the logged-in user cannot use.
+- Worker/viewer dashboards no longer show money cards such as paid income, receivables, expenses, or worker pay unless the role has money permission.
+- Mobile pages now respect role permissions.
+- External/mobile users are redirected to shared items instead of seeing full jobs/files.
+- Shared file access now works through the shared-items permission, so a non-company user can open only a file intentionally shared to the non_company class.
+- Admin and manager accounts can share files/jobs to the non_company role when appropriate.
+- Account requests now include a Non-company / external minimal access option.
+
+Recommended use:
+- Admin: Jacob/owner or trusted main operator only.
+- Manager: trusted internal user who can edit business records.
+- Worker: company/helper user who can view job/file info, but not money unless upgraded.
+- Viewer: read-only company-side user.
+- Non-company: customer, outside reviewer, realty contact, or non-employee user who should only see specifically shared items.
+
+Security note:
+This update does not create hidden access, backdoors, or device control. It only improves permission-based access that is visible, logged, and owner/admin controlled.

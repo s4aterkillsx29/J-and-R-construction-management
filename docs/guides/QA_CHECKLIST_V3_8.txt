@@ -1,0 +1,11 @@
+J and R Construction Manager v3.8 QA Checklist
+- ZIP integrity checked.
+- Python compile check passed.
+- Installer does not run Python/pip during install.
+- Device tracking tables are created/repaired by System Check and app startup.
+- Online sessions include username, IP address, browser/device info, and remembered device status.
+- Admin device manager exists at /admin/devices for admins.
+- Owner recovery exists at /owner-recovery and only works from trusted local host PC.
+- Owner recovery is transparent and logged; no hidden backdoor is included.
+- Account request workflow remains /register with admin approval.
+- Payroll/job cost automation from v3.7 is retained.

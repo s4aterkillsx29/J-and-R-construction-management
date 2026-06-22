@@ -1,0 +1,17 @@
+services:
+  jrc-manager:
+    build: .
+    container_name: jrc-construction-manager
+    ports:
+      - "8765:8765"
+    environment:
+      - JRC_PUBLIC_HOST_MODE=1
+      - JRC_PORT=8765
+      - JRC_SESSION_TIMEOUT_MINUTES=60
+    volumes:
+      - ./data:/app/data
+      - ./exports:/app/exports
+      - ./evidence:/app/evidence
+      - ./chatgpt_imports:/app/chatgpt_imports
+      - ./backups:/app/backups
+    restart: unless-stopped

@@ -1,0 +1,17 @@
+JRC v6.7 QA Checklist
+
+Checked in build environment:
+- Python compile check for app files.
+- UI Dashboard Final Check.
+- Quick Setup Final Check.
+- Admin Security Final Check.
+- Final Program Verify.
+- ZIP integrity test.
+
+Manual Windows checks after install:
+- Quick Setup Login appears.
+- Start Center scrolls if window is short.
+- Every Start Center card shows an Open button.
+- Dashboard role buttons appear as clean grids.
+- Customer dashboard only shows customer actions.
+- External dashboard only shows shared access.

@@ -1,0 +1,17 @@
+QA Checklist v5.3
+
+Checked in build environment:
+- Python compile check
+- System Check
+- Permission View Check
+- Security Perspective Audit
+- ZIP integrity test
+
+Manual checks for Jacob on Windows after install:
+- Login admin/admin and immediately change password.
+- Confirm Open Office works.
+- Confirm customer account routes to customer dashboard.
+- Confirm customer cannot open /jobs, /files, /expenses, /payroll, /admin.
+- Confirm worker/viewer cannot see money widgets.
+- Confirm non-company can only see shared items.
+- Confirm admin can access /security-audit and Tools / Repair.

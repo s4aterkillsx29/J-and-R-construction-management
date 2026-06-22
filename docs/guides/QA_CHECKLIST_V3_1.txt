@@ -1,0 +1,15 @@
+J and R Construction Manager v3.1 QA Checklist
+
+Checked items:
+- Python syntax compile check for app files.
+- ZIP integrity check before delivery.
+- Installer keeps one desktop shortcut.
+- Installer preserves data, exports, evidence, backups, ChatGPT imports, standards, and Dropbox files.
+- Network server has /register for account requests without installing the desktop program.
+- Admin panel shows pending requests.
+- Admin approval creates a real user account and worker profile.
+- Passwords are stored as hashes, not readable text.
+- Online sessions show username, role, IP address, browser/device, login time, and last seen.
+- Admin can revoke active sessions.
+- Role permissions remain separated for admin, manager, worker, and viewer.
+- Worker/viewer default access is read-only.

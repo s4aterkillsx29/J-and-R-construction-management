@@ -1,0 +1,20 @@
+JRC Construction Manager v6.3 QA Checklist
+
+Security checks:
+[ ] Default admin/admin works only for local first setup.
+[ ] Default admin/admin is blocked in public/cloud host mode.
+[ ] Customer and non-company roles cannot access admin pages.
+[ ] Admin password change requires current password.
+[ ] Changed admin password is preserved across updates because database is preserved.
+[ ] Updates do not reset admin password back to admin/admin.
+[ ] Owner recovery is transparent, local-only, and logged.
+[ ] Remember this PC/phone is opt-in and expires after 90 days.
+[ ] Run Admin Security Final Check after install.
+[ ] Run Self Setup + Verify after install.
+
+Cloud/live checks:
+[ ] Set JRC_SECRET_KEY on cloud host.
+[ ] Set JRC_TRUSTED_HOSTS on cloud host.
+[ ] Set JRC_CLOUD_BASE_URL after real HTTPS URL is available.
+[ ] Use HTTPS/tunnel/VPN/cloud before outside users connect.
+[ ] Never run public host mode with default admin/admin active.

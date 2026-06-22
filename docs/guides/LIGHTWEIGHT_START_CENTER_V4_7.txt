@@ -1,0 +1,25 @@
+JRC Construction Manager v4.7 - Lightweight Responsive Repair Build
+
+Purpose:
+This update fixes the issue where Start Center menu items seemed to do nothing or the program felt too heavy.
+
+Changes:
+- Start Center no longer runs heavy QA or system checks from the main menu.
+- Heavy tools moved into Tools / Repair.
+- Buttons launch background tasks and show clear status messages.
+- Every background task writes a *_last.log file to the logs folder.
+- Open Office, Start Host, Mobile Links, Worker Forms, Tools, and Files are now the main simple buttons.
+- Shared Host checks for missing Flask/network tools before trying to start.
+- Mobile Links opens a clear phone link window.
+- If any button appears to do nothing, open Files / Logs > Logs Folder and check the newest log.
+
+Business data preserved by installer:
+- database
+- evidence
+- exports
+- backups
+- ChatGPT imports
+- business standards
+- logs
+- file sources
+- Dropbox files

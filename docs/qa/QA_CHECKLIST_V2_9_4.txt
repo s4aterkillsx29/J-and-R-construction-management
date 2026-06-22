@@ -1,0 +1,8 @@
+J and R Construction Manager v2.9.4 QA Checklist
+
+- Package structure verified.
+- Python app compile check passed in build environment.
+- Installer updated to avoid Start-Process -ArgumentList during dependency install.
+- Existing install data preservation rules retained.
+- One desktop shortcut policy retained.
+- Optional package install is non-blocking and logs failures instead of stopping core install.

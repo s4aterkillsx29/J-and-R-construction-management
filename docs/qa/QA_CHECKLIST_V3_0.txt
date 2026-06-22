@@ -1,0 +1,11 @@
+J and R Construction Manager v3.0 QA Checklist
+
+Package build checks:
+- Python compile check for app files.
+- ZIP integrity check.
+- No __pycache__ files packaged.
+- One desktop shortcut behavior preserved.
+- Installer does not run blocking pip during main setup.
+- Optional dependency repair is available from Start Center and BAT file.
+- Business data preservation folders protected.
+- Shared host checks for missing Flask before starting.

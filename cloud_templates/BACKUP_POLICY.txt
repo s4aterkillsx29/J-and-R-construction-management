@@ -1,0 +1,15 @@
+Backup policy for hosted/server use:
+
+Daily:
+- Copy data/jr_business.db and data/*.json/key files.
+- Copy evidence, exports, chatgpt_imports if stored on the server.
+- Export user index from Admin panel monthly.
+
+Before updates:
+- Run in-app Backup ZIP.
+- Save ZIP outside the program folder.
+- Confirm it opens before installing update.
+
+Dropbox:
+- Keep Dropbox for evidence/source files and backup copies.
+- Do not run a live SQLite database directly from a Dropbox-synced folder.

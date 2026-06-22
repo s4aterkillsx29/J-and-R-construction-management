@@ -1,0 +1,30 @@
+JRC v7.1 Primary Live Deployment Checklist
+
+Provider choice:
+[ ] Recommended: Render paid Web Service + Persistent Disk.
+[ ] Alternative: Railway volume/database.
+[ ] Alternative: Fly.io volume with one machine always running.
+[ ] Self-host fallback only: Cloudflare Tunnel.
+[ ] Do NOT use router port forwarding as the primary production server.
+
+Environment variables:
+[ ] JRC_PUBLIC_HOST_MODE=1
+[ ] JRC_CLOUD_PRIMARY_MODE=1
+[ ] JRC_DATA_DIR=/var/data/jrc
+[ ] JRC_SECRET_KEY set to long random value
+[ ] JRC_INITIAL_ADMIN_PASSWORD set to strong first owner password
+[ ] JRC_TRUSTED_HOSTS set to exact domain/host
+[ ] JRC_CLOUD_BASE_URL set to HTTPS URL
+
+Health/security checks:
+[ ] /api/live/ready returns ok
+[ ] /api/health returns ok
+[ ] /login opens
+[ ] owner/admin first login works
+[ ] admin password changed from initial value
+[ ] customer portal request works
+[ ] worker account request works
+[ ] mobile page works
+[ ] admin/security checks pass
+[ ] backup/export works
+[ ] file sources are role-filtered

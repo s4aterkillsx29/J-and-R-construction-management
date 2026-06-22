@@ -1,0 +1,34 @@
+JRC v6.8 QA Checklist - Customer Request Final Live Edition
+
+Checked in build:
+- Python compile check passes.
+- Customer Request Final Check passes with 0 errors.
+- UI Dashboard Final Check passes with 0 errors.
+- Quick Setup Final Check passes with 0 errors.
+- Final Program Verify passes with 0 errors.
+- ZIP integrity test passes.
+
+Expected clean-build warnings:
+- Installed database live schema check is skipped until installed/opened.
+- Live browser-click checks require Flask/dependencies on the installed PC or cloud host.
+
+Required real-PC checks after install:
+- System Check
+- Quick Setup Final Check
+- Admin Security Final Check
+- Customer Request Final Check
+- Permission View Check
+- Security Perspective Audit
+- Final Program Verify
+
+Customer acceptance test:
+1. Create or approve a test customer account.
+2. Log in as customer.
+3. Confirm dashboard only shows customer portal actions.
+4. Submit a customer job request.
+5. Confirm required fields validate properly.
+6. Confirm customer can only view their own request.
+7. Log in as owner/admin.
+8. Review the request under Customer Requests.
+9. Add customer-visible and internal notes.
+10. Log back in as customer and confirm only customer-visible notes appear.

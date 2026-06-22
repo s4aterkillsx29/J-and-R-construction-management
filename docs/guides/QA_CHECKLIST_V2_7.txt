@@ -1,0 +1,18 @@
+J and R Construction Manager v2.7 QA Checklist
+
+Included checks:
+- Python files compile with py_compile.
+- Shared session server has role-based login.
+- Admin panel can view/revoke sessions.
+- Sharing Center supports file and job sharing.
+- File uploads are limited to managers/admins.
+- Workers/viewers are read-only for files/jobs/money changes.
+- Mobile Companion uses the same server session and permissions.
+- ChatGPT source is import/API-config only; no private ChatGPT Business session is embedded.
+- Installer creates one desktop shortcut only.
+- Installer preserves data, evidence, exports, backups, ChatGPT imports, and Dropbox files.
+
+Security notes:
+- Change admin/admin before shared use.
+- For outside internet access, use HTTPS, VPN/tunnel, firewall rules, and strong passwords.
+- Do not run a public server from a laptop without protection.

@@ -1,0 +1,109 @@
+J & R Construction Manager - Final Program Verification
+Generated: 2026-06-22T07:33:20
+Program folder: /mnt/data/jrc_v71_work
+
+RESULT: 0 errors, 2 warnings, 98 passes
+
+WARNINGS
+- Installed database not found in this clean/package environment. System Check will create/repair it on the user's PC.
+- Live Flask test-client checks skipped or failed in this environment: No module named 'flask'
+
+PASSES
+- Required file found: app/network_server.py
+- Required file found: app/start_center.py
+- Required file found: app/system_check.py
+- Required file found: app/permission_view_check.py
+- Required file found: app/security_perspective_audit.py
+- Required file found: app/dashboard_role_check.py
+- Required file found: app/access_mode_check.py
+- Required file found: app/auto_host_repair.py
+- Required file found: app/host_quick_test.py
+- Required file found: app/cloud_deploy_check.py
+- Required file found: app/final_program_verify.py
+- Required file found: cloud_hosting/Dockerfile
+- Required file found: cloud_hosting/docker-compose.yml
+- Required file found: cloud_hosting/render.yaml
+- Required file found: cloud_hosting/Procfile
+- Required file found: requirements.txt
+- Required file found: INSTALL_J_AND_R_MANAGER.vbs
+- Python syntax OK: app/__init__.py
+- Python syntax OK: app/access_mode_check.py
+- Python syntax OK: app/admin_security_final_check.py
+- Python syntax OK: app/auto_host_repair.py
+- Python syntax OK: app/backup_only.py
+- Python syntax OK: app/cloud_deploy_check.py
+- Python syntax OK: app/cloud_primary_final_check.py
+- Python syntax OK: app/cloud_readiness_check.py
+- Python syntax OK: app/customer_request_final_check.py
+- Python syntax OK: app/dashboard_role_check.py
+- Python syntax OK: app/dependency_tools.py
+- Python syntax OK: app/extreme_final_verify.py
+- Python syntax OK: app/final_program_verify.py
+- Python syntax OK: app/first_run_login_setup.py
+- Python syntax OK: app/full_program_qa.py
+- Python syntax OK: app/host_login_verify.py
+- Python syntax OK: app/host_quick_test.py
+- Python syntax OK: app/initialize_install.py
+- Python syntax OK: app/internet_cloud_security_verify.py
+- Python syntax OK: app/jr_job_manager.py
+- Python syntax OK: app/live_deployment_readiness.py
+- Python syntax OK: app/local_login_gate.py
+- Python syntax OK: app/login_install_system_check.py
+- Python syntax OK: app/network_server.py
+- Python syntax OK: app/permission_view_check.py
+- Python syntax OK: app/primary_live_server_check.py
+- Python syntax OK: app/quick_setup_final_check.py
+- Python syntax OK: app/security_perspective_audit.py
+- Python syntax OK: app/seed_current_records.py
+- Python syntax OK: app/self_setup_verify.py
+- Python syntax OK: app/start_center.py
+- Python syntax OK: app/system_check.py
+- Python syntax OK: app/ui_dashboard_final_check.py
+- Python syntax OK: app/v6_final_readiness.py
+- Python syntax OK: app/wsgi.py
+- Route marker present: /login
+- Route marker present: /register
+- Route marker present: /
+- Route marker present: /mobile
+- Route marker present: /connect
+- Route marker present: /api/health
+- Route marker present: /api/connection
+- Route marker present: /api/cloud/status
+- Route marker present: /cloud-status
+- Route marker present: /customer
+- Route marker present: /customer/request
+- Route marker present: /customer/requests
+- Route marker present: /customers/requests
+- Route marker present: /apply
+- Route marker present: /applications
+- Route marker present: /admin
+- Route marker present: /admin/devices
+- Route marker present: /owner-recovery
+- Role present: admin
+- Role present: manager
+- Role present: worker
+- Role present: viewer
+- Role present: non_company
+- Role present: customer
+- Customer role is customer-portal limited
+- Customer role does not include internal money/payroll/admin/file management permissions
+- Security header present: Content-Security-Policy
+- Security header present: X-Frame-Options
+- Security header present: X-Content-Type-Options
+- Security header present: Referrer-Policy
+- Security header present: Permissions-Policy
+- Cookie/cloud security marker present: HttpOnly
+- Cookie/cloud security marker present: SameSite
+- Cookie/cloud security marker present: DEVICE_COOKIE_NAME
+- Cookie/cloud security marker present: JRC_SECRET_KEY
+- Cookie/cloud security marker present: PUBLIC_HOST_MODE
+- Start Center tool present: Final Program Verify
+- Start Center tool present: Cloud Deploy Check
+- Start Center tool present: Host Monitor
+- Start Center tool present: Open Login
+- Cloud file found: cloud_hosting/Dockerfile
+- Cloud file found: cloud_hosting/docker-compose.yml
+- Cloud file found: cloud_hosting/render.yaml
+- Cloud file found: cloud_hosting/cloud_entry.py
+- Dockerfile uses gunicorn production server
+- Docker Compose includes persistent volume mappings

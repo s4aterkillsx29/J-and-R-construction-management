@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-06-22 07:33:22",
+  "errors": [],
+  "warnings": [],
+  "checks": [
+    "cloud_hosting/Dockerfile exists",
+    "cloud_hosting/docker-compose.yml exists",
+    "cloud_hosting/render.yaml exists",
+    "cloud_hosting/railway.json exists",
+    "cloud_hosting/fly.toml exists",
+    "cloud_hosting/Procfile exists",
+    "cloud_hosting/env.example exists",
+    "cloud_hosting/cloudflare_tunnel_example.yml exists",
+    "OK environment secret JRC_SECRET_KEY",
+    "OK secure cookie flag helper",
+    "OK HttpOnly cookie usage",
+    "OK SameSite cookie usage",
+    "OK security headers",
+    "OK cloud status endpoint",
+    "OK customer portal role",
+    "OK non company minimal role",
+    "OK first setup login bridge"
+  ]
+}

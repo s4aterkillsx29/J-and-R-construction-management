@@ -1,0 +1,13 @@
+J and R Construction Manager v2.9.2 Installer Python Hang Hotfix
+
+Checks performed before packaging:
+- Python syntax compile check for core app modules.
+- Installer UI script reviewed for non-blocking process execution.
+- Pip commands changed to non-interactive mode with timeout handling.
+- Winget Python install attempt has timeout and falls back to Python download page.
+- Existing data-preservation behavior retained.
+
+Installer fixes:
+- Replaced blocking stdout ReadLine loop that could appear stuck at Python/pip steps.
+- Added command timeouts with clear error messages.
+- Installer log remains available in local app logs folder.

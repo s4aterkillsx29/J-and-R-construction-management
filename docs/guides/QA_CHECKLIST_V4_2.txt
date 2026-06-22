@@ -1,0 +1,7 @@
+JRC v4.2 QA Checklist
+- Python compile check passes.
+- /apply public application page loads.
+- /applications owner review page loads for admin.
+- Application tables auto-repair through before_request.
+- Export CSV route present.
+- Installer remains no-hang and does not run Python/pip during install.

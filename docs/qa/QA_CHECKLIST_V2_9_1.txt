@@ -1,0 +1,13 @@
+J and R Construction Manager v2.9.1 QA
+
+Installer UI changes:
+- INSTALL_J_AND_R_MANAGER.vbs launches a branded PowerShell Windows Forms installer.
+- Normal installer path avoids a visible command prompt.
+- INSTALL_JR_JOB_MANAGER.bat remains only as fallback.
+- One desktop shortcut behavior preserved.
+- Program data preservation behavior preserved.
+
+Checks performed before packaging:
+- Python compile check for app files.
+- Package structure verified.
+- Installer scripts written with fallback path.

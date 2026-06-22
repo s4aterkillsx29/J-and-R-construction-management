@@ -1,0 +1,10 @@
+J AND R CONSTRUCTION MANAGER V3.5 QA CHECKLIST
+
+Checked before packaging:
+- Python compile check on app files.
+- ZIP integrity check.
+- Start Center menu updated to avoid unstable emoji/icon rendering.
+- Menu uses fixed-width text badges that stay aligned when maximized/restored.
+- Descriptions dynamically rewrap on resize.
+- Added obvious installer files at package root and program folder.
+- Preserves v3.3/v3.4 safe update behavior and one desktop shortcut design.

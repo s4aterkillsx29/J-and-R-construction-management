@@ -1,0 +1,12 @@
+JRC v7.1 QA Checklist
+- Python compile check
+- Primary Live Server Check
+- Cloud Primary Final Check
+- Quick Setup Final Check
+- Admin Security Final Check
+- UI Dashboard Final Check
+- Customer Request Final Check
+- Final Program Verify
+- Internet / Cloud Security Verify
+- Cloud Deploy Check
+- ZIP integrity test

@@ -1,0 +1,11 @@
+JRC v7.1 QA Checklist
+1. Install/update preserves existing data.
+2. Cloud deploy sets JRC_SECRET_KEY, JRC_INITIAL_ADMIN_PASSWORD, JRC_TRUSTED_HOSTS, JRC_CLOUD_BASE_URL.
+3. /api/health returns OK.
+4. /api/cloud/primary-status shows cloud_primary_mode true and database path on persistent storage.
+5. Admin logs in with cloud initial password, then changes password.
+6. Customer accounts can only access customer portal/job requests.
+7. Non-company users only see shared items/mobile shell.
+8. Workers/viewers do not see payroll/bookkeeping/job costing.
+9. Admin/manager dashboards show permitted controls.
+10. Cloud provider health check and restart policy are enabled.

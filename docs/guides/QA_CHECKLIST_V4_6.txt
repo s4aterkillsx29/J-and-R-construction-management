@@ -1,0 +1,21 @@
+JRC Construction Manager v4.6 QA Checklist
+
+Automated checks added:
+- Python compile check for app files
+- Full Program QA report generator
+- Database integrity and table checks
+- Account/applications/payroll/bookkeeping/filekeeping route scans
+- Security cookie/password/device pattern checks
+- Installer safety and data-preservation checks
+
+Manual Windows test recommended:
+- Install/update with START INSTALL HERE
+- Open Start Center
+- Run System Check
+- Run Full QA Test
+- Open Office and verify login
+- Start Shared Host
+- Open /connect from phone on same Wi-Fi
+- Open /mobile, /register, and /apply
+- Add a test worker application and review it under Applications
+- Add a test payroll entry and verify Job Costs

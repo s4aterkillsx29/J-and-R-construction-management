@@ -1,0 +1,31 @@
+J & R Construction Manager - Cloud Deploy Check
+Generated: 2026-06-22T07:33:24
+Result: 0 errors, 3 warnings, 21 passes
+
+WARNINGS
+- env:JRC_PUBLIC_HOST_MODE: not set here; set on cloud host to 1
+- env:JRC_SECRET_KEY: not set here; set on cloud host to long random secret
+- env:JRC_SESSION_TIMEOUT_MINUTES: not set here; set on cloud host to 120
+
+PASSES
+- cloud_hosting/Dockerfile: required for cloud/package readiness
+- cloud_hosting/docker-compose.yml: required for cloud/package readiness
+- cloud_hosting/render.yaml: required for cloud/package readiness
+- cloud_hosting/railway.json: required for cloud/package readiness
+- cloud_hosting/fly.toml: required for cloud/package readiness
+- cloud_hosting/cloud_entry.py: required for cloud/package readiness
+- cloud_hosting/env.example: required for cloud/package readiness
+- app/network_server.py: required for cloud/package readiness
+- requirements.txt: required for cloud/package readiness
+- requirement:flask: 
+- requirement:waitress: 
+- source marker:JRC_SECRET_KEY: 
+- source marker:PUBLIC_HOST_MODE: 
+- source marker:Strict-Transport-Security: 
+- source marker:/api/cloud/status: 
+- source marker:/cloud-status: 
+- source marker:customer_portal: 
+- Dockerfile uses gunicorn: 
+- Dockerfile public host mode: 
+- Docker compose persistent volumes: 
+- Docker compose restart policy: 

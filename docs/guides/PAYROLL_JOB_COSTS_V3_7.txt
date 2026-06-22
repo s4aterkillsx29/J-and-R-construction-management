@@ -1,0 +1,12 @@
+J and R Construction Manager v3.7 - Payroll + Job Cost Automation
+
+New features:
+- Payroll Center for logging worker/helper pay by job.
+- Optional $100 worker cost fee tracking per payroll entry.
+- Payroll entries automatically feed job cost totals.
+- Job Cost Dashboard totals job price, paid amount, balance, expenses, worker pay, worker fees, and estimated profit.
+- Payroll CSV and Job Cost CSV exports.
+- Auto-repair creates/updates payroll/accounting tables for older installs.
+- Role permissions: admin/manager can manage payroll; workers/viewers remain read-only.
+
+Important: This is business record software, not a certified payroll/tax filing service. Use a CPA/tax professional for final payroll classification, 1099/W-2, withholding, and tax filing decisions.

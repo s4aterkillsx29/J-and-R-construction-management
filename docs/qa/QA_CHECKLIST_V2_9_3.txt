@@ -1,0 +1,6 @@
+J and R Construction Manager v2.9.3 QA
+- Installer no longer blocks on pip output pipes.
+- UI installer and fallback batch installer updated.
+- Optional deps install redirects to logs and times out safely.
+- Install continues if optional deps fail; data preserved.
+- One desktop shortcut behavior retained.

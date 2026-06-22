@@ -1,0 +1,17 @@
+JRC Construction Manager v4.7 QA Checklist
+
+Checked by package build:
+- Python compile check on app files
+- ZIP integrity check
+- Start Center simplified and made lighter
+- Heavy tools moved off main menu
+- logs folder used for background launches
+- business data preservation structure kept
+
+Recommended on user's PC:
+1. Install/update.
+2. Open the one desktop shortcut.
+3. Click Open Office.
+4. If it does not show, open Files / Logs > Logs Folder and check desktop_app_last.log.
+5. Click Start Host only when mobile/shared access is needed.
+6. Use Tools / Repair > System Check after updates.

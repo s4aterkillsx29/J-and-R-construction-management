@@ -1,0 +1,32 @@
+JRC Customer Request Final Check v6.8
+Started: 2026-06-22T07:33:18
+Program: /mnt/data/jrc_v71_work
+
+OK - customer request field exists: contact_name
+OK - customer request field exists: contact_phone
+OK - customer request field exists: contact_email
+OK - customer request field exists: best_contact_method
+OK - customer request field exists: property_type
+OK - customer request field exists: occupancy_status
+OK - customer request field exists: tenant_name
+OK - customer request field exists: tenant_phone
+OK - customer request field exists: appointment_window
+OK - customer request field exists: safety_notes
+OK - customer request field exists: pets_notes
+OK - customer request field exists: budget_range
+OK - customer request field exists: request_reason
+OK - customer request field exists: customer_acknowledged
+OK - customer request schema repair helper exists
+OK - customer request requires contact method
+OK - customer request acknowledgement required
+OK - customer request creates event log
+OK - owner review page includes customer-visible and internal notes
+OK - customer detail hides internal notes
+OK - customers cannot access internal surfaces helper still exists
+OK - customer role limited permission set exists
+OK - customer dashboard quick actions exist
+OK - customer route is login protected
+OK - owner/admin customer request route protected
+WARNING - installed database schema live check
+
+Summary: 0 error(s), 1 warning(s), 25 pass(es).

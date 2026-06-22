@@ -1,0 +1,87 @@
+{
+  "ok": true,
+  "errors": [],
+  "warnings": [
+    "JRC_SECRET_KEY not set in this environment; set it on the live cloud host.",
+    "JRC_INITIAL_ADMIN_PASSWORD not set here; set it before first cloud deploy.",
+    "JRC_TRUSTED_HOSTS not set here; set it to the live hostname/domain."
+  ],
+  "checks": [
+    {
+      "name": "APP_VERSION_7_0",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_PRIMARY_MODE",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_DATA_DIR_ENV",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_INITIAL_ADMIN",
+      "ok": true
+    },
+    {
+      "name": "DEFAULT_ADMIN_REMOTE_BLOCK",
+      "ok": true
+    },
+    {
+      "name": "SECURITY_HEADERS",
+      "ok": true
+    },
+    {
+      "name": "DEVICE_COOKIE_SECURITY",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_FILE_Dockerfile",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_FILE_docker-compose.yml",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_FILE_render.yaml",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_FILE_railway.json",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_FILE_fly.toml",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_FILE_Procfile",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_FILE_env.example",
+      "ok": true
+    },
+    {
+      "name": "CLOUD_FILE_cloud_entry.py",
+      "ok": true
+    },
+    {
+      "name": "RENDER_HEALTHCHECK",
+      "ok": true
+    },
+    {
+      "name": "RENDER_PERSISTENT_DISK",
+      "ok": true
+    },
+    {
+      "name": "GUNICORN_START",
+      "ok": true
+    },
+    {
+      "name": "PERSISTENT_DATA_PATH",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+QA Checklist v6.3
+- Python compile passes.
+- Login page is separate from Dashboard.
+- Default admin/admin is created on first install.
+- Existing admin account is reactivated/repaired if inactive/wrong role.
+- Local host startup verifies Login first.
+- Mobile endpoint failures no longer block local login.
+- Host Login Verify tool exists and writes reports to exports.
+- ZIP integrity passes.

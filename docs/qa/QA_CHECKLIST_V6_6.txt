@@ -1,0 +1,12 @@
+JRC v6.6 QA Checklist
+
+[ ] Install from ZIP.
+[ ] Quick Setup Login opens automatically.
+[ ] Brand-new local database accepts admin/admin.
+[ ] Existing older database with 200k hash accepts admin/admin once and migrates.
+[ ] Change Password works and preserves new admin password.
+[ ] Reinstall/update does not reset admin password.
+[ ] Customer users cannot access admin pages.
+[ ] Run Quick Setup Final Check.
+[ ] Run Admin Security Final Check.
+[ ] Run Self Setup + Verify.

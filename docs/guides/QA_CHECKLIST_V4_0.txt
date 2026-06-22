@@ -1,0 +1,13 @@
+J and R Construction Manager v4.0 QA Checklist
+
+Checked before packaging:
+- Python compile check for app files.
+- ZIP integrity check.
+- Version updated to 4.0.0.
+- Installer remains no-hang: no Python/pip execution during install.
+- One desktop shortcut behavior retained.
+- Business data preservation retained.
+- Secure device cookie policy documented.
+- Bookkeeping schema added/repaired by System Check.
+- Bookkeeping ledger export available.
+- Account request, payroll, job cost, mobile, files, and trusted devices retained.

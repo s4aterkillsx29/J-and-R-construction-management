@@ -1,0 +1,19 @@
+JRC Manager v5.4 QA Checklist
+
+Build checks performed in ChatGPT sandbox:
+- Python syntax compile for app files.
+- Auto Host Repair script compile.
+- Start Center compile after JSON/import/port repair patches.
+- ZIP integrity test.
+
+Local Windows checks to run after install:
+1. Open desktop shortcut.
+2. Click Auto Repair Host.
+3. Open Exports and confirm a JRC_Auto_Host_Repair_Report file was created.
+4. Click Start Local Host.
+5. Confirm Host Started and Verified.
+6. Click Mobile Links.
+7. Test Connection Test on laptop first.
+8. Test Connection Test on phone on same Wi-Fi.
+9. If phone fails, run Tools / Repair > Allow Phone Access.
+10. For remote locations, configure Cloud Access.

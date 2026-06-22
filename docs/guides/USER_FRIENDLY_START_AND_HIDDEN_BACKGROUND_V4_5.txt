@@ -1,0 +1,28 @@
+JRC Construction Manager v4.5 - User Friendly Start + Hidden Background
+
+Purpose:
+- Make the program more self-explanatory and easier for non-technical users.
+- Reduce yes/no prompts and repeated startup requests.
+- Hide background command windows where possible.
+- Improve mobile/shared-host flow so Mobile Access starts the host automatically when needed.
+
+Main changes:
+- Rebuilt Start Center with clear card labels and short explanations.
+- Fixed the hidden background process launcher.
+- Removed broken duplicate code in Start Center.
+- Desktop app, host server, and tools launch with hidden background windows and logs.
+- Mobile Access now starts the shared host automatically if it is not running.
+- Added Job Application link card for /apply.
+- Added a clearer Files, Logs, and Help popup.
+- Added more practical instructions directly inside the Start Center.
+
+Security / data behavior:
+- Preserves business data on update.
+- Installer still does not run Python/pip during install.
+- Shared host and mobile features require optional network tools; repair is still controlled by the Start Center.
+
+Recommended use:
+1. Open Office for normal daily work.
+2. Start Shared Host before sharing mobile/user links.
+3. Open Mobile Access for phone links.
+4. Run System Check after install/update or if something acts wrong.

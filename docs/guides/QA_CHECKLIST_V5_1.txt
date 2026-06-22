@@ -1,0 +1,17 @@
+JRC v5.1 QA Checklist
+
+Checked in build environment:
+- Python compile check
+- System Check
+- Permission View Check
+- Access Mode Check
+- ZIP integrity check
+
+User-side tests after install:
+1. Open desktop shortcut.
+2. Click Open Office. This should work without starting host.
+3. Click Cloud Access. Save cloud/tunnel/VPN URL when ready.
+4. Click Mobile Links with cloud URL set; links should show even if local host is off.
+5. Click Start Local Host only for same-Wi-Fi testing.
+6. Run Tools / Repair > Access Mode Check.
+7. Verify admin/manager/worker/viewer/non-company dashboards after logging in as each role.

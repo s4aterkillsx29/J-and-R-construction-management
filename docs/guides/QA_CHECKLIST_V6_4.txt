@@ -1,0 +1,13 @@
+JRC v6.4 QA checklist
+
+[ ] Installer opens and says v6.4.
+[ ] Pre-Install Login Check opens the secure app login/status when an installed copy exists.
+[ ] Installer does not ask for/store passwords.
+[ ] Install/update preserves data folder and database.
+[ ] First Setup/Login opens after install.
+[ ] admin/admin works only for local first setup if still active.
+[ ] Changed admin password remains across updates.
+[ ] Customer and non-company users cannot access admin/internal pages.
+[ ] Self Setup + Verify passes on installed PC.
+[ ] Extreme Final Verify passes on installed PC.
+[ ] Cloud variables are set on real host before public use.

@@ -1,0 +1,16 @@
+J & R Construction Manager - GitHub Upload Notes
+
+Source verified from uploaded file:
+JRC_Construction_Manager_v7_1_Primary_Live_Reliable_Business_Edition.zip
+
+Verified version:
+J and R Construction Manager v7.1.0 Primary Live Reliable Business Edition
+
+Upload recommendation:
+Upload the contents of this folder to a new GitHub repository such as:
+JRC-Construction-Manager
+or
+J-and-R-Construction-Management
+
+Do not commit real .env files, database files, private customer exports, passwords, or API keys.
+Use cloud_hosting/env.example as the template for deployment secrets.

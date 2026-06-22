@@ -1,0 +1,20 @@
+services:
+  jrc-manager:
+    build: ..
+    container_name: jrc-manager-cloud
+    environment:
+      JRC_PUBLIC_HOST_MODE: '1'
+      JRC_CLOUD_PRIMARY_MODE: '1'
+      JRC_DATA_DIR: /var/data/jrc
+      JRC_SESSION_TIMEOUT_MINUTES: '120'
+      JRC_DEVICE_COOKIE_SAMESITE: Lax
+      JRC_SECRET_KEY: change-this-to-a-long-random-secret
+      JRC_INITIAL_ADMIN_PASSWORD: change-this-before-first-live-login
+      JRC_TRUSTED_HOSTS: localhost,127.0.0.1
+    ports:
+      - '8765:8765'
+    volumes:
+      - jrc_data:/var/data/jrc
+    restart: unless-stopped
+volumes:
+  jrc_data:

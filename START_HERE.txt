@@ -1,0 +1,49 @@
+J and R Construction Manager - v4.5 User Friendly Start + Hidden Background
+
+Install:
+1. Double-click !!! START INSTALL HERE.vbs
+2. Click Install / Update.
+3. Use the one desktop shortcut: J and R Construction Manager.
+
+Daily use:
+- Open Office = normal business records.
+- Start Shared Host = allow phones/users on trusted Wi-Fi/VPN.
+- Mobile Access = phone links and instructions.
+- Worker Signup = account request link.
+- Job Application = worker application / insurance onboarding link.
+- System Check = first troubleshooting step.
+
+This version hides background command windows where possible and writes logs to the logs folder.
+
+J and R Construction Manager v4.1 Secure Bookkeeping + Filekeeping Automation
+
+J and R Construction Manager v4.0 Secure Bookkeeping + Device Cookies
+
+J and R Construction Manager v3.3.0
+
+Use INSTALL_J_AND_R_MANAGER.vbs for the clean installer UI.
+
+This version is designed to update old versions/copies safely:
+- Archives old install folders
+- Migrates business data where safe
+- Preserves Dropbox files
+- Creates one desktop shortcut only
+- Does not run Python during install, so it should not hang
+
+After install, open the program and run System Check.
+
+
+New in v4.0: Bookkeeping Control Center, secure remembered-device cookie policy, better filekeeping/receipt warnings, reconciliation runs, and CSV ledger export.
+
+
+New in v4.1: Filekeeping Control Center, visible bookkeeping/file alerts, summary report export, and stronger session/cookie settings.
+
+
+--- v4.6 Full QA ---
+After installing, open the Start Center and run System Check, then Full QA Test. Full QA writes a business-readiness report into the exports folder.
+
+
+V4.8 NOTE: Shared Host now runs a longer automatic quick test. Use Tools / Repair > Run Host Quick Test if mobile links do not work.
+
+
+V4.9 NOTE: For remote mobile access from outside locations, use Cloud Options. Local Host is now best treated as same-Wi-Fi/VPN testing only. Cloud/VPS/tunnel hosting with HTTPS is more reliable for business use.

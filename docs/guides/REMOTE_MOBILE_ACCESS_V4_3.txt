@@ -1,0 +1,22 @@
+J & R Construction Manager v4.3 - Remote Mobile Access
+
+Purpose:
+This staged update improves mobile access from other locations without making the laptop unsafe.
+
+What was added:
+- New Remote Mobile Access page: /remote-mobile
+- Admin can save a remote secure base URL for phone users.
+- Program displays shareable mobile, account-request, and job-application links.
+- Start Center has a Remote Mobile button.
+- Existing /mobile, /register, and /apply pages remain in place.
+
+Recommended setups:
+1. Same Wi-Fi/LAN testing: http://<laptop-ip>:8765/mobile
+2. Outside access: use a secure VPN/tunnel or future cloud/VPS host with HTTPS.
+3. Long-term professional setup: cloud/VPS Docker host, HTTPS, firewall, daily backups, and strong admin password.
+
+Security rule:
+Do not expose Jacob's laptop directly to the public internet. For remote access, use HTTPS/VPN/tunnel/cloud. Change the default admin/admin password before sharing links.
+
+Dropbox and ChatGPT:
+The program continues to use local Dropbox-synced folders and ChatGPT import/export folders. It does not store Dropbox passwords or directly read private ChatGPT Business conversations.
