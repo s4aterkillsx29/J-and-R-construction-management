@@ -1,10 +1,10 @@
 """
-J & R Construction Manager runtime UI refresh.
+J & R Construction Manager legacy runtime UI refresh.
 
-This file is intentionally small and safe: Python loads sitecustomize automatically
-when the app is started from the app folder. It only remaps the older heavy-blue
-Tkinter colors to a warmer construction/business palette. Functional code,
-business data, network hosting, and login logic are not changed.
+This file was added as a safe fallback for older Tkinter screens that used the
+heavy-blue palette directly. Newer builds can provide app/ui_theme.py; when that
+polished theme module exists, this fallback intentionally does nothing so it does
+not override the branch's official theme tokens.
 
 Disable for troubleshooting by setting:
     JRC_DISABLE_UI_THEME_PATCH=1
@@ -12,8 +12,17 @@ Disable for troubleshooting by setting:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
-if os.environ.get("JRC_DISABLE_UI_THEME_PATCH", "").strip().lower() not in {"1", "true", "yes", "on"}:
+BASE_DIR = Path(__file__).resolve().parents[1]
+POLISHED_THEME = BASE_DIR / "app" / "ui_theme.py"
+DISABLED = os.environ.get("JRC_DISABLE_UI_THEME_PATCH", "").strip().lower() in {"1", "true", "yes", "on"}
+
+# Important merge-safety rule:
+# If the polished shared theme exists, let that theme control the UI. This keeps
+# branch feature/v7.1-ui-polish-and-runtime from being accidentally recolored by
+# this old compatibility patch after it is merged into main/live.
+if not DISABLED and not POLISHED_THEME.exists():
     try:
         import tkinter as _tk
 
@@ -30,17 +39,10 @@ if os.environ.get("JRC_DISABLE_UI_THEME_PATCH", "").strip().lower() not in {"1",
             "#172554": "#2a2319",
             "#1e3a8a": "#4a341f",
             "#2563eb": "#9a6a24",
-            "#37 99 235": "#9a6a24",
             "#60a5fa": "#c88a2f",
         }
 
-        _TITLE_FONT_BUMP = {
-            22: 23,
-            20: 21,
-            18: 19,
-            17: 18,
-            14: 14,
-        }
+        _TITLE_FONT_BUMP = {22: 23, 20: 21, 18: 19, 17: 18, 14: 14}
 
         def _clean(value):
             if isinstance(value, str):
@@ -54,7 +56,6 @@ if os.environ.get("JRC_DISABLE_UI_THEME_PATCH", "").strip().lower() not in {"1",
             return value
 
         def _map_font(value):
-            # Keep the UI familiar, but make headings feel a little more polished.
             if isinstance(value, tuple) and len(value) >= 2:
                 family = value[0]
                 size = value[1]
