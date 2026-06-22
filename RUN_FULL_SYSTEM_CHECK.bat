@@ -2,8 +2,8 @@
 setlocal
 cd /d "%~dp0"
 title J and R Construction Manager - System Check
-if not exist .venv\Scripts\python.exe (
-  echo Virtual environment missing. Run INSTALL_JR_JOB_MANAGER.bat first.
+call "%~dp0ensure_venv.bat"
+if errorlevel 1 (
   pause
   exit /b 1
 )

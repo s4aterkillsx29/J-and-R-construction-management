@@ -28,7 +28,7 @@ except Exception:
     REPORTLAB_OK = False
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "6.3 Secure Owner Login + Live Final Edition"
+APP_VERSION = "7.1 Primary Live Reliable Business Edition"
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -39,15 +39,34 @@ DB_PATH = DATA_DIR / "jr_business.db"
 SETTINGS_PATH = DATA_DIR / "manager_settings.json"
 DEVICE_ID_PATH = DATA_DIR / "trusted_device_id.txt"
 
-DARK_BG = "#0b1220"
-PANEL_BG = "#111827"
-CARD_BG = "#172033"
-ACCENT = "#22c55e"
-ACCENT_2 = "#38bdf8"
-TEXT = "#f8fafc"
-MUTED = "#b9c4d6"
-DANGER = "#ef4444"
-WARNING = "#f59e0b"
+try:
+    from app.ui_theme import (
+        BG as DARK_BG,
+        PANEL as PANEL_BG,
+        CARD as CARD_BG,
+        TEXT,
+        MUTED,
+        ACCENT,
+        INFO as ACCENT_2,
+        WARN as WARNING,
+        DANGER,
+        ENTRY_BG,
+        configure_ttk,
+    )
+    from app.runtime_utils import open_web_dashboard
+except Exception:
+    DARK_BG = "#0a0f1c"
+    PANEL_BG = "#111827"
+    CARD_BG = "#151c2e"
+    ACCENT = "#34d399"
+    ACCENT_2 = "#60a5fa"
+    TEXT = "#f1f5f9"
+    MUTED = "#94a3b8"
+    DANGER = "#f87171"
+    WARNING = "#fbbf24"
+    ENTRY_BG = "#0f172a"
+    configure_ttk = None
+    open_web_dashboard = None
 
 TAX_CATEGORIES = [
     "Materials & Supplies",
@@ -401,7 +420,19 @@ class DarkApp(tk.Tk):
         self.build_layout()
         self.refresh_all()
 
+    def launch_web_ui(self):
+        if not open_web_dashboard:
+            messagebox.showwarning("Unavailable", "Web dashboard helper could not load.")
+            return
+        ok, msg = open_web_dashboard("/login")
+        if not ok:
+            messagebox.showinfo("Web Dashboard", msg)
+
     def setup_style(self):
+        self.style = ttk.Style(self)
+        if configure_ttk:
+            configure_ttk(self.style)
+            return
         self.style.theme_use("clam")
         self.style.configure("TFrame", background=DARK_BG)
         self.style.configure("Panel.TFrame", background=PANEL_BG)
@@ -414,7 +445,7 @@ class DarkApp(tk.Tk):
         self.style.configure("TButton", background=CARD_BG, foreground=TEXT, borderwidth=0, focusthickness=3, focuscolor=ACCENT, font=("Segoe UI", 10))
         self.style.map("TButton", background=[("active", "#334155")])
         self.style.configure("Accent.TButton", background=ACCENT, foreground="#052e16", font=("Segoe UI", 10, "bold"))
-        self.style.map("Accent.TButton", background=[("active", "#16a34a")])
+        self.style.map("Accent.TButton", background=[("active", "#2dd4bf")])
         self.style.configure("Danger.TButton", background=DANGER, foreground="white")
         self.style.map("Danger.TButton", background=[("active", "#b91c1c")])
         self.style.configure("Treeview", background="#0b1220", foreground=TEXT, fieldbackground="#0b1220", rowheight=28, borderwidth=0)
@@ -431,6 +462,8 @@ class DarkApp(tk.Tk):
         top.pack(fill="x")
         ttk.Label(top, text="J and R Construction Manager", style="Title.TLabel").pack(side="left")
         ttk.Label(top, text=f"  {PHONE}  |  Owner: Jacob Cosentino  |  Logged in: {self.current_user.get('username', '')}  |  {now_stamp()}", style="Muted.TLabel").pack(side="left", padx=12)
+        if open_web_dashboard:
+            ttk.Button(top, text="Web Dashboard", style="Info.TButton", command=self.launch_web_ui).pack(side="right", padx=4)
         ttk.Button(top, text="Backup ZIP", style="Accent.TButton", command=self.make_backup).pack(side="right", padx=4)
         ttk.Button(top, text="Export Reports", command=self.export_all_reports).pack(side="right", padx=4)
         ttk.Button(top, text="Refresh", command=self.refresh_all).pack(side="right", padx=4)
@@ -2296,10 +2329,10 @@ def _v26_login_init(self, parent, db):
     self.title('J and R Construction Manager Login')
     self.configure(bg=DARK_BG); self.resizable(False, False); self.grab_set(); self.protocol('WM_DELETE_WINDOW', self.cancel)
     outer = tk.Frame(self, bg=DARK_BG); outer.pack(fill='both', expand=True, padx=22, pady=22)
-    hero = tk.Frame(outer, bg=CARD_BG, bd=0, highlightthickness=1, highlightbackground='#1e3a5f'); hero.pack(fill='both', expand=True)
-    banner = tk.Frame(hero, bg='#0b2a3f'); banner.grid(row=0, column=0, columnspan=2, sticky='ew')
-    tk.Label(banner, text='J & R', bg='#0b2a3f', fg=ACCENT_2, font=('Segoe UI', 28, 'bold')).pack(side='left', padx=(18,10), pady=14)
-    tk.Label(banner, text='Construction Manager', bg='#0b2a3f', fg=TEXT, font=('Segoe UI', 18, 'bold')).pack(side='left', pady=14)
+    hero = tk.Frame(outer, bg=CARD_BG, bd=0, highlightthickness=1, highlightbackground='#334155'); hero.pack(fill='both', expand=True)
+    banner = tk.Frame(hero, bg=PANEL_BG); banner.grid(row=0, column=0, columnspan=2, sticky='ew')
+    tk.Label(banner, text='J & R', bg=PANEL_BG, fg=ACCENT, font=('Segoe UI', 28, 'bold')).pack(side='left', padx=(18,10), pady=14)
+    tk.Label(banner, text='Construction Manager', bg=PANEL_BG, fg=TEXT, font=('Segoe UI', 18, 'bold')).pack(side='left', pady=14)
     tk.Label(hero, text='Owned and operated by Jacob Cosentino', bg=CARD_BG, fg=MUTED, font=('Segoe UI', 10)).grid(row=1, column=0, columnspan=2, sticky='w', padx=22, pady=(16,8))
     tk.Label(hero, text='Secure business operations, job records, documents, and file sources.', bg=CARD_BG, fg=TEXT, font=('Segoe UI', 10)).grid(row=2, column=0, columnspan=2, sticky='w', padx=22, pady=(0,16))
     tk.Label(hero, text='Username', bg=CARD_BG, fg=TEXT, font=('Segoe UI', 10, 'bold')).grid(row=3, column=0, sticky='w', padx=22, pady=6)

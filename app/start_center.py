@@ -26,10 +26,17 @@ from tkinter import messagebox, simpledialog
 
 try:
     from app.dependency_tools import missing_dependencies, status_text, install_optional_dependencies
+    from app import ui_theme as theme
+    from app.runtime_utils import open_web_dashboard as launch_web_dashboard, find_launch_port, save_port as persist_port, is_jrc_server
 except Exception:
     missing_dependencies = lambda: []
     status_text = lambda: "Dependency status unavailable."
     install_optional_dependencies = lambda timeout=300: (False, "Dependency repair unavailable.")
+    theme = None
+    launch_web_dashboard = None
+    find_launch_port = None
+    persist_port = None
+    is_jrc_server = None
 
 APP_NAME = "J and R Construction Manager"
 APP_VERSION = "7.1 Primary Live Reliable Business Edition"
@@ -74,19 +81,25 @@ def save_saved_port(port: int, note: str = "") -> None:
 
 PORT = get_saved_port()
 
-BG = "#07141f"
-PANEL = "#0b1f2f"
-CARD = "#12283a"
-BORDER = "#2f4a60"
-TEXT = "#f8fafc"
-MUTED = "#d7e3ee"
-DIM = "#9eb4c7"
-ACCENT = "#14b8a6"
-INFO = "#38bdf8"
-WARN = "#f59e0b"
-DANGER = "#ef4444"
-BUTTON = "#1d3a52"
-BUTTON_GREEN = "#14b8a6"
+if theme:
+    BG, PANEL, CARD, BORDER = theme.BG, theme.PANEL, theme.CARD, theme.BORDER
+    TEXT, MUTED, DIM = theme.TEXT, theme.MUTED, theme.DIM
+    ACCENT, INFO, WARN, DANGER = theme.ACCENT, theme.INFO, theme.WARN, theme.DANGER
+    BUTTON, BUTTON_GREEN = theme.BUTTON, theme.ACCENT
+else:
+    BG = "#0a0f1c"
+    PANEL = "#111827"
+    CARD = "#151c2e"
+    BORDER = "#334155"
+    TEXT = "#f1f5f9"
+    MUTED = "#94a3b8"
+    DIM = "#64748b"
+    ACCENT = "#34d399"
+    INFO = "#60a5fa"
+    WARN = "#fbbf24"
+    DANGER = "#f87171"
+    BUTTON = "#1e293b"
+    BUTTON_GREEN = "#34d399"
 
 
 def stamp() -> str:
@@ -165,9 +178,9 @@ def is_port_open(port: int, host: str = "127.0.0.1", timeout: float = 0.35) -> b
         return False
 
 
-def find_available_port(start_port: int = DEFAULT_PORT, attempts: int = 12) -> int:
-    # Prefer the saved/default port if it is free or already serving JRC. If it is occupied
-    # by a non-JRC process, move to the next free port so the program can still host.
+def find_available_port(start_port: int = DEFAULT_PORT, attempts: int = 15) -> int:
+    if find_launch_port:
+        return find_launch_port(start_port, attempts)
     for port in range(int(start_port), int(start_port) + int(attempts)):
         test_url = f"http://127.0.0.1:{port}/api/health"
         ok, _ = url_ok(test_url, timeout=0.45)
@@ -182,7 +195,10 @@ def set_runtime_port(port: int, note: str = "") -> None:
     global PORT
     PORT = int(port)
     os.environ["JRC_PORT"] = str(PORT)
-    save_saved_port(PORT, note)
+    if persist_port:
+        persist_port(PORT, note)
+    else:
+        save_saved_port(PORT, note)
 
 
 
@@ -457,102 +473,169 @@ class StartCenter(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(APP_NAME)
-        self.geometry("860x620")
-        self.minsize(760, 560)
+        self.geometry("1080x780")
+        self.minsize(920, 680)
         self.configure(bg=BG)
-        self.status_var = tk.StringVar(value="Ready. Click Open Office for normal business work.")
+        self.status_var = tk.StringVar(value="Ready — choose a section on the left, then Open an action.")
         self.host_monitor_window = None
-        self._cards: list[tk.Label] = []
-        try:
-            ico = BASE_DIR / "assets" / "j_and_r_manager_icon.ico"
-            if ico.exists():
-                self.iconbitmap(str(ico))
-        except Exception:
-            pass
+        self._nav_buttons: dict[str, tk.Button] = {}
+        self._section = "daily"
+        self._content_wrap = 560
+        if theme:
+            theme.apply_window_icon(self, BASE_DIR / "assets" / "j_and_r_manager_icon.ico")
+        else:
+            try:
+                ico = BASE_DIR / "assets" / "j_and_r_manager_icon.ico"
+                if ico.exists():
+                    self.iconbitmap(str(ico))
+            except Exception:
+                pass
+        self._sections = self._define_sections()
         self._build()
+        self._show_section("daily")
         self.bind("<Configure>", self._on_resize)
+
+    def _define_sections(self):
+        return {
+            "daily": ("Daily work", [
+                ("Open Office", "Jobs, invoices, payroll, expenses, files — full desktop business app.", self.open_office, "primary"),
+                ("Web Dashboard", "Modern glass UI in your browser — dashboards, mobile view, and customer portal.", self.open_web_dashboard, "info"),
+                ("Secure Login", "Local setup login without starting the network host.", self.open_login_first, "secondary"),
+                ("Open Dashboard", "Browser dashboard after you sign in — local or cloud.", self.open_dashboard, "info"),
+            ]),
+            "hosting": ("Hosting & mobile", [
+                ("Start Local Host", "Run the web server for phones and LAN users on trusted Wi-Fi or VPN.", self.start_host, "info"),
+                ("Host Monitor", "Live status for login readiness, health checks, and shareable links.", self.show_host_monitor, "secondary"),
+                ("Mobile Links", "Connection test, mobile app, worker signup, and job application URLs.", self.mobile_links, "secondary"),
+                ("Cloud Access", "Remote URL when this PC is off — Render, Railway, Fly.io, or tunnel.", self.cloud_options, "info"),
+            ]),
+            "setup": ("Setup & verify", [
+                ("Self Setup + Verify", "Post-login checks; writes a report to exports and logs.", self.self_setup_verify, "warn"),
+                ("Primary Live Server", "24/7 cloud deployment checklist and readiness tools.", self.primary_live_server, "primary"),
+                ("Auto Repair Host", "Fix dependencies, ports, and common host issues automatically.", self.auto_host_repair, "warn"),
+            ]),
+            "tools": ("Tools & files", [
+                ("Worker Forms", "Account signup, customer request, and job application links.", self.worker_forms, "secondary"),
+                ("Tools / Repair", "System check, host test, firewall rule, and final verify.", self.tools_window, "warn"),
+                ("Files / Logs", "Exports, backups, logs, program folder, and help documents.", self.files_window, "secondary"),
+            ]),
+        }
 
     def set_status(self, msg: str) -> None:
         self.status_var.set(msg)
         self.update_idletasks()
 
     def _build(self):
-        outer = tk.Frame(self, bg=BG, padx=18, pady=16)
-        outer.pack(fill="both", expand=True)
-        header = tk.Frame(outer, bg=PANEL, padx=18, pady=12, highlightthickness=1, highlightbackground=BORDER)
-        header.pack(fill="x", pady=(0, 12))
-        tk.Label(header, text="J & R Construction Manager", fg=TEXT, bg=PANEL, font=("Segoe UI", 22, "bold")).pack(anchor="w")
-        tk.Label(header, text=f"Owned and operated by {OWNER}  •  {BUSINESS}  •  v{APP_VERSION}", fg=MUTED, bg=PANEL, font=("Segoe UI", 9)).pack(anchor="w", pady=(4, 0))
-        tk.Label(header, text="Lightweight Start Center: normal buttons open fast; heavy checks run only from Tools.", fg=INFO, bg=PANEL, font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(4, 0))
+        shell = tk.Frame(self, bg=BG)
+        shell.pack(fill="both", expand=True)
 
-        # Scrollable action area. Earlier builds used a fixed grid; on smaller
-        # screens the lower card buttons could be clipped or not appear. This
-        # canvas keeps every dashboard/startup button visible and reachable.
-        canvas = tk.Canvas(outer, bg=BG, highlightthickness=0, bd=0)
-        scroll = tk.Scrollbar(outer, orient="vertical", command=canvas.yview)
-        body = tk.Frame(canvas, bg=BG)
-        body.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        window_id = canvas.create_window((0, 0), window=body, anchor="nw")
-        canvas.configure(yscrollcommand=scroll.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scroll.pack(side="right", fill="y")
-        def _sync_canvas_width(event):
-            try:
-                canvas.itemconfigure(window_id, width=event.width)
-            except Exception:
-                pass
-        canvas.bind("<Configure>", _sync_canvas_width)
-        def _wheel(event):
-            try:
-                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-            except Exception:
-                pass
-        canvas.bind_all("<MouseWheel>", _wheel)
-        body.grid_columnconfigure(0, weight=1, uniform="menu")
-        body.grid_columnconfigure(1, weight=1, uniform="menu")
-        cards = [
-            ("Secure Local Login", "Reliable login/setup with no local host required. Use admin/admin only on first setup, then change it.", self.open_login_first, "primary"),
-            ("Open Dashboard", "After local login, open Office or cloud/browser dashboard. Local host is optional.", self.open_dashboard, "info"),
-            ("Open Office", "Daily local desktop work: jobs, invoices, costs, payroll, files.", self.open_office, "normal"),
-            ("Start Local Host", "Starts the local web server and verifies login first, then mobile tools. Same-Wi-Fi/VPN testing only.", self.start_host, "info"),
-            ("Host Monitor", "Watch server status, login readiness, phone links, port, and quick tools.", self.show_host_monitor, "normal"),
-            ("Auto Repair Host", "Automatically reads logs, checks dependencies/ports/settings, and fixes safe host issues.", self.auto_host_repair, "warn"),
-            ("Self Setup + Verify", "Runs safe setup and verification checks after login/setup.", self.self_setup_verify, "warn"),
-            ("Primary Live Server", "Recommended 24/7 cloud setup, health checks, persistent data, and deployment checklist.", self.primary_live_server, "primary"),
-            ("Cloud Access", "Remote users connect here when your PC host is off.", self.cloud_options, "info"),
-            ("Mobile Links", "Uses cloud URL when set; otherwise starts/verifies local host.", self.mobile_links, "normal"),
-            ("Worker Forms", "Account signup, customer request, and job application links.", self.worker_forms, "normal"),
-            ("Tools / Repair", "System Check, Host Test, Final Verify, firewall, logs.", self.tools_window, "warn"),
-            ("Files / Logs", "Open exports, backups, logs, program folder, and help.", self.files_window, "normal"),
-        ]
-        for i, item in enumerate(cards):
-            self._card(body, i // 2, i % 2, *item)
-        footer = tk.Frame(outer, bg=PANEL, padx=12, pady=8, highlightthickness=1, highlightbackground=BORDER)
-        footer.pack(fill="x", pady=(12, 0))
-        tk.Label(footer, textvariable=self.status_var, bg=PANEL, fg=MUTED, font=("Segoe UI", 9), wraplength=800, justify="left").pack(anchor="w")
+        header = tk.Frame(shell, bg=PANEL, highlightthickness=1, highlightbackground=BORDER)
+        header.pack(fill="x", padx=16, pady=(16, 10))
+        accent = tk.Frame(header, bg=ACCENT, height=3)
+        accent.pack(fill="x")
+        head_inner = tk.Frame(header, bg=PANEL, padx=22, pady=16)
+        head_inner.pack(fill="x")
+        tk.Label(head_inner, text="J & R Construction Manager", fg=TEXT, bg=PANEL, font=("Segoe UI", 26, "bold")).pack(anchor="w")
+        tk.Label(head_inner, text=f"{OWNER}  •  {BUSINESS}", fg=MUTED, bg=PANEL, font=("Segoe UI", 10)).pack(anchor="w", pady=(2, 0))
+        tk.Label(head_inner, text=f"v{APP_VERSION}", fg=DIM, bg=PANEL, font=("Segoe UI", 9)).pack(anchor="w")
+        tk.Label(
+            head_inner,
+            text="Start Center — polished launcher for Office, browser dashboard, and hosting tools.",
+            fg=INFO,
+            bg=PANEL,
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor="w", pady=(8, 0))
 
-    def _card(self, parent, row, col, title, desc, command, tone="normal"):
-        frame = tk.Frame(parent, bg=CARD, highlightthickness=1, highlightbackground=BORDER, padx=14, pady=12)
-        frame.grid(row=row, column=col, sticky="nsew", padx=8, pady=8)
-        parent.grid_rowconfigure(row, weight=0, minsize=118)
-        frame.grid_columnconfigure(0, weight=1)
-        color = ACCENT if tone == "primary" else INFO if tone == "info" else WARN if tone == "warn" else TEXT
-        tk.Label(frame, text=title, bg=CARD, fg=color, font=("Segoe UI", 14, "bold"), anchor="w").grid(row=0, column=0, sticky="ew")
-        desc_lbl = tk.Label(frame, text=desc, bg=CARD, fg=MUTED, font=("Segoe UI", 9), anchor="nw", justify="left", wraplength=320)
-        desc_lbl.grid(row=1, column=0, sticky="nsew", pady=(5, 10))
-        btn_bg = BUTTON_GREEN if tone == "primary" else BUTTON
-        btn_fg = "#04130a" if tone == "primary" else TEXT
-        tk.Button(frame, text="Open", command=command, bg=btn_bg, fg=btn_fg, relief="flat", bd=0, font=("Segoe UI", 10, "bold"), padx=10, pady=10, cursor="hand2").grid(row=2, column=0, sticky="ew", ipady=2)
-        self._cards.append(desc_lbl)
+        body = tk.Frame(shell, bg=BG)
+        body.pack(fill="both", expand=True, padx=16, pady=(0, 10))
+
+        sidebar = tk.Frame(body, bg=PANEL, width=theme.SIDEBAR_W if theme else 210, highlightthickness=1, highlightbackground=BORDER)
+        sidebar.pack(side="left", fill="y", padx=(0, 12))
+        sidebar.pack_propagate(False)
+        tk.Label(sidebar, text="MENU", bg=PANEL, fg=DIM, font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=18, pady=(16, 8))
+        for key, (label, _) in self._sections.items():
+            if theme:
+                btn = theme.nav_button(sidebar, label, lambda k=key: self._show_section(k))
+            else:
+                btn = tk.Button(sidebar, text=label, command=lambda k=key: self._show_section(k))
+                btn.pack(fill="x", padx=10, pady=4)
+            self._nav_buttons[key] = btn
+
+        content_shell = tk.Frame(body, bg=BG, highlightthickness=1, highlightbackground=BORDER)
+        content_shell.pack(side="left", fill="both", expand=True)
+
+        self._section_title = tk.Label(content_shell, text="", bg=PANEL, fg=TEXT, font=("Segoe UI", 15, "bold"), anchor="w", padx=20, pady=14)
+        self._section_title.pack(fill="x")
+
+        scroll_host = tk.Frame(content_shell, bg=BG)
+        scroll_host.pack(fill="both", expand=True)
+
+        self._canvas = tk.Canvas(scroll_host, bg=BG, highlightthickness=0, bd=0)
+        if theme:
+            scroll = theme.dark_scrollbar(scroll_host, command=self._canvas.yview)
+        else:
+            scroll = tk.Scrollbar(scroll_host, orient="vertical", command=self._canvas.yview, bg=BG, troughcolor=PANEL, width=10)
+        self._scroll = scroll
+        self._cards_frame = tk.Frame(self._canvas, bg=BG)
+        self._cards_frame.bind("<Configure>", lambda e: self._canvas.configure(scrollregion=self._canvas.bbox("all")))
+        self._canvas_window = self._canvas.create_window((0, 0), window=self._cards_frame, anchor="nw")
+        self._canvas.configure(yscrollcommand=scroll.set)
+        self._canvas.pack(side="left", fill="both", expand=True, padx=(8, 0), pady=8)
+        scroll.pack(side="right", fill="y", pady=8, padx=(0, 6))
+
+        self._canvas.bind("<Configure>", self._sync_canvas_width)
+        self._canvas.bind("<Enter>", lambda e: self._canvas.bind_all("<MouseWheel>", self._on_wheel))
+        self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
+
+        footer = tk.Frame(shell, bg=PANEL, highlightthickness=1, highlightbackground=BORDER, padx=16, pady=10)
+        footer.pack(fill="x", padx=16, pady=(0, 14))
+        tk.Label(footer, textvariable=self.status_var, bg=PANEL, fg=MUTED, font=("Segoe UI", 9), wraplength=980, justify="left").pack(anchor="w")
+
+    def _sync_canvas_width(self, event=None):
+        try:
+            self._canvas.itemconfigure(self._canvas_window, width=max(400, event.width - 4))
+            self._content_wrap = max(420, event.width - 140)
+        except Exception:
+            pass
+
+    def _on_wheel(self, event):
+        try:
+            self._canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        except Exception:
+            pass
+
+    def _show_section(self, key: str):
+        self._section = key
+        label, items = self._sections[key]
+        self._section_title.configure(text=label)
+        for child in self._cards_frame.winfo_children():
+            child.destroy()
+        for title, desc, cmd, tone in items:
+            if theme:
+                theme.action_card(self._cards_frame, title, desc, cmd, variant=tone, wraplength=self._content_wrap)
+            else:
+                self._legacy_card(title, desc, cmd, tone)
+        for nav_key, btn in self._nav_buttons.items():
+            active = nav_key == key
+            if theme:
+                btn.configure(
+                    bg=theme.CARD if active else theme.PANEL,
+                    fg=theme.TEXT if active else theme.MUTED,
+                    highlightbackground=theme.ACCENT if active else theme.BORDER,
+                )
+        self.set_status(f"{label} — pick an action and click Open.")
+
+    def _legacy_card(self, title, desc, command, tone="secondary"):
+        frame = tk.Frame(self._cards_frame, bg=CARD, padx=14, pady=12)
+        frame.pack(fill="x", padx=12, pady=6)
+        tk.Label(frame, text=title, bg=CARD, fg=TEXT, font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        tk.Label(frame, text=desc, bg=CARD, fg=MUTED, wraplength=self._content_wrap).pack(anchor="w", pady=4)
+        tk.Button(frame, text="Open", command=command).pack(anchor="e")
 
     def _on_resize(self, event=None):
-        width = max(self.winfo_width(), 760)
-        wrap = max(250, min(390, int((width - 130) / 2) - 35))
-        for desc in self._cards:
-            try:
-                desc.configure(wraplength=wrap)
-            except Exception:
-                pass
+        if event and event.widget is not self:
+            return
+        self._sync_canvas_width(event)
 
     def _watch_process(self, proc, log_path: Path, name: str, success_hint: str = ""):
         def check():
@@ -881,9 +964,20 @@ class StartCenter(tk.Tk):
 
 
 
+    def open_web_dashboard(self):
+        """Start web server if needed and open the glass browser UI."""
+        if launch_web_dashboard is None:
+            messagebox.showwarning("Unavailable", "Web dashboard helper could not load.")
+            return
+        self.set_status("Finding a free port and opening Web Dashboard...")
+        ok, msg = launch_web_dashboard("/login")
+        self.set_status(msg)
+        if not ok:
+            messagebox.showinfo("Web Dashboard", msg + "\n\nIf the page fails, another program may have been using port 8765 — JRC will try 8766, 8767, etc.")
+
     def primary_live_server(self):
         self.set_status("Opening Primary Live Server readiness page. Use this for the recommended 24/7 cloud setup.")
-        cloud = self.get_cloud_url()
+        cloud = get_cloud_base_url()
         if cloud:
             webbrowser.open(cloud.rstrip('/') + "/primary-live-readiness")
         else:
