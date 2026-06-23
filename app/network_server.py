@@ -146,13 +146,9 @@ def client_ip() -> str:
     except Exception:
         return "unknown"
 def password_quality(password: str, admin_change: bool = False) -> tuple[bool, str]:
-    """Safer password rules for shared and owner/admin accounts.
-
-    Admin/owner password changes require a longer password because those accounts
-    control customers, workers, payroll, files, and cloud settings.
-    """
+    """Password rules for all accounts. Owner/admin uses the same 8-character minimum."""
     password = password or ""
-    minimum = 12 if admin_change else 8
+    minimum = 8
     if len(password) < minimum:
         return False, f"Password must be at least {minimum} characters."
     if password.lower().strip() in {"password", "admin", "admin123", "admin/admin", "jandr", "jrconstruction", "jandrconstruction", "j&rconstruction"}:
@@ -1144,31 +1140,44 @@ def layout(title: str, body: str, active: str = "dashboard") -> str:
     ]
     nav_html = "".join(f'<a class="nav {"on" if key==active else ""}" href="{href}">{label}</a>' for key, label, href, need in nav if need in perms)
     flash_html = "".join(f'<div class="flash {cat}">{html.escape(str(msg))}</div>' for cat, msg in get_flashed_messages_safe())
+    srv_port = int(os.environ.get("JRC_PORT", "8765"))
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(title)} - {APP_NAME}</title><link rel="manifest" href="/static/manifest.json"><meta name="theme-color" content="#07111f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="J&R Manager">
+<title>{html.escape(title)} - {APP_NAME}</title><link rel="manifest" href="/static/manifest.json"><meta name="theme-color" content="#0a0f1c"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="J&R Manager">
 <style>
-:root{{--bg:#07111f;--panel:#0f172a;--card:#162033;--soft:#24324a;--text:#eef2ff;--muted:#a5b4fc;--accent:#22c55e;--accent2:#60a5fa;--danger:#ef4444;--warn:#f59e0b;--gold:#fbbf24}}
-*{{box-sizing:border-box}} body{{margin:0;background:linear-gradient(135deg,#07111f,#111827 55%,#0b1120);color:var(--text);font-family:Segoe UI,Arial,sans-serif}}
-a{{color:var(--accent2);text-decoration:none}} .top{{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;background:#060b15;border-bottom:1px solid #263244;position:sticky;top:0;z-index:5}}
-.brand{{font-size:20px;font-weight:800;color:white}} .sub{{color:var(--muted);font-size:12px}} .user{{text-align:right;color:var(--muted);font-size:13px}}
-.wrap{{display:flex;min-height:calc(100vh - 58px)}} .side{{width:250px;background:#0b1221;border-right:1px solid #263244;padding:18px 12px}} .main{{flex:1;padding:22px;max-width:1500px}}
-.nav{{display:block;padding:12px 14px;border-radius:10px;color:var(--text);margin:5px 0}} .nav:hover,.nav.on{{background:#1f2937;color:white;border-left:4px solid var(--accent)}}
-.card{{background:rgba(31,41,55,.96);border:1px solid #334155;border-radius:16px;padding:18px;margin:0 0 18px 0;box-shadow:0 10px 28px rgba(0,0,0,.25)}}
-.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}} .stat{{background:#111827;border:1px solid #334155;border-radius:14px;padding:16px}}
-.stat b{{display:block;font-size:24px;color:white;margin-top:5px}} .muted{{color:var(--muted)}}
-input,select,textarea{{background:#0f172a;border:1px solid #475569;color:var(--text);border-radius:9px;padding:10px;width:100%}} textarea{{min-height:90px}}
-button,.btn{{background:var(--accent);color:#03110a;border:0;border-radius:10px;padding:11px 15px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:44px;line-height:1.15;text-align:center;white-space:normal}} .btn2{{background:#334155;color:white}} .danger{{background:var(--danger);color:white}} .warn{{background:var(--warn);color:#111}}
-.action-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}} .action-grid .btn{{width:100%;min-height:48px}} .dashboard-note{{font-size:13px;color:#c7d2fe;margin-top:8px}}
-table{{width:100%;border-collapse:collapse;background:#111827;border-radius:12px;overflow:hidden}} th,td{{padding:10px;border-bottom:1px solid #334155;text-align:left;vertical-align:top}} th{{color:white;background:#0f172a}} tr:hover{{background:#172033}}
-.row{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}} .row3{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}}
-.flash{{padding:12px 14px;border-radius:10px;margin-bottom:12px;background:#102a18;border:1px solid #1d7a3b}} .flash.warning{{background:#332506;border-color:#7a5800}} .flash.error{{background:#330c0c;border-color:#7a1d1d}}
-.badge{{display:inline-block;padding:4px 8px;border-radius:999px;background:#334155;color:#e5e7eb;font-size:12px}} .ok{{background:#14532d}} .red{{background:#7f1d1d}} .yellow{{background:#78350f}}
-.footer{{color:var(--muted);font-size:12px;margin-top:30px}}
-@media(max-width:850px){{.top{{display:block;padding:12px}}.user{{text-align:left;margin-top:8px}}.wrap{{display:block}}.side{{width:auto;display:flex;gap:8px;overflow-x:auto;padding:10px}}.nav{{white-space:nowrap;margin:0}}.main{{padding:12px}}.row,.row3{{grid-template-columns:1fr}}.grid{{grid-template-columns:1fr}}.action-grid{{grid-template-columns:1fr}}table{{display:block;overflow-x:auto}}.card{{border-radius:14px;padding:14px}}h1{{font-size:24px}}.mobile-actions .btn,.action-grid .btn{{display:flex;margin:6px 0;text-align:center}}}}
+:root{{--bg:#0a0f1c;--panel:rgba(15,23,42,.55);--card:rgba(255,255,255,.06);--card-hover:rgba(255,255,255,.09);--glass-border:rgba(255,255,255,.12);--glass-border-light:rgba(255,255,255,.2);--soft:rgba(255,255,255,.08);--text:#f1f5f9;--muted:#94a3b8;--accent:#34d399;--accent2:#60a5fa;--accent-glow:rgba(52,211,153,.35);--danger:#f87171;--warn:#fbbf24;--gold:#fcd34d;--radius-sm:12px;--radius-md:18px;--radius-lg:24px;--radius-xl:28px;--blur:20px;--shadow:0 8px 32px rgba(0,0,0,.35);--shadow-glow:0 4px 24px rgba(52,211,153,.12)}}
+*{{box-sizing:border-box}}
+body{{margin:0;min-height:100vh;color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--bg);background-image:radial-gradient(ellipse 80% 60% at 10% -10%,rgba(52,211,153,.18),transparent 55%),radial-gradient(ellipse 70% 50% at 95% 5%,rgba(96,165,250,.16),transparent 50%),radial-gradient(ellipse 60% 40% at 50% 100%,rgba(139,92,246,.1),transparent 55%),linear-gradient(160deg,#0a0f1c 0%,#111827 45%,#0c1222 100%);background-attachment:fixed}}
+a{{color:var(--accent2);text-decoration:none;transition:color .2s ease}} a:hover{{color:#93c5fd}}
+h1{{font-size:clamp(1.5rem,2.5vw,2rem);font-weight:800;margin:0 0 20px 0;letter-spacing:-.02em;background:linear-gradient(135deg,#fff 0%,#cbd5e1 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
+h2{{font-size:1.15rem;font-weight:700;margin:0 0 12px 0;letter-spacing:-.01em}}
+label{{display:block;font-size:13px;font-weight:600;color:#cbd5e1;margin-bottom:6px}}
+.top{{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background:rgba(10,15,28,.72);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-bottom:1px solid var(--glass-border);position:sticky;top:0;z-index:10;box-shadow:0 4px 24px rgba(0,0,0,.2)}}
+.brand{{font-size:1.25rem;font-weight:800;color:#fff;letter-spacing:-.02em}} .sub{{color:var(--muted);font-size:12px;line-height:1.5}} .user{{text-align:right;color:var(--muted);font-size:13px;line-height:1.6}}
+.wrap{{display:flex;min-height:calc(100vh - 64px)}} .side{{width:260px;background:rgba(10,15,28,.55);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-right:1px solid var(--glass-border);padding:20px 14px}} .main{{flex:1;padding:24px 28px;max-width:1500px}}
+.nav{{display:block;padding:11px 16px;border-radius:var(--radius-sm);color:#cbd5e1;margin:4px 0;border:1px solid transparent;transition:all .22s ease}} .nav:hover{{background:var(--soft);color:#fff;border-color:var(--glass-border);transform:translateX(2px)}} .nav.on{{background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(96,165,250,.12));color:#fff;border-color:rgba(52,211,153,.35);box-shadow:var(--shadow-glow)}}
+.card{{background:var(--card);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:22px;margin:0 0 20px 0;box-shadow:var(--shadow);transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease}} .card:hover{{border-color:var(--glass-border-light);box-shadow:var(--shadow),var(--shadow-glow)}}
+.card-narrow{{max-width:480px;margin-left:auto;margin-right:auto}} .card-wide{{max-width:780px;margin-left:auto;margin-right:auto}}
+.glass-note{{display:flex;gap:12px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}}
+.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}} .stat{{background:rgba(255,255,255,.05);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:18px;transition:transform .2s ease,border-color .2s ease}} .stat:hover{{transform:translateY(-2px);border-color:var(--glass-border-light)}}
+.stat b{{display:block;font-size:1.6rem;color:#fff;margin-top:6px;font-weight:800;letter-spacing:-.02em}} .muted{{color:var(--muted);line-height:1.55}}
+input,select,textarea{{background:rgba(15,23,42,.65);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);padding:11px 14px;width:100%;font:inherit;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}} input:focus,select:focus,textarea:focus{{outline:none;border-color:rgba(52,211,153,.55);box-shadow:0 0 0 3px rgba(52,211,153,.15);background:rgba(15,23,42,.85)}} textarea{{min-height:96px;resize:vertical}}
+input[type=checkbox]{{width:auto;accent-color:var(--accent)}}
+button,.btn{{background:linear-gradient(135deg,#34d399,#22c55e);color:#052e16;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);padding:11px 18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:44px;line-height:1.15;text-align:center;white-space:normal;box-shadow:0 4px 16px rgba(52,211,153,.25);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}} button:hover,.btn:hover{{transform:translateY(-1px);box-shadow:0 6px 22px rgba(52,211,153,.35);filter:brightness(1.05)}}
+.btn2{{background:rgba(255,255,255,.08);color:#e2e8f0;border-color:var(--glass-border);box-shadow:none}} .btn2:hover{{background:rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(0,0,0,.2)}}
+.danger{{background:linear-gradient(135deg,#f87171,#ef4444);color:#fff;border-color:rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(248,113,113,.25)}} .warn{{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1c1917;border-color:rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(251,191,36,.2)}}
+.action-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px}} .action-grid .btn{{width:100%;min-height:50px;border-radius:var(--radius-md)}} .dashboard-note{{font-size:13px;color:#a5b4fc;margin-top:8px}}
+table{{width:100%;border-collapse:separate;border-spacing:0;background:rgba(255,255,255,.03);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:var(--radius-md);overflow:hidden}} th,td{{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;vertical-align:top}} th{{color:#f8fafc;background:rgba(255,255,255,.05);font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}} tr:last-child td{{border-bottom:0}} tbody tr{{transition:background .15s ease}} tbody tr:hover{{background:rgba(255,255,255,.04)}}
+.row{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}} .row3{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}} form p{{margin:0 0 14px 0}}
+.flash{{padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:14px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}} .flash.warning{{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35)}} .flash.error{{background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.35)}}
+.badge{{display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--glass-border);color:#e2e8f0;font-size:12px;font-weight:600}} .ok{{background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.35);color:#6ee7b7}} .red{{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:#fca5a5}} .yellow{{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.35);color:#fde68a}}
+.side hr{{border:0;border-top:1px solid var(--glass-border);margin:16px 0}}
+.footer{{color:var(--muted);font-size:12px;margin-top:32px;padding-top:16px;border-top:1px solid var(--glass-border);line-height:1.6}}
+::-webkit-scrollbar{{width:10px;height:10px}} ::-webkit-scrollbar-track{{background:rgba(255,255,255,.03)}} ::-webkit-scrollbar-thumb{{background:rgba(255,255,255,.15);border-radius:999px;border:2px solid transparent;background-clip:padding-box}} ::-webkit-scrollbar-thumb:hover{{background:rgba(255,255,255,.25)}}
+@media(max-width:850px){{.top{{display:block;padding:14px 16px}}.user{{text-align:left;margin-top:10px}}.wrap{{display:block}}.side{{width:auto;display:flex;gap:8px;overflow-x:auto;padding:12px;border-right:0;border-bottom:1px solid var(--glass-border)}}.nav{{white-space:nowrap;margin:0;flex:0 0 auto}}.main{{padding:16px}}.row,.row3{{grid-template-columns:1fr}}.grid{{grid-template-columns:1fr}}.action-grid{{grid-template-columns:1fr}}table{{display:block;overflow-x:auto}}.card{{border-radius:var(--radius-md);padding:16px}}h1{{font-size:1.45rem}}.mobile-actions .btn,.action-grid .btn{{display:flex;margin:6px 0;text-align:center}}}}
 </style></head><body>
 <div class="top"><div><div class="brand">{APP_NAME}</div><div class="sub">Owned and operated by {OWNER} / {BUSINESS_NAME} • {PHONE} • v{APP_VERSION}</div></div><div class="user">{html.escape(username)} {html.escape(role_display(role))}<br><a href="/logout">Logout</a></div></div>
-<div class="wrap"><aside class="side">{nav_html}<hr style="border-color:#263244"><div class="sub">Server: {html.escape(get_lan_ip())}:8765<br>Trusted PC: {html.escape(platform.node())}</div></aside><main class="main">{flash_html}<h1>{html.escape(title)}</h1>{body}<div class="footer">Use on trusted LAN/VPN or properly secured cloud host only. Always use strong passwords and HTTPS for remote access.</div></main></div></body></html>"""
+<div class="wrap"><aside class="side">{nav_html}<hr><div class="sub">Server: {html.escape(get_lan_ip())}:{srv_port}<br>Trusted PC: {html.escape(platform.node())}</div></aside><main class="main">{flash_html}<h1>{html.escape(title)}</h1>{body}<div class="footer">Use on trusted LAN/VPN or properly secured cloud host only. Always use strong passwords and HTTPS for remote access.</div></main></div></body></html>"""
 def get_flashed_messages_safe():
     try:
         from flask import get_flashed_messages
@@ -1397,13 +1406,13 @@ def login():
         log_security_event("login_failed", username, "Invalid login or inactive account", "WARN")
         flash("Invalid login or inactive account.", "error")
     body = """
-    <div class="card" style="max-width:460px;margin:auto">
+    <div class="card card-narrow">
       <h2>Sign in</h2>
       <form method="post">
         <p><label>Username</label><input name="username" autocomplete="username" autofocus></p>
         <p><label>Password</label><input name="password" type="password" autocomplete="current-password"></p>
-        <p style="display:flex;gap:10px;align-items:flex-start;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:10px">
-          <input name="remember_device" value="1" type="checkbox" style="width:auto;margin-top:4px">
+        <p class="glass-note">
+          <input name="remember_device" value="1" type="checkbox" style="margin-top:4px">
           <span><b>Remember this PC/phone for 90 days</b><br><span class="muted">Only check this on your own trusted device. You still log in normally, but the device is recognized for security and admin review. After 90 days, you must verify again by logging in and checking this box.</span></span>
         </p>
         <button>Login</button>
@@ -1451,12 +1460,12 @@ def public_account_request():
             log_event("Account Request", f"New account request for {username} from {ip}")
             log_security_event("account_request_created", username, f"Requested role: {role}", "INFO")
             body = """
-            <div class='card' style='max-width:620px;margin:auto'><h2>Request Sent</h2>
+            <div class='card card-wide'><h2>Request Sent</h2>
             <p>Your account request was saved. An administrator must approve it before you can log in.</p>
             <p><a class='btn' href='/login'>Back to login</a></p></div>"""
             return layout("Account Request Sent", body, "")
     body = """
-    <div class='card' style='max-width:760px;margin:auto'>
+    <div class='card card-wide'>
       <h2>Request J&R Manager Access</h2>
       <p class='muted'>Use this form from a phone or computer. No program install is needed. Jacob/admin will review and approve accounts. New accounts start as read-only worker/viewer unless an admin upgrades them.</p>
       <form method='post'>
@@ -1552,8 +1561,8 @@ def change_password():
                 flash("Password changed. The default admin login is now disabled for this business database." if user["username"] == DEFAULT_ADMIN_USERNAME else "Password changed.", "success")
                 return redirect(url_for("setup_complete"))
     body = f"""
-    <div class='card' style='max-width:560px;margin:auto'><h2>Change Password</h2>
-      <p class='muted'>For owner/admin accounts, choose at least 12 characters. Passwords are stored as hashes, not readable text.</p>
+    <div class='card card-narrow'><h2>Change Password</h2>
+      <p class='muted'>Use at least 8 characters. Passwords are stored as hashes, not readable text.</p>
       <form method='post'>
         <p><label>Current password</label><input type='password' name='current_password' autocomplete='current-password'></p>
         <p><label>New password</label><input type='password' name='new_password' autocomplete='new-password'></p>
@@ -1853,7 +1862,7 @@ def owner_recovery():
             flash("Admin password reset from trusted owner device. This action was logged.", "success")
             return redirect(url_for("login"))
     body = """
-    <div class='card' style='max-width:560px;margin:auto'><h2>Owner Emergency Recovery</h2>
+    <div class='card card-narrow'><h2>Owner Emergency Recovery</h2>
     <p>This is a transparent owner-only recovery tool for Jacob's trusted host PC. It does not access other users' computers and every use is logged.</p>
     <form method='post'><p><label>New admin password</label><input type='password' name='new_password'></p><p><label>Confirm password</label><input type='password' name='confirm'></p><button>Reset Admin Password</button></form>
     <p class='muted'>Use only if the normal admin password is lost. Choose a strong password and keep it private.</p></div>
@@ -2504,8 +2513,8 @@ def pwa_manifest():
         "start_url": "/mobile",
         "scope": "/",
         "display": "standalone",
-        "background_color": "#07111f",
-        "theme_color": "#07111f",
+        "background_color": "#0a0f1c",
+        "theme_color": "#0a0f1c",
         "description": "Mobile access for J and R Construction Manager jobs, files, and shared sessions.",
         "icons": []
     })
@@ -3462,7 +3471,19 @@ def api_health():
 def main():
     init_db()
     host = "0.0.0.0"
-    port = int(os.environ.get("JRC_PORT", "8765"))
+    preferred = int(os.environ.get("JRC_PORT", "8765"))
+    try:
+        from app.runtime_utils import find_launch_port, save_port, is_jrc_server
+        if is_jrc_server(preferred):
+            port = preferred
+        else:
+            port = find_launch_port(preferred)
+        if port != preferred:
+            print(f"Note: port {preferred} is busy or used by another program. Using fallback port {port}.")
+            save_port(port, f"Server auto-selected fallback port {port} (preferred {preferred} unavailable).")
+        os.environ["JRC_PORT"] = str(port)
+    except Exception:
+        port = preferred
     print("=" * 70)
     print(APP_NAME, APP_VERSION)
     print(f"Owner: {OWNER} / {BUSINESS_NAME}")
@@ -3473,8 +3494,24 @@ def main():
     print("=" * 70)
     try:
         from waitress import serve
-        serve(app, host=host, port=port, threads=8)
-    except Exception:
+
+        for try_port in range(port, port + 15):
+            try:
+                os.environ["JRC_PORT"] = str(try_port)
+                if try_port != port:
+                    print(f"Retrying on fallback port {try_port}...")
+                    try:
+                        from app.runtime_utils import save_port
+                        save_port(try_port, f"Bind fallback from port {port}.")
+                    except Exception:
+                        pass
+                serve(app, host=host, port=try_port, threads=8)
+                return
+            except OSError as exc:
+                print(f"Could not bind port {try_port}: {exc}")
+                continue
+        raise SystemExit("No available port found in range.")
+    except ImportError:
         app.run(host=host, port=port, debug=False, threaded=True)
 @app.route("/v6-final-readiness")
 @login_required("audit")
@@ -3522,14 +3559,14 @@ def customer_request_final_check_run():
     return layout("Customer Request Final Check Report", f"<div class='card'><h2>Customer Request Final Check Report</h2><pre style='white-space:pre-wrap'>{out}</pre></div>", "health")
 
 @app.route("/live-deployment-readiness")
-@login_required
+@login_required()
 def live_deployment_readiness_page():
     require_permission("view_admin")
     body = """<div class='card'><h2>v6.3 Local Login + Host Repair</h2><p>This tool checks cloud deployment files, role dashboards, security markers, remembered-device policy, customer/external separation, Dropbox/file-source markers, and repair scripts. It writes reports into exports.</p><p><a class='btn' href='/live-deployment-readiness/run'>Run Live Deployment Readiness</a></p></div>"""
     return layout("Live Deployment Readiness", body, "admin")
 
 @app.route("/live-deployment-readiness/run")
-@login_required
+@login_required()
 def live_deployment_readiness_run():
     require_permission("view_admin")
     import subprocess, sys

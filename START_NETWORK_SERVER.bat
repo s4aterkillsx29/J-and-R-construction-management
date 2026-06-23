@@ -1,9 +1,10 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-if not exist ".venv\Scripts\python.exe" (
-  echo Virtual environment not found. Running installer first...
-  call INSTALL_JR_JOB_MANAGER.bat
+call "%~dp0ensure_venv.bat"
+if errorlevel 1 (
+  pause
+  exit /b 1
 )
 echo.
 echo Starting J and R Construction Manager Network Server...

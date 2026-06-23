@@ -27,7 +27,16 @@ DEFAULT_ADMIN_PASSWORD = 'admin'
 HASH_ITERATIONS_CURRENT = 250000
 HASH_ITERATIONS_LEGACY = (200000,)
 OWNER = 'Jacob Cosentino'
-BG = '#07111f'; PANEL = '#0f172a'; TEXT = '#f8fafc'; MUTED = '#cbd5e1'; ACCENT = '#22c55e'; INFO = '#60a5fa'; BUTTON = '#24324a'
+try:
+    from app.ui_theme import BG, PANEL, CARD, BORDER, TEXT, MUTED, ACCENT, INFO, BUTTON, styled_entry, apply_window_icon
+    from app.runtime_utils import open_web_dashboard as launch_web_dashboard
+except Exception:
+    BG = '#0a0f1c'; PANEL = '#111827'; CARD = '#151c2e'; BORDER = '#334155'
+    TEXT = '#f1f5f9'; MUTED = '#94a3b8'; ACCENT = '#34d399'; INFO = '#60a5fa'; BUTTON = '#1e293b'
+    launch_web_dashboard = None
+    def styled_entry(parent, **kwargs):
+        return tk.Entry(parent, bg='#0f172a', fg=TEXT, insertbackground=TEXT, relief='flat', font=('Segoe UI', 12), **kwargs)
+    def apply_window_icon(window, path): pass
 
 def log(msg: str):
     with LOG_PATH.open('a', encoding='utf-8', errors='replace') as f:
@@ -162,8 +171,8 @@ def is_default_admin_active(conn=None):
         if not own: conn.close()
 
 def password_quality(pw, admin=True):
-    if len(pw or '') < (12 if admin else 8):
-        return False, 'Use at least 12 characters for owner/admin passwords.' if admin else 'Use at least 8 characters.'
+    if len(pw or '') < 8:
+        return False, 'Use at least 8 characters.'
     if (pw or '').strip().lower() in {'admin','admin123','password','jandr','j&rconstruction','jrconstruction'}:
         return False, 'Choose a stronger password that is not a default/common password.'
     return True, 'OK'
@@ -174,7 +183,7 @@ def change_password_dialog(parent, user):
     if current is None: return False
     if not verify_password(current, user['salt'], user['password_hash']):
         messagebox.showerror('Wrong password', 'Current password did not match.', parent=parent); return False
-    new = simpledialog.askstring('Change Password', 'New password (owner/admin: 12+ characters):', show='*', parent=parent)
+    new = simpledialog.askstring('Change Password', 'New password (at least 8 characters):', show='*', parent=parent)
     if new is None: return False
     ok, msg = password_quality(new, admin=user['role']=='admin')
     if not ok:
@@ -222,20 +231,20 @@ def main():
         print('Tkinter unavailable. Local Login Gate cannot show UI.')
         return 1
     root = tk.Tk(); root.title('JRC Quick Setup Login')
-    root.geometry('620x520'); root.minsize(560,480); root.configure(bg=BG)
-    try:
-        ico = BASE_DIR/'assets'/'j_and_r_manager_icon.ico'
-        if ico.exists(): root.iconbitmap(str(ico))
-    except Exception: pass
-    tk.Label(root, text='J & R Construction Manager', bg=BG, fg=TEXT, font=('Segoe UI',21,'bold')).pack(anchor='w', padx=20, pady=(18,3))
-    tk.Label(root, text='Quick Setup Login - no server/host required', bg=BG, fg=INFO, font=('Segoe UI',10,'bold')).pack(anchor='w', padx=20)
-    frm = tk.Frame(root, bg=PANEL, padx=18, pady=16); frm.pack(fill='x', padx=20, pady=16)
-    tk.Label(frm, text='Username', bg=PANEL, fg=MUTED).grid(row=0,column=0,sticky='w')
+    root.geometry('680x560'); root.minsize(600,500); root.configure(bg=BG)
+    apply_window_icon(root, BASE_DIR/'assets'/'j_and_r_manager_icon.ico')
+    header = tk.Frame(root, bg=PANEL, highlightthickness=1, highlightbackground=BORDER)
+    header.pack(fill='x', padx=20, pady=(18, 0))
+    tk.Label(header, text='J & R Construction Manager', bg=PANEL, fg=TEXT, font=('Segoe UI',21,'bold')).pack(anchor='w', padx=16, pady=(14,2))
+    tk.Label(header, text='Quick setup on this PC — use Web Dashboard for the full glass browser experience', bg=PANEL, fg=INFO, font=('Segoe UI',10,'bold')).pack(anchor='w', padx=16, pady=(0,14))
+    frm = tk.Frame(root, bg=CARD, padx=18, pady=16, highlightthickness=1, highlightbackground=BORDER)
+    frm.pack(fill='x', padx=20, pady=16)
+    tk.Label(frm, text='Username', bg=CARD, fg=MUTED, font=('Segoe UI', 10, 'bold')).grid(row=0,column=0,sticky='w')
     uvar = tk.StringVar(value='admin')
-    euser = tk.Entry(frm, textvariable=uvar, font=('Segoe UI',12)); euser.grid(row=1,column=0,sticky='ew', pady=(0,10))
-    tk.Label(frm, text='Password', bg=PANEL, fg=MUTED).grid(row=2,column=0,sticky='w')
+    euser = styled_entry(frm, textvariable=uvar); euser.grid(row=1,column=0,sticky='ew', ipady=4, pady=(0,10))
+    tk.Label(frm, text='Password', bg=CARD, fg=MUTED, font=('Segoe UI', 10, 'bold')).grid(row=2,column=0,sticky='w')
     pvar = tk.StringVar()
-    epass = tk.Entry(frm, textvariable=pvar, show='*', font=('Segoe UI',12)); epass.grid(row=3,column=0,sticky='ew')
+    epass = styled_entry(frm, textvariable=pvar, show='*'); epass.grid(row=3,column=0,sticky='ew', ipady=4)
     frm.columnconfigure(0, weight=1)
     status = tk.StringVar(value='First setup: use admin / admin. Then change the admin password once. Updates will preserve it.')
     tk.Label(root, textvariable=status, bg=BG, fg=MUTED, wraplength=560, justify='left').pack(anchor='w', padx=20, pady=(0,12))
@@ -249,6 +258,19 @@ def main():
     def open_start_center():
         proc, lp = launch_hidden([PY_CMD, '-m', 'app.start_center'], 'start_center_from_login_gate.log')
         status.set('Opening Start Center.')
+    def open_web_dashboard():
+        if launch_web_dashboard:
+            ok, msg = launch_web_dashboard('/login')
+            status.set(msg)
+            return
+        proc, lp = launch_hidden([PY_CMD, '-m', 'app.network_server'], 'shared_host_from_login_gate.log')
+        status.set('Starting web server and opening browser...')
+        try:
+            from app.runtime_utils import get_saved_port
+            port = get_saved_port()
+        except Exception:
+            port = 8765
+        root.after(2500, lambda: webbrowser.open(f'http://127.0.0.1:{port}/login'))
     def run_self_setup():
         proc, lp = launch_hidden([PY_CMD, str(BASE_DIR/'app'/'self_setup_verify.py')], 'self_setup_verify_last.log')
         status.set('Self Setup + Verify running. Check exports/logs for report.')
@@ -271,7 +293,7 @@ def main():
         role=role_key(row['role'])
         common=[('Change Password',change_pw),('Open Start Center',open_start_center),('Open Logs',lambda: open_path(LOG_DIR)),('Open Exports',lambda: open_path(EXPORT_DIR))]
         if role=='admin':
-            actions=[('Open Office',open_office),('Self Setup + Verify',run_self_setup),('Admin Security Check',admin_security)] + common
+            actions=[('Open Web Dashboard',open_web_dashboard),('Open Office',open_office),('Self Setup + Verify',run_self_setup),('Admin Security Check',admin_security)] + common
         elif role=='manager':
             actions=[('Open Office',open_office),('Open Start Center',open_start_center),('Open Exports',lambda: open_path(EXPORT_DIR))]
         else:
@@ -308,8 +330,9 @@ def main():
         else:
             status.set(f"Setup verified: {username} ({role}). Choose the next action below.")
         refresh_after_login()
+    tk.Button(btns, text='Open Web UI (Glass Dashboard)', command=open_web_dashboard, bg=INFO, fg='#0c1222', relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
     tk.Button(btns, text='Login / Continue Setup', command=do_login, bg=ACCENT, fg='#04130a', relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
-    tk.Button(btns, text='Open Start Center', command=open_start_center, bg=BUTTON, fg=TEXT, relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(6,0))
+    tk.Button(btns, text='Start Center', command=open_start_center, bg=BUTTON, fg=TEXT, relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(6,0))
     epass.bind('<Return>', lambda e: do_login())
     tk.Label(action_frame, text='Log in to show role-based local actions. Customer and external users should use cloud/mobile links provided by J&R.', bg=BG, fg=MUTED, wraplength=560, justify='left').grid(row=0,column=0,sticky='w')
     root.mainloop(); return 0
