@@ -27,7 +27,23 @@ from tkinter import messagebox, simpledialog
 try:
     from app.dependency_tools import missing_dependencies, status_text, install_optional_dependencies
     from app import ui_theme as theme
-    from app.runtime_utils import open_web_dashboard as launch_web_dashboard, find_launch_port, save_port as persist_port, is_jrc_server
+    from app.runtime_utils import (
+        open_web_dashboard as launch_web_dashboard,
+        find_launch_port,
+        save_port as persist_port,
+        is_jrc_server,
+        ensure_lan_firewall,
+        ensure_lan_firewall_auto,
+        lan_firewall_rule_exists,
+        lan_firewall_port_range,
+    )
+    from app.process_lifecycle import (
+        acquire_start_center_lock,
+        prepare_for_new_host,
+        shutdown_start_center,
+        startup_cleanup,
+        track_popen,
+    )
 except Exception:
     missing_dependencies = lambda: []
     status_text = lambda: "Dependency status unavailable."
@@ -37,6 +53,15 @@ except Exception:
     find_launch_port = None
     persist_port = None
     is_jrc_server = None
+    ensure_lan_firewall = None
+    ensure_lan_firewall_auto = None
+    lan_firewall_rule_exists = None
+    lan_firewall_port_range = lambda: (8765, 8779)
+    acquire_start_center_lock = None
+    prepare_for_new_host = None
+    shutdown_start_center = None
+    startup_cleanup = None
+    track_popen = lambda proc, kind, note="": proc
 
 APP_NAME = "J and R Construction Manager"
 APP_VERSION = "7.1 Primary Live Reliable Business Edition"
@@ -272,7 +297,14 @@ def write_log_header(path: Path, title: str) -> None:
         f.write("=" * 70 + "\n")
 
 
-def launch_hidden(args: list[str], log_name: str, env: dict[str, str] | None = None) -> tuple[subprocess.Popen | None, Path, str]:
+def launch_hidden(
+    args: list[str],
+    log_name: str,
+    env: dict[str, str] | None = None,
+    *,
+    kind: str = "tool",
+    note: str = "",
+) -> tuple[subprocess.Popen | None, Path, str]:
     LOG_DIR.mkdir(exist_ok=True)
     log_path = LOG_DIR / log_name
     write_log_header(log_path, " ".join(args))
@@ -292,6 +324,7 @@ def launch_hidden(args: list[str], log_name: str, env: dict[str, str] | None = N
             creationflags=flags,
             env=merged_env,
         )
+        track_popen(proc, kind, note or " ".join(args))
         return proc, log_path, ""
     except Exception as exc:
         with open(log_path, "a", encoding="utf-8", errors="replace") as f:
@@ -354,66 +387,168 @@ def link_set(base: str) -> dict[str, str]:
 
 
 class HostMonitor(tk.Toplevel):
-    """Small, lightweight server monitor and quick tools panel."""
+    """Live health panel for the local web server."""
+
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.title("JRC Host Monitor")
+        self.title("JRC Host Health Panel")
         self.configure(bg=BG)
-        self.geometry("540x360")
-        self.minsize(500, 320)
-        tk.Label(self, text="Local Host Monitor", bg=BG, fg=TEXT, font=("Segoe UI", 17, "bold")).pack(anchor="w", padx=18, pady=(16,4))
-        tk.Label(self, text="Use this to see whether the local server is actually answering before sharing phone links.", bg=BG, fg=MUTED, font=("Segoe UI", 9), wraplength=480, justify="left").pack(anchor="w", padx=18)
-        self.status = tk.StringVar(value="Checking...")
-        self.links = tk.StringVar(value="")
-        card = tk.Frame(self, bg=PANEL, padx=14, pady=12, highlightthickness=1, highlightbackground=BORDER)
-        card.pack(fill="both", expand=True, padx=18, pady=14)
-        tk.Label(card, textvariable=self.status, bg=PANEL, fg=INFO, font=("Segoe UI", 11, "bold"), justify="left", wraplength=470).pack(anchor="w")
-        tk.Label(card, textvariable=self.links, bg=PANEL, fg=MUTED, font=("Segoe UI", 9), justify="left", wraplength=470).pack(anchor="w", pady=(8,12))
-        btns = tk.Frame(card, bg=PANEL)
-        btns.pack(fill="x", pady=(4,0))
-        for label, cmd in [
-            ("Refresh", self.refresh),
-            ("Open Connect", lambda: webbrowser.open(urls()["connect"])),
-            ("Mobile", lambda: webbrowser.open(urls()["mobile"])),
-            ("Auto Repair", self.parent.auto_host_repair),
-            ("Logs", lambda: open_path(LOG_DIR)),
-        ]:
-            tk.Button(btns, text=label, command=cmd, bg=BUTTON, fg=TEXT, relief="flat", padx=8, pady=7).pack(side="left", padx=3)
-        self.after(100, self.refresh)
-        self.after(5000, self._loop)
+        self.geometry("680x560")
+        self.minsize(620, 480)
+        if theme:
+            theme.apply_window_icon(self, BASE_DIR / "assets" / "j_and_r_manager_icon.ico")
+
+        shell = tk.Frame(self, bg=BG, padx=16, pady=14)
+        shell.pack(fill="both", expand=True)
+
+        header = tk.Frame(shell, bg=PANEL, highlightthickness=1, highlightbackground=BORDER)
+        header.pack(fill="x", pady=(0, 12))
+        tk.Frame(header, bg=ACCENT, height=3).pack(fill="x")
+        head = tk.Frame(header, bg=PANEL, padx=18, pady=14)
+        head.pack(fill="x")
+        tk.Label(head, text="Local Host Health", bg=PANEL, fg=TEXT, font=("Segoe UI", 20, "bold")).pack(anchor="w")
+        tk.Label(head, text="Live checks for login, API health, mobile, and connection endpoints.", bg=PANEL, fg=MUTED, font=("Segoe UI", 9)).pack(anchor="w", pady=(4, 0))
+
+        self._banner = tk.Label(shell, text="Checking...", bg=CARD, fg=TEXT, font=("Segoe UI", 12, "bold"), anchor="w", padx=16, pady=12, highlightthickness=1, highlightbackground=BORDER)
+        self._banner.pack(fill="x", pady=(0, 10))
+
+        self._meta = tk.Label(shell, text="", bg=BG, fg=MUTED, font=("Segoe UI", 9), anchor="w", justify="left")
+        self._meta.pack(fill="x", padx=4, pady=(0, 8))
+
+        checks_card = tk.Frame(shell, bg=PANEL, highlightthickness=1, highlightbackground=BORDER, padx=14, pady=12)
+        checks_card.pack(fill="x", pady=(0, 10))
+        tk.Label(checks_card, text="ENDPOINT CHECKS", bg=PANEL, fg=DIM, font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 8))
+        self._checks_frame = tk.Frame(checks_card, bg=PANEL)
+        self._checks_frame.pack(fill="x")
+
+        links_card = tk.Frame(shell, bg=PANEL, highlightthickness=1, highlightbackground=BORDER, padx=14, pady=12)
+        links_card.pack(fill="both", expand=True, pady=(0, 10))
+        tk.Label(links_card, text="SHAREABLE LINKS", bg=PANEL, fg=DIM, font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 8))
+        self._links_frame = tk.Frame(links_card, bg=PANEL)
+        self._links_frame.pack(fill="both", expand=True)
+
+        btns = tk.Frame(shell, bg=BG)
+        btns.pack(fill="x")
+        btn_defs = [
+            ("Refresh Now", self.refresh, "primary"),
+            ("Open Login", lambda: webbrowser.open(urls()["local"] + "/login"), "info"),
+            ("Mobile", lambda: webbrowser.open(urls()["mobile"]), "info"),
+            ("Allow Phone Access", self.parent.allow_firewall, "warn"),
+            ("Auto Repair", self.parent.auto_host_repair, "warn"),
+            ("Logs", lambda: open_path(LOG_DIR), "secondary"),
+        ]
+        for label, cmd, variant in btn_defs:
+            if theme:
+                theme.action_button(btns, label, cmd, variant=variant).pack(side="left", padx=(0, 8))
+            else:
+                tk.Button(btns, text=label, command=cmd, bg=BUTTON, fg=TEXT).pack(side="left", padx=4)
+
+        self._poll_ms = 4000
+        self._poll_active = True
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.after(150, self.refresh)
+        self.after(self._poll_ms, self._loop)
+
+    def _on_close(self):
+        self._poll_active = False
+        self.destroy()
 
     def _loop(self):
         try:
-            if self.winfo_exists():
-                self.refresh()
-                self.after(5000, self._loop)
+            if not self._poll_active or not self.winfo_exists():
+                return
+            self.refresh()
+            self.after(self._poll_ms, self._loop)
         except Exception:
             pass
 
-    def refresh(self):
-        u = urls()
-        login_ok, login_msg = url_ok(u["local"] + "/login", timeout=0.8)
-        health_ok, health_msg = url_ok(u["health"], timeout=0.8)
-        ping_ok, ping_msg = url_ok(u["local"] + "/mobile/ping", timeout=0.8)
-        conn_ok, conn_msg = url_ok(u["local"] + "/api/connection", timeout=0.8)
-        cloud = get_cloud_base_url()
-        if login_ok and health_ok and ping_ok and conn_ok:
-            state = "RUNNING AND VERIFIED"
-            fg_msg = f"Status: {state}\nPort: {PORT}\nLAN IP: {lan_ip()}\nLogin: OK | Health: OK | Mobile Ping: OK | Connection API: OK"
-        elif login_ok:
-            state = "LOGIN READY - MOBILE NEEDS ATTENTION"
-            fg_msg = f"Status: {state}\nPort: {PORT}\nLAN IP: {lan_ip()}\nLogin: OK | Health: {health_ok} | Mobile Ping: {ping_ok} | Connection API: {conn_ok}\nYou can log in locally. Run Auto Repair Host if mobile/phone links fail."
-        elif is_port_open(PORT):
-            state = "PORT OPEN BUT LOGIN NOT VERIFIED"
-            fg_msg = f"Status: {state}\nPort: {PORT}\nLogin: {login_ok} | Health: {health_ok} | Mobile Ping: {ping_ok} | Connection API: {conn_ok}\nRun Auto Repair Host if this continues."
+    def _set_banner(self, state: str, ok: bool):
+        colors = {
+            True: (CARD, ACCENT, "● RUNNING"),
+            False: (CARD, WARN, "● NEEDS ATTENTION"),
+        }
+        if state == "NOT RUNNING":
+            bg, fg, prefix = CARD, DANGER, "● NOT RUNNING"
+        elif state == "STARTING":
+            bg, fg, prefix = CARD, INFO, "● STARTING"
         else:
-            state = "NOT RUNNING"
-            fg_msg = f"Status: {state}\nPort: {PORT}\nClick Start Local Host, or use Cloud Access for remote users."
-        self.status.set(fg_msg)
-        self.links.set(
-            f"Connection Test: {u['connect']}\nMobile: {u['mobile']}\nCloud URL: {cloud or 'not set'}"
+            bg, fg, prefix = colors.get(ok, colors[False])
+        self._banner.configure(bg=bg, fg=fg, text=f"{prefix} — {state}")
+
+    def refresh(self, starting: bool = False):
+        u = urls()
+        if starting:
+            self._set_banner("STARTING", False)
+            self._meta.configure(text=f"Port: {PORT}  •  LAN IP: {lan_ip()}  •  Waiting for server...")
+            for child in self._checks_frame.winfo_children():
+                child.destroy()
+            if theme:
+                theme.health_row(self._checks_frame, "Server process", False, "Starting local web app...")
+            return
+
+        login_ok, _ = url_ok(u["local"] + "/login", timeout=0.8)
+        health_ok, _ = url_ok(u["health"], timeout=0.8)
+        ping_ok, _ = url_ok(u["local"] + "/mobile/ping", timeout=0.8)
+        conn_ok, _ = url_ok(u["local"] + "/api/connection", timeout=0.8)
+        lan_ping_ok, lan_ping_detail = url_ok(u["lan"] + "/mobile/ping", timeout=1.0)
+        fw_ok = lan_firewall_rule_exists() if lan_firewall_rule_exists else True
+        cloud = get_cloud_base_url()
+        low, high = lan_firewall_port_range() if lan_firewall_port_range else (8765, 8779)
+
+        if login_ok and health_ok and ping_ok and conn_ok and lan_ping_ok and fw_ok:
+            state = "ALL CHECKS PASSED"
+            all_ok = True
+        elif login_ok and lan_ping_ok and not fw_ok:
+            state = "HOST OK — ALLOW PHONE ACCESS (FIREWALL)"
+            all_ok = False
+        elif login_ok and not lan_ping_ok:
+            state = "HOST OK — PHONES MAY BE BLOCKED"
+            all_ok = False
+        elif login_ok:
+            state = "LOGIN READY — MOBILE NEEDS ATTENTION"
+            all_ok = False
+        elif is_port_open(PORT):
+            state = "PORT OPEN — LOGIN NOT VERIFIED"
+            all_ok = False
+        else:
+            state = "SERVER NOT RUNNING"
+            all_ok = False
+
+        self._set_banner(state, all_ok)
+        self._meta.configure(
+            text=f"Port: {PORT}  •  LAN IP: {lan_ip()}  •  Local: {u['local']}  •  Cloud: {cloud or 'not set'}"
         )
+
+        for child in self._checks_frame.winfo_children():
+            child.destroy()
+        checks = [
+            ("Login page", login_ok, u["local"] + "/login"),
+            ("API health", health_ok, u["health"]),
+            ("Mobile ping", ping_ok, u["local"] + "/mobile/ping"),
+            ("Connection API", conn_ok, u["local"] + "/api/connection"),
+            ("LAN phone test", lan_ping_ok, u["lan"] + "/mobile/ping"),
+            (f"Windows Firewall (TCP {low}-{high})", fw_ok, "Run Allow Phone Access once as Administrator"),
+        ]
+        for name, ok, endpoint in checks:
+            if theme:
+                theme.health_row(self._checks_frame, name, ok, endpoint)
+            else:
+                tk.Label(self._checks_frame, text=f"{'OK' if ok else 'FAIL'} — {name}", bg=PANEL, fg=TEXT).pack(anchor="w")
+
+        for child in self._links_frame.winfo_children():
+            child.destroy()
+        link_items = [
+            ("Connection test", u["connect"]),
+            ("Mobile app", u["mobile"]),
+            ("Worker signup", u["register"]),
+            ("Job application", u["apply"]),
+        ]
+        for label, link in link_items:
+            if theme:
+                theme.link_row(self._links_frame, label, link, lambda l=link: webbrowser.open(l))
+            else:
+                tk.Label(self._links_frame, text=f"{label}: {link}", bg=PANEL, fg=MUTED).pack(anchor="w")
 
 class MobileWindow(tk.Toplevel):
     def __init__(self, parent, base_url: str | None = None, mode: str = "local"):
@@ -452,7 +587,7 @@ class MobileWindow(tk.Toplevel):
             entry.pack(side="left", fill="x", expand=True, padx=(6, 8), ipady=5)
             tk.Button(row, text="Open", bg=BUTTON, fg=TEXT, relief="flat", command=lambda l=link: webbrowser.open(l) if l else None).pack(side="right")
             tk.Label(box, text=desc, bg=PANEL, fg=DIM, font=("Segoe UI", 9), anchor="w").pack(fill="x", padx=(180, 0))
-        bottom = "Cloud links stay usable when your PC host is off only when the hosted/cloud server is actually deployed and running." if mode == "cloud" else "If phone fails on same Wi-Fi, run Tools / Repair > Allow Phone Access and restart the local host."
+        bottom = "Cloud links stay usable when your PC host is off only when the hosted/cloud server is actually deployed and running." if mode == "cloud" else "Phones only open the link in a browser — no app install or admin needed on their device. The host PC may show a one-time Windows Yes prompt the first time Start Local Host is used."
         tk.Label(self, text=bottom, bg=BG, fg=WARN, font=("Segoe UI", 9, "bold"), wraplength=730, justify="left").pack(anchor="w", padx=22, pady=(0, 14))
 
 
@@ -471,7 +606,15 @@ class HelpWindow(tk.Toplevel):
 
 class StartCenter(tk.Tk):
     def __init__(self):
+        if startup_cleanup:
+            startup_cleanup()
         super().__init__()
+        if acquire_start_center_lock:
+            ok, msg = acquire_start_center_lock()
+            if not ok:
+                messagebox.showwarning("Already Open", msg + "\n\nClose the other Start Center window first.")
+                self.destroy()
+                return
         self.title(APP_NAME)
         self.geometry("1080x780")
         self.minsize(920, 680)
@@ -493,7 +636,18 @@ class StartCenter(tk.Tk):
         self._sections = self._define_sections()
         self._build()
         self._show_section("daily")
-        self.bind("<Configure>", self._on_resize)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self):
+        if shutdown_start_center:
+            shutdown_start_center(stop_host=True)
+        try:
+            if self.host_monitor_window and self.host_monitor_window.winfo_exists():
+                self.host_monitor_window._poll_active = False
+                self.host_monitor_window.destroy()
+        except Exception:
+            pass
+        self.destroy()
 
     def _define_sections(self):
         return {
@@ -577,7 +731,7 @@ class StartCenter(tk.Tk):
             scroll = tk.Scrollbar(scroll_host, orient="vertical", command=self._canvas.yview, bg=BG, troughcolor=PANEL, width=10)
         self._scroll = scroll
         self._cards_frame = tk.Frame(self._canvas, bg=BG)
-        self._cards_frame.bind("<Configure>", lambda e: self._canvas.configure(scrollregion=self._canvas.bbox("all")))
+        self._cards_frame.bind("<Configure>", self._on_cards_configure)
         self._canvas_window = self._canvas.create_window((0, 0), window=self._cards_frame, anchor="nw")
         self._canvas.configure(yscrollcommand=scroll.set)
         self._canvas.pack(side="left", fill="both", expand=True, padx=(8, 0), pady=8)
@@ -591,10 +745,17 @@ class StartCenter(tk.Tk):
         footer.pack(fill="x", padx=16, pady=(0, 14))
         tk.Label(footer, textvariable=self.status_var, bg=PANEL, fg=MUTED, font=("Segoe UI", 9), wraplength=980, justify="left").pack(anchor="w")
 
+    def _on_cards_configure(self, event=None):
+        self._canvas.configure(scrollregion=self._canvas.bbox("all"))
+
     def _sync_canvas_width(self, event=None):
         try:
-            self._canvas.itemconfigure(self._canvas_window, width=max(400, event.width - 4))
-            self._content_wrap = max(420, event.width - 140)
+            width = self._canvas.winfo_width()
+            if width < 50 and event is not None:
+                width = event.width
+            inner_w = max(400, width - 8)
+            self._canvas.itemconfigure(self._canvas_window, width=inner_w)
+            self._content_wrap = max(320, inner_w - 40)
         except Exception:
             pass
 
@@ -623,7 +784,10 @@ class StartCenter(tk.Tk):
                     fg=theme.TEXT if active else theme.MUTED,
                     highlightbackground=theme.ACCENT if active else theme.BORDER,
                 )
-        self.set_status(f"{label} — pick an action and click Open.")
+        self._canvas.yview_moveto(0)
+        self._canvas.update_idletasks()
+        self._on_cards_configure()
+        self.set_status(f"{label} — pick an action and click Open (or click anywhere on a card).")
 
     def _legacy_card(self, title, desc, command, tone="secondary"):
         frame = tk.Frame(self._cards_frame, bg=CARD, padx=14, pady=12)
@@ -631,11 +795,6 @@ class StartCenter(tk.Tk):
         tk.Label(frame, text=title, bg=CARD, fg=TEXT, font=("Segoe UI", 12, "bold")).pack(anchor="w")
         tk.Label(frame, text=desc, bg=CARD, fg=MUTED, wraplength=self._content_wrap).pack(anchor="w", pady=4)
         tk.Button(frame, text="Open", command=command).pack(anchor="e")
-
-    def _on_resize(self, event=None):
-        if event and event.widget is not self:
-            return
-        self._sync_canvas_width(event)
 
     def _watch_process(self, proc, log_path: Path, name: str, success_hint: str = ""):
         def check():
@@ -668,15 +827,19 @@ class StartCenter(tk.Tk):
             webbrowser.open(urls()["local"] + "/owner-security-status")
             self.set_status("Opened Owner Security Status after verifying local login host.")
 
-    def show_host_monitor(self):
+    def show_host_monitor(self, starting: bool = False):
         try:
             if self.host_monitor_window and self.host_monitor_window.winfo_exists():
                 self.host_monitor_window.lift()
-                self.host_monitor_window.refresh()
-                return
+                self.host_monitor_window.focus_force()
+                self.host_monitor_window.refresh(starting=starting)
+                return self.host_monitor_window
         except Exception:
             pass
         self.host_monitor_window = HostMonitor(self)
+        if starting:
+            self.host_monitor_window.refresh(starting=True)
+        return self.host_monitor_window
 
 
 
@@ -706,7 +869,15 @@ class StartCenter(tk.Tk):
         if open_monitor:
             self.show_host_monitor()
         self.set_status(f"Starting local web app for Login on port {PORT}...")
-        proc, log, err = launch_hidden([PY_CMD, "-m", "app.network_server"], "shared_host_last.log", {"JRC_PORT": str(PORT)})
+        if prepare_for_new_host:
+            prepare_for_new_host()
+        proc, log, err = launch_hidden(
+            [PY_CMD, "-m", "app.network_server"],
+            "shared_host_last.log",
+            {"JRC_PORT": str(PORT)},
+            kind="network_server",
+            note=f"login-first port {PORT}",
+        )
         if err:
             messagebox.showwarning("Login server did not launch", f"{err}\n\nLog: {log}")
             return False
@@ -767,57 +938,74 @@ class StartCenter(tk.Tk):
             messagebox.showwarning("Office did not launch", f"{err}\n\nLog: {log}")
         self._watch_process(proc, log, "Office app", "Office app launched. If nothing appears, open Logs from Files / Logs.")
 
+    def _prepare_phone_access(self, on_done=None):
+        """One-time host-PC setup so phones on Wi-Fi can reach the server. Phones never need admin."""
+        def work():
+            fw_ok, fw_msg = (True, "Phone access already enabled on this host PC.")
+            if ensure_lan_firewall_auto:
+                needs_prompt = not (lan_firewall_rule_exists and lan_firewall_rule_exists())
+                if needs_prompt:
+                    self.after(0, lambda: self.set_status("One-time Windows prompt on THIS computer so phones can connect. Click Yes."))
+                fw_ok, fw_msg = ensure_lan_firewall_auto()
+            def finish():
+                if on_done:
+                    on_done(fw_ok, fw_msg)
+            self.after(0, finish)
+        threading.Thread(target=work, daemon=True).start()
+
     def start_host(self):
+        monitor = self.show_host_monitor(starting=True)
         if is_login_ready():
-            ok, msg, checks = wait_for_host(timeout=6.0)
-            self.show_host_monitor()
-            self.set_status(f"Local web app is running. Login is ready. Mobile quick test: {'passed' if ok else 'needs attention'}.")
-            messagebox.showinfo(
-                "Local Web App Running",
-                f"Login is ready now. Use admin/admin for first setup if unchanged.\n\nLogin:\n{urls()['local']}/login\n\nMobile quick test:\n{quick_test_summary(checks)}\n\nPhone connection test:\n{urls()['connect']}"
-            )
+            def after_fw(fw_ok, fw_msg):
+                ok, msg, checks = wait_for_host(timeout=6.0)
+                monitor.refresh()
+                self.set_status(f"Local web app is running. Login is ready. Mobile quick test: {'passed' if ok else 'needs attention'}.")
+            self._prepare_phone_access(after_fw)
             return
         set_runtime_port(find_available_port(PORT), "Auto-selected by Start Center before launching local host.")
         missing = missing_dependencies()
         if "flask" in missing:
+            monitor.refresh()
             self.set_status("Network/mobile tools are missing. Run Auto Repair Host.")
             messagebox.showwarning("Repair Needed", "Network/mobile tools are missing.\n\nClick Auto Repair Host first, then Start Local Host again.")
             return
-        self.set_status(f"Starting local web app on port {PORT}. Login will be verified first...")
-        self.show_host_monitor()
-        proc, log, err = launch_hidden([PY_CMD, "-m", "app.network_server"], "shared_host_last.log", {"JRC_PORT": str(PORT)})
-        if err:
-            messagebox.showwarning("Host did not launch", f"{err}\n\nLog: {log}")
-            return
 
-        def verify_in_thread():
-            login_ok, login_msg = wait_for_login(timeout=22.0)
-            ok, msg, checks = wait_for_host(timeout=10.0, step=0.8) if login_ok else (False, login_msg, {})
-            def finish():
-                if login_ok:
-                    self.set_status(f"Login verified. Mobile quick test: {'passed' if ok else 'needs attention'}. Login: {urls()['local']}/login")
-                    if ok:
-                        messagebox.showinfo(
-                            "Local Host Ready",
-                            f"Login and mobile endpoints verified.\n\nLogin first:\n{urls()['local']}/login\n\nPhone connection test:\n{urls()['connect']}\n\nMobile app:\n{urls()['mobile']}"
-                        )
+        def launch_after_fw(fw_ok, fw_msg):
+            self.set_status(f"Starting local web app on port {PORT}. Health panel is live...")
+            if prepare_for_new_host:
+                prepare_for_new_host()
+            proc, log, err = launch_hidden(
+                [PY_CMD, "-m", "app.network_server"],
+                "shared_host_last.log",
+                {"JRC_PORT": str(PORT)},
+                kind="network_server",
+                note=f"local host port {PORT}",
+            )
+            if err:
+                monitor.refresh()
+                messagebox.showwarning("Host did not launch", f"{err}\n\nLog: {log}")
+                return
+
+            def verify_in_thread():
+                login_ok, login_msg = wait_for_login(timeout=22.0)
+                ok, msg, checks = wait_for_host(timeout=10.0, step=0.8) if login_ok else (False, login_msg, {})
+
+                def finish():
+                    try:
+                        if self.host_monitor_window and self.host_monitor_window.winfo_exists():
+                            self.host_monitor_window.refresh()
+                    except Exception:
+                        pass
+                    if login_ok:
+                        note = " Share the links from the health panel — phones only open the link, no setup needed."
+                        self.set_status(f"Login verified on port {PORT}.{note if fw_ok else ' Phone access may need the Windows Yes prompt.'}")
                     else:
-                        messagebox.showwarning(
-                            "Login Ready - Mobile Needs Attention",
-                            f"The login screen is working, but not every mobile endpoint verified yet. You can still log in locally.\n\nLogin:\n{urls()['local']}/login\n\nMobile checks:\n{quick_test_summary(checks)}\n\nIf phones cannot connect, run Auto Repair Host and Allow Phone Access."
-                        )
-                else:
-                    code = proc.poll() if proc else None
-                    log_tail = tail_log(log)
-                    self.set_status(f"Login did not verify. Run Auto Repair Host. Log: {log}")
-                    messagebox.showwarning(
-                        "Login Verification Failed",
-                        "The local host process was started, but the Login page did not answer.\n\n"
-                        f"Process status: {'still running' if code is None else 'stopped with code ' + str(code)}\n"
-                        f"Last message: {login_msg}\n\nLog file:\n{log}\n\nRun Auto Repair Host, then try Open Login.\n\nLog tail:\n{log_tail[:1200]}"
-                    )
-            self.after(0, finish)
-        threading.Thread(target=verify_in_thread, daemon=True).start()
+                        self.set_status("Local web app started but Login did not verify. Check health panel or run Auto Repair Host.")
+                self.after(0, finish)
+            threading.Thread(target=verify_in_thread, daemon=True).start()
+
+        monitor.refresh(starting=True)
+        self._prepare_phone_access(launch_after_fw)
 
     def mobile_links(self):
         cloud = get_cloud_base_url()
@@ -1173,12 +1361,28 @@ class StartCenter(tk.Tk):
         self._watch_process(proc, log, "Repair Features", f"Repair Features is running. Log: {log}")
 
     def allow_firewall(self):
-        helper = BASE_DIR / "ALLOW_LAN_FIREWALL_ACCESS.bat"
-        if not helper.exists():
-            messagebox.showwarning("Missing helper", "ALLOW_LAN_FIREWALL_ACCESS.bat was not found.")
+        low, high = lan_firewall_port_range()
+        if ensure_lan_firewall_auto:
+            self.set_status("Waiting for one-time Windows approval on this host PC...")
+            fw_ok, fw_msg = ensure_lan_firewall_auto()
+            if fw_ok:
+                messagebox.showinfo(
+                    "Phone Access Ready",
+                    f"Phones on the same Wi-Fi can use your share links.\n\n"
+                    f"They only open the link in a browser — no install or admin needed on their device.\n\n{fw_msg}",
+                )
+                if self.host_monitor_window and self.host_monitor_window.winfo_exists():
+                    self.host_monitor_window.refresh()
+                return
+            messagebox.showwarning(
+                "Phone Access",
+                f"Could not enable phone access yet.\n\n"
+                f"When Windows asks, click Yes on THIS computer only.\n\n{fw_msg}",
+            )
             return
-        messagebox.showinfo("Allow Phone Access", "Windows may ask for Administrator approval. This allows trusted Wi-Fi/VPN devices to reach port 8765.")
-        open_path(helper)
+        helper = BASE_DIR / "ALLOW_LAN_FIREWALL_ACCESS.bat"
+        if helper.exists():
+            open_path(helper)
 
     def files_window(self):
         win = tk.Toplevel(self)
@@ -1202,7 +1406,12 @@ class StartCenter(tk.Tk):
 
 
 def main() -> None:
-    StartCenter().mainloop()
+    app = StartCenter()
+    try:
+        if app.winfo_exists():
+            app.mainloop()
+    except tk.TclError:
+        pass
 
 
 if __name__ == "__main__":

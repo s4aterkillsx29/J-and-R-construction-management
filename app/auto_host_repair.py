@@ -199,7 +199,8 @@ def main() -> int:
     firewall_helper = BASE_DIR / "ALLOW_LAN_FIREWALL_ACCESS.bat"
     report["firewall_helper_present"] = firewall_helper.exists()
     if firewall_helper.exists():
-        report["actions"].append("Firewall helper is present. Run Tools / Repair > Allow Phone Access if phones cannot connect on same Wi-Fi.")
+        low, high = 8765, 8779
+        report["actions"].append(f"Firewall helper is present. Run Tools / Repair > Allow Phone Access if phones cannot connect on same Wi-Fi (opens TCP {low}-{high}).")
     else:
         report["warnings"].append("Firewall helper is missing. Reinstall/update if phone access fails on same Wi-Fi.")
 

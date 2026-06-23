@@ -204,7 +204,7 @@ def change_password_dialog(parent, user):
     messagebox.showinfo('Password changed', 'Password changed and saved to the business database. Future installs/updates will preserve it.', parent=parent)
     return True
 
-def launch_hidden(args, logname):
+def launch_hidden(args, logname, kind='tool', note=''):
     log_path = LOG_DIR / logname
     with log_path.open('a', encoding='utf-8', errors='replace') as logf:
         logf.write('\n--- Launch from Local Login Gate ---\n')
@@ -213,7 +213,13 @@ def launch_hidden(args, logname):
             startupinfo = subprocess.STARTUPINFO(); startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW; startupinfo.wShowWindow = 0
             flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         try:
-            return subprocess.Popen(args, cwd=str(BASE_DIR), stdout=logf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, startupinfo=startupinfo, creationflags=flags), log_path
+            proc = subprocess.Popen(args, cwd=str(BASE_DIR), stdout=logf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, startupinfo=startupinfo, creationflags=flags)
+            try:
+                from app.process_lifecycle import track_popen
+                track_popen(proc, kind, note or ' '.join(str(a) for a in args))
+            except Exception:
+                pass
+            return proc, log_path
         except Exception as e:
             logf.write('LAUNCH ERROR: '+str(e)+'\n')
             return None, log_path
@@ -263,7 +269,12 @@ def main():
             ok, msg = launch_web_dashboard('/login')
             status.set(msg)
             return
-        proc, lp = launch_hidden([PY_CMD, '-m', 'app.network_server'], 'shared_host_from_login_gate.log')
+        try:
+            from app.process_lifecycle import prepare_for_new_host
+            prepare_for_new_host()
+        except Exception:
+            pass
+        proc, lp = launch_hidden([PY_CMD, '-m', 'app.network_server'], 'shared_host_from_login_gate.log', kind='network_server', note='login gate dashboard')
         status.set('Starting web server and opening browser...')
         try:
             from app.runtime_utils import get_saved_port
@@ -333,6 +344,16 @@ def main():
     tk.Button(btns, text='Open Web UI (Glass Dashboard)', command=open_web_dashboard, bg=INFO, fg='#0c1222', relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
     tk.Button(btns, text='Login / Continue Setup', command=do_login, bg=ACCENT, fg='#04130a', relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
     tk.Button(btns, text='Start Center', command=open_start_center, bg=BUTTON, fg=TEXT, relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(6,0))
+    def on_close():
+        try:
+            from app.process_lifecycle import stop_owned_processes, prune_registry
+            stop_owned_processes(os.getpid(), kinds={'network_server'})
+            prune_registry()
+        except Exception:
+            pass
+        root.destroy()
+
+    root.protocol('WM_DELETE_WINDOW', on_close)
     epass.bind('<Return>', lambda e: do_login())
     tk.Label(action_frame, text='Log in to show role-based local actions. Customer and external users should use cloud/mobile links provided by J&R.', bg=BG, fg=MUTED, wraplength=560, justify='left').grid(row=0,column=0,sticky='w')
     root.mainloop(); return 0
