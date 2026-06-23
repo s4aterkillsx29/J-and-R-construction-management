@@ -3427,20 +3427,24 @@ def connect_links():
     """Public connection helper page so phones can test host access before login."""
     lan = get_lan_ip()
     port = int(os.environ.get("JRC_PORT", "8765"))
-    base = get_app_setting("remote_public_base_url", "").strip() or f"http://{lan}:{port}"
+    base = f"http://{lan}:{port}"
+    remote = get_app_setting("remote_public_base_url", "").strip()
     body = f"""
     <div class='card'><h2>Connection Test</h2>
       <p>This page confirms the shared host is running and reachable from this device.</p>
       <p><b>Server time:</b> {html.escape(now_display())}<br>
       <b>Detected server LAN IP:</b> <code>{html.escape(lan)}</code><br>
+      <b>Port:</b> <code>{port}</code><br>
       <b>Your IP:</b> <code>{html.escape(client_ip())}</code></p>
       <p><a class='btn' href='/login'>Login</a> <a class='btn btn2' href='/mobile'>Mobile App</a> <a class='btn btn2' href='/register'>Request Account</a> <a class='btn btn2' href='/apply'>Job Application</a></p>
     </div>
     <div class='card'><h2>Share These Links</h2>
+      <p class='muted'>Send these to phones on the same Wi-Fi. People only tap the link — nothing to install on their phone. The host computer may show a one-time Windows Yes prompt the first time the server starts.</p>
       <p><b>Phone/mobile:</b><br><code>{html.escape(base)}/mobile</code></p>
       <p><b>Connection test:</b><br><code>{html.escape(base)}/connect</code></p>
       <p><b>Account request:</b><br><code>{html.escape(base)}/register</code></p>
       <p><b>Job application:</b><br><code>{html.escape(base)}/apply</code></p>
+      {f"<p><b>Cloud/remote (if configured):</b><br><code>{html.escape(remote)}</code></p>" if remote else ""}
     </div>
     <div class='card'><h2>If Phone Cannot Connect</h2>
       <ol>

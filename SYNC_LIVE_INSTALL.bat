@@ -21,6 +21,9 @@ if exist "%DST%\app\__pycache__" rmdir /S /Q "%DST%\app\__pycache__" 2>nul
 rem Launchers and setup
 for %%F in (
   ensure_venv.bat
+  ALLOW_LAN_FIREWALL_ACCESS.bat
+  OPEN_START_CENTER.bat
+  RESTART_JRC.bat
   OPEN_WEB_APP.bat
   OPEN_NETWORK_MANAGER.bat
   START_NETWORK_SERVER.bat

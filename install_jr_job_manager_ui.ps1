@@ -217,6 +217,19 @@ $installBtn.Add_Click({
         $icon=Join-Path $InstallDir "assets\j_and_r_manager_icon.ico"
         Create-Shortcut (Join-Path $desktop "J and R Construction Manager.lnk") $target $InstallDir $icon
         Create-Shortcut (Join-Path $startMenu "J and R Construction Manager.lnk") $target $InstallDir $icon
+        Set-Status "Enabling phone access on this host PC (one-time firewall rule)" 88
+        try {
+            $ruleName = "J and R Construction Manager Shared Host LAN"
+            $existing = netsh advfirewall firewall show rule name="$ruleName" 2>$null
+            if($existing -match "No rules match"){
+                netsh advfirewall firewall add rule name="$ruleName" dir=in action=allow protocol=TCP localport=8765-8779 profile=private enable=yes | Out-Null
+                Add-Log "Added LAN phone-access firewall rule on this host PC."
+            } else {
+                Add-Log "LAN phone-access firewall rule already present."
+            }
+        } catch {
+            Add-Log "Could not add LAN firewall rule during install (normal if installer is not elevated). Start Local Host will prompt once on this PC."
+        }
         Set-Status "Writing install status and troubleshooting report" 94
         $marker = @"
 Installed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
