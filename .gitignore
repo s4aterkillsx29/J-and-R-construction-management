@@ -13,9 +13,15 @@ env/
 *.sqlite
 *.sqlite3
 logs/
-backups/*.zip
-exports/*.pdf
-exports/*.xlsx
+backups/
+exports/
+uploads/
+media/
+receipts/
+customer_files/
+payroll_files/
+tax_records/
+private_files/
 
 # Secrets/environment
 .env
@@ -23,6 +29,53 @@ exports/*.xlsx
 !.env.example
 !cloud_templates/.env.example
 !cloud_hosting/env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*secret*
+*secrets*
+*token*
+*credential*
+credentials.json
+service-account*.json
+firebase*.json
+supabase*.json
+render*.env
+railway*.env
+
+# J&R private business/security files - do not push to public GitHub
+*W-9*
+*W9*
+*EIN*
+*CP575*
+*CP_575*
+*IRS*
+*tax*
+*Tax*
+*bank*
+*routing*
+*payroll*
+*Payroll*
+*receipt*
+*Receipt*
+*invoice-private*
+*customer-private*
+
+# Archives and generated packages
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bak
+*.tmp
 
 # OS/editor
 .DS_Store
