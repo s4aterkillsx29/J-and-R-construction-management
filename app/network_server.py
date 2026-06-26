@@ -30,7 +30,7 @@ except Exception as exc:
     print("Flask is required. Run INSTALL_JR_JOB_MANAGER.bat first.")
     raise
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.1 Primary Live Reliable Business Edition"
+APP_VERSION = "7.2 Unified Schema Reliable Business Edition"
 BUSINESS_NAME = "J & R Construction"
 OWNER = "Jacob Cosentino"
 PHONE = "(910) 712-0936"
@@ -980,6 +980,8 @@ def init_db() -> None:
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("std_default_payment_terms", "50% deposit due before work begins. Remaining 50% balance due upon completion."))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("std_customer_internal_rule", "Customer-facing documents must not include internal cost sheets, helper cost notes, profit notes, or tax-only notes."))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("session_timeout_minutes", str(SESSION_TIMEOUT_MINUTES)))
+        from app.schema_migrations import ensure_all_shared_schemas
+        ensure_all_shared_schemas(conn)
         default_sources = [
             ("Program Evidence", "local", str(EVIDENCE_DIR)),
             ("Program Exports", "local", str(EXPORT_DIR)),
@@ -992,7 +994,10 @@ def init_db() -> None:
         for label, stype, path in default_sources:
             row = conn.execute("SELECT id FROM file_sources WHERE folder_path=?", (path,)).fetchone()
             if not row:
-                conn.execute("INSERT INTO file_sources (label, source_type, folder_path, active, created_at) VALUES (?, ?, ?, 1, ?)", (label, stype, path, now_iso()))
+                conn.execute(
+                    "INSERT INTO file_sources (label, source_name, source_type, folder_path, root_path, active, enabled, created_at) VALUES (?, ?, ?, ?, ?, 1, 1, ?)",
+                    (label, label, stype, path, path, now_iso()),
+                )
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("chatgpt_source_mode", "Import/export folder and optional API key only; private ChatGPT Business conversations are not directly readable."))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("mobile_mode", "Browser/PWA mobile companion over the shared host URL."))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("remote_mobile_policy", "Remote mobile access must use a secure tunnel/VPN or HTTPS cloud host. Do not expose the laptop directly to the public internet."))
@@ -1012,6 +1017,17 @@ def init_db() -> None:
         if not row:
             conn.execute("INSERT INTO ai_sources (label, source_type, folder_path, api_enabled, status, notes, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, ?)",
                          ("ChatGPT Business Imports", "chatgpt-import-folder", str(CHATGPT_IMPORTS_DIR), "Ready", "Place exported ChatGPT files here. Direct private ChatGPT Business sync is not available without a separate approved API/export workflow.", now_iso(), now_iso()))
+        conn.execute(
+            """
+            UPDATE file_sources SET
+                label = COALESCE(NULLIF(label, ''), source_name),
+                source_name = COALESCE(NULLIF(source_name, ''), label),
+                folder_path = COALESCE(NULLIF(folder_path, ''), root_path),
+                root_path = COALESCE(NULLIF(root_path, ''), folder_path),
+                active = COALESCE(active, enabled, 1),
+                enabled = COALESCE(enabled, active, 1)
+            """
+        )
         conn.commit()
 def log_event(category: str, message: str, level: str = "INFO") -> None:
     try:

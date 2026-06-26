@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $AppName = "J and R Construction Manager"
-$Version = "7.1.0 Primary Live Reliable Business Edition"
+$Version = "7.2.0 Unified Schema Reliable Business Edition"
 $PackageDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $InstallDir = Join-Path $env:LOCALAPPDATA "J_and_R_Construction_Manager"
 $LogDir = Join-Path $InstallDir "logs"
@@ -196,12 +196,21 @@ $installBtn.Add_Click({
             try { Move-Item -LiteralPath $_.FullName -Destination (Join-Path $codeArchive $_.Name) -Force -ErrorAction Stop; Add-Log "Archived old current item: $($_.Name)" }
             catch { Add-Log "Could not archive current item $($_.FullName) -- $($_.Exception.Message)" }
         }
-        Set-Status "Copying latest program files" 60
+        Set-Status "Copying latest program files" 58
         Get-ChildItem -Path $PackageDir -Force | Where-Object { $PreserveNames -notcontains $_.Name } | ForEach-Object {
             $dst=Join-Path $InstallDir $_.Name
             Safe-Remove $dst
             Copy-Item -LiteralPath $_.FullName -Destination $dst -Recurse -Force
             Add-Log "Copied latest item: $($_.Name)"
+        }
+        Set-Status "Setting up Python runtime (venv + Flask, ReportLab, etc.)" 68
+        $runtimeBat = Join-Path $InstallDir "setup_runtime_env.bat"
+        if(Test-Path -LiteralPath $runtimeBat){
+            $proc = Start-Process -FilePath "cmd.exe" -ArgumentList @("/c", "`"$runtimeBat`"") -WorkingDirectory $InstallDir -Wait -PassThru -WindowStyle Hidden
+            Add-Log "setup_runtime_env.bat finished with exit code $($proc.ExitCode)"
+            if($proc.ExitCode -ne 0){ Add-Log "WARNING: runtime setup returned non-zero exit. Run setup_runtime_env.bat manually if the app fails to start." }
+        } else {
+            Add-Log "setup_runtime_env.bat not found in package; run ensure_venv.bat manually after install."
         }
         if(-not(Test-Path -LiteralPath $db) -and (Test-Path (Join-Path $PackageDir "data\jr_business.db"))){
             Copy-Item -LiteralPath (Join-Path $PackageDir "data\jr_business.db") -Destination $db -Force

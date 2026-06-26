@@ -28,7 +28,7 @@ except Exception:
     REPORTLAB_OK = False
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.1 Primary Live Reliable Business Edition"
+APP_VERSION = "7.2 Unified Schema Reliable Business Edition"
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -1522,6 +1522,11 @@ def _v21_init_schema(self):
         );
     ''')
     self.conn.commit()
+    try:
+        from app.schema_migrations import ensure_all_shared_schemas
+        ensure_all_shared_schemas(self.conn)
+    except Exception:
+        pass
 
 _orig_db_seed_defaults = Database.seed_defaults
 
@@ -1658,8 +1663,17 @@ def _import_known_tax_files(db: Database):
                         totals['source_workers'] += parse_money(row.get('Amount Paid') or row.get('amount paid') or row.get('Amount') or 0)
         except Exception as e:
             db.log('Source Import', f'Could not summarize {p.name}: {e}')
-    for k,v in totals.items():
-        db.execute("INSERT OR REPLACE INTO source_summaries(source_id,summary_key,summary_value,updated_at) VALUES(?,?,?,?)", (0, k, str(round(v,2)), iso_now()))
+    try:
+        from app.schema_migrations import get_or_create_internal_source
+        internal_id = get_or_create_internal_source(db.conn, '__Internal_Tax_Summary__')
+    except Exception:
+        internal_id = None
+    for k, v in totals.items():
+        if internal_id is not None:
+            db.execute(
+                "INSERT OR REPLACE INTO source_summaries(source_id,summary_key,summary_value,updated_at) VALUES(?,?,?,?)",
+                (internal_id, k, str(round(v, 2)), iso_now()),
+            )
     return totals
 
 

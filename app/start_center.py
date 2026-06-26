@@ -39,7 +39,7 @@ except Exception:
     is_jrc_server = None
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.1 Primary Live Reliable Business Edition"
+APP_VERSION = "7.2 Unified Schema Reliable Business Edition"
 BUSINESS = "J & R Construction"
 OWNER = "Jacob Cosentino"
 DEFAULT_PORT = int(os.environ.get("JRC_PORT", "8765"))
