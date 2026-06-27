@@ -38,6 +38,7 @@ EVIDENCE_DIR = BASE_DIR / "evidence"
 DB_PATH = DATA_DIR / "jr_business.db"
 SETTINGS_PATH = DATA_DIR / "manager_settings.json"
 DEVICE_ID_PATH = DATA_DIR / "trusted_device_id.txt"
+LOG_MIRROR_FILENAME = "JRC_Business_Log_Latest.txt"
 
 try:
     from app.ui_theme import (
@@ -335,6 +336,29 @@ class Database:
 
     def log(self, category, entry):
         self.execute("INSERT INTO business_log(timestamp, category, entry) VALUES(?,?,?)", (now_stamp(), category, entry))
+        self.mirror_business_log()
+
+    def mirror_business_log(self):
+        try:
+            EXPORT_DIR.mkdir(exist_ok=True)
+            rows = self.q("SELECT timestamp, category, entry FROM business_log ORDER BY id DESC LIMIT 250")
+            lines = [
+                f"J and R Construction Manager business log mirror",
+                f"Updated: {now_stamp()}",
+                "",
+            ]
+            for row in reversed(rows):
+                lines.append(f"[{row['timestamp']}] {row['category']}: {row['entry']}")
+            mirror_path = EXPORT_DIR / LOG_MIRROR_FILENAME
+            mirror_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+            dropbox_folder = self.get_setting("dropbox_folder", "").strip()
+            if dropbox_folder:
+                dropbox_path = Path(dropbox_folder)
+                dropbox_path.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(mirror_path, dropbox_path / LOG_MIRROR_FILENAME)
+        except Exception:
+            pass
 
     def get_setting(self, key, default=""):
         row = self.one("SELECT value FROM app_settings WHERE key=?", (key,))
@@ -1960,6 +1984,8 @@ BUSINESS_STANDARD_DEFINITIONS = [
     ('job_identity_lookup_rule', 'Job identity lookup standard', 'Before adding a new job or customer-facing document, search existing jobs by job id, customer name, address, job name, scope, aliases, and source-file matches. If a matching job exists, attach the document to that existing job instead of creating a duplicate or confusing old and new work.'),
     ('job_document_number_rule', 'Job document numbering standard', 'Every estimate, invoice, quote, and customer-facing job document must show a stable Job Document ID tied to the job plus a document sequence number, so all documents for the same job share the same job identifier while each document remains unique. Example: JRC-JOB-403-JACKIE-DECK-REBUILD with INV-JRC-JOB-403-JACKIE-DECK-REBUILD-001.'),
     ('document_delivery_link_rule', 'Document delivery/download link standard', 'Whenever a document is created, retrieved, or requested in chat, provide a direct download/open link in the conversation along with the file name and path. Do not only describe where the file is stored.'),
+    ('log_command_rule', 'Chat log command standard', 'When the owner says "log" or asks to log an update, create a dated business log entry summarizing the update, include enough job/customer context to find it later, and confirm what was logged.'),
+    ('dropbox_log_sync_rule', 'Dropbox log sync standard', 'Every business log update should refresh the latest business log mirror file and copy it to the configured local Dropbox business folder when Dropbox is set. If Dropbox is not configured or unavailable, clearly say so and keep the export mirror updated.'),
     ('closeout_rule', 'Closeout checklist standard', 'Each job should have estimate or invoice PDF, internal job cost sheet, receipt evidence, helper payment notes, final paid/unpaid balance note, and final photos where applicable.'),
     ('file_naming_rule', 'File naming standard', 'Use JRC_ prefix or clear customer/job/date names. Avoid unclear temp names for final records.'),
 ]

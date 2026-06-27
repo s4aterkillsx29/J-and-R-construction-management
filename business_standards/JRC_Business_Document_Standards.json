@@ -26,10 +26,12 @@
   "job_identity_lookup_rule": "Before adding a new job or customer-facing document, search existing jobs by job id, customer name, address, job name, scope, aliases, and source-file matches. If a matching job exists, attach the document to that existing job instead of creating a duplicate or confusing old and new work.",
   "job_document_number_rule": "Every estimate, invoice, quote, and customer-facing job document must show a stable Job Document ID tied to the job plus a document sequence number, so all documents for the same job share the same job identifier while each document remains unique. Example: JRC-JOB-403-JACKIE-DECK-REBUILD with INV-JRC-JOB-403-JACKIE-DECK-REBUILD-001.",
   "document_delivery_link_rule": "Whenever a document is created, retrieved, or requested in chat, provide a direct download/open link in the conversation along with the file name and path. Do not only describe where the file is stored.",
+  "log_command_rule": "When the owner says \"log\" or asks to log an update, create a dated business log entry summarizing the update, include enough job/customer context to find it later, and confirm what was logged.",
+  "dropbox_log_sync_rule": "Every business log update should refresh the latest business log mirror file and copy it to the configured local Dropbox business folder when Dropbox is set. If Dropbox is not configured or unavailable, clearly say so and keep the export mirror updated.",
   "closeout_rule": "Each job should have estimate or invoice PDF, internal job cost sheet, receipt evidence, helper payment notes, final paid/unpaid balance note, and final photos where applicable.",
   "file_naming_rule": "Use JRC_ prefix or clear customer/job/date names. Avoid unclear temp names for final records.",
   "cursor_status": "Updated in Cursor workspace for customer-facing invoice generation.",
-  "generated_at": "2026-06-27 08:40 PM UTC",
+  "generated_at": "2026-06-27 08:44 PM UTC",
   "program": "J and R Construction Manager",
   "program_version": "7.1 Primary Live Reliable Business Edition"
 }
