@@ -1956,6 +1956,7 @@ BUSINESS_STANDARD_DEFINITIONS = [
     ('owner_labor_rule', 'Owner labor tax rule', 'Owner labor is job-costing only for a sole proprietor and is not a deductible wage paid to the owner.'),
     ('cash_income_rule', 'Cash income rule', 'Cash payments are business income when received even if no 1099/customer tax report is expected.'),
     ('receipt_rule', 'Receipt/evidence rule', 'Keep receipt photos, PDFs, screenshots, invoices, payment notes, and final balance notes with the job record.'),
+    ('preexisting_file_search_rule', 'Preexisting file/source search standard', 'Before creating or regenerating a job document, scan and search all enabled file_sources and the file_index across Dropbox, OneDrive/local folders, Program Evidence, Program Exports, ChatGPT Imports, and any admin-added sources for existing customer/job files, invoices, estimates, scopes, receipts, photos, and notes. Use found source files as the record of truth and avoid duplicating an existing job or document.'),
     ('closeout_rule', 'Closeout checklist standard', 'Each job should have estimate or invoice PDF, internal job cost sheet, receipt evidence, helper payment notes, final paid/unpaid balance note, and final photos where applicable.'),
     ('file_naming_rule', 'File naming standard', 'Use JRC_ prefix or clear customer/job/date names. Avoid unclear temp names for final records.'),
 ]
@@ -1984,7 +1985,7 @@ def _ensure_business_standards(db):
         for key, label, default in BUSINESS_STANDARD_DEFINITIONS:
             w.writerow([key, label, standards.get(key, default)])
     (TEMPLATES_DIR / 'JRC_Customer_Estimate_Template.txt').write_text('J & R Construction customer estimate template. Uses branded header, phone, timestamp, scope, price, 50/50 terms, unknown-condition clause, no internal notes.\n', encoding='utf-8')
-    (TEMPLATES_DIR / 'JRC_Customer_Invoice_Template.txt').write_text('J & R Construction customer invoice template. Uses branded header, phone, timestamp, payment terms, balance, no internal cost details.\n', encoding='utf-8')
+    (TEMPLATES_DIR / 'JRC_Customer_Invoice_Template.txt').write_text('J & R Construction customer invoice template. Uses branded header, phone, timestamp, payment terms, balance, no internal cost details. Before creating, scan/search all enabled file sources and the file index for preexisting customer/job documents.\n', encoding='utf-8')
     (TEMPLATES_DIR / 'JRC_Internal_Cost_Sheet_Template.txt').write_text('Internal cost sheet template. Mark as INTERNAL USE ONLY and keep separate from customer-facing documents.\n', encoding='utf-8')
 
 _prev_seed_defaults_v25 = Database.seed_defaults

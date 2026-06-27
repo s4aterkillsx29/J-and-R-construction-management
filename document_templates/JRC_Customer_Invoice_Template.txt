@@ -6,6 +6,8 @@ Required customer-facing standards:
 - Show current created date/time.
 - Show owner/operator: Jacob Cosentino.
 - Include customer name, job name, and job address.
+- Before creating or regenerating the invoice, scan and search all enabled file sources and the file index for preexisting customer/job files, invoices, estimates, scopes, receipts, photos, and notes.
+- Use any found source files as the record of truth and avoid duplicating an existing job or document.
 - Include a clear scope of work.
 - Include customer-facing line items when requested.
 - Include total customer price and current balance due.
