@@ -10,6 +10,7 @@ Required customer-facing standards:
 - Before creating or regenerating the invoice, scan and search all enabled file sources and the file index for preexisting customer/job files, invoices, estimates, scopes, receipts, photos, and notes.
 - Use any found job record or source files as the record of truth and avoid duplicating an existing job or document.
 - Show a stable Job Document ID tied to the job, plus a unique document sequence number for that invoice.
+- When the invoice is requested in chat, provide a direct download/open link in the conversation along with the file name and path.
 - Include a clear scope of work.
 - Include customer-facing line items when requested.
 - Include total customer price and current balance due.
