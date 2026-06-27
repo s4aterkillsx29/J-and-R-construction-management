@@ -1,0 +1,15 @@
+J & R Construction customer invoice template.
+
+Required customer-facing standards:
+- Show J & R Construction business name.
+- Show phone number: (910) 712-0936.
+- Show current created date/time.
+- Show owner/operator: Jacob Cosentino.
+- Include customer name, job name, and job address.
+- Include a clear scope of work.
+- Include customer-facing line items when requested.
+- Include total customer price and current balance due.
+- Use 50% deposit / 50% balance terms by default unless the invoice clearly states a small-repair or paid-in-full balance.
+- Include unknown-condition protection clause.
+- Do not include internal cost sheets, helper payment notes, profit notes, or tax-only notes.
+- Do not include business address, email, license number, or signature/date lines unless explicitly enabled.
