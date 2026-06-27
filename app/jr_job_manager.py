@@ -39,6 +39,32 @@ DB_PATH = DATA_DIR / "jr_business.db"
 SETTINGS_PATH = DATA_DIR / "manager_settings.json"
 DEVICE_ID_PATH = DATA_DIR / "trusted_device_id.txt"
 LOG_MIRROR_FILENAME = "JRC_Business_Log_Latest.txt"
+DROPBOX_STANDARD_SOURCE_FOLDERS = [
+    "Invoices2026 1.0",
+    "J and R Construction",
+    "JRC",
+]
+DROPBOX_ORGANIZATION_FOLDERS = [
+    "00_INBOX_To_File",
+    "01_Jobs/Active",
+    "01_Jobs/Completed",
+    "01_Jobs/Leads_Estimates",
+    "02_Invoices_Estimates/Invoices",
+    "02_Invoices_Estimates/Estimates_Quotes",
+    "02_Invoices_Estimates/Paid_Closed",
+    "03_Receipts_Materials/Needs_Review",
+    "03_Receipts_Materials/Filed",
+    "04_Photos_Evidence/Before",
+    "04_Photos_Evidence/During",
+    "04_Photos_Evidence/After",
+    "05_Helper_Pay_Workers",
+    "06_Bookkeeping_Taxes/Income",
+    "06_Bookkeeping_Taxes/Expenses",
+    "06_Bookkeeping_Taxes/Schedule_C",
+    "07_Backups",
+    "08_Admin_Standards",
+    "09_Archive",
+]
 
 try:
     from app.ui_theme import (
@@ -140,6 +166,32 @@ def verify_password(password, salt, password_hash):
 def safe_filename(name):
     cleaned = "".join(ch if ch.isalnum() or ch in " ._-()" else "_" for ch in str(name))
     return cleaned.strip() or "file"
+
+
+def ensure_dropbox_organization(root):
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    for rel in DROPBOX_ORGANIZATION_FOLDERS:
+        (root / rel).mkdir(parents=True, exist_ok=True)
+    readme = root / "_JRC_DROPBOX_ORGANIZATION_README.txt"
+    readme.write_text(
+        "J & R Construction Dropbox organization\n\n"
+        "This folder tree is safe to recreate. It only creates missing folders and does not delete, move, or overwrite job files.\n\n"
+        "Existing source-folder standard already used by the app:\n"
+        + "\n".join(f"- Dropbox/{rel}" for rel in DROPBOX_STANDARD_SOURCE_FOLDERS)
+        + "\n- OneDrive/Desktop/Invoices2026 1.0\n"
+        + "- OneDrive/Desktop/J and R Construction\n"
+        + "- Documents/JRC\n"
+        + "- C:/JRC\n"
+        + "- Program Evidence\n"
+        + "- Program Exports\n"
+        + "- ChatGPT Imports\n\n"
+        "Organization folders created inside the selected Dropbox business folder:\n"
+        + "\n".join(f"- {rel}" for rel in DROPBOX_ORGANIZATION_FOLDERS)
+        + "\n\nWhen the owner says \"log\", the latest business log mirror should be refreshed and copied here when Dropbox is configured.\n",
+        encoding="utf-8",
+    )
+    return root
 
 
 
@@ -713,6 +765,7 @@ class DarkApp(tk.Tk):
         actions = ttk.Frame(c, style="Card.TFrame")
         actions.pack(fill="x", pady=10)
         ttk.Button(actions, text="Sync Backup to Dropbox Folder", style="Accent.TButton", command=self.sync_backup_to_dropbox).pack(side="left", padx=4)
+        ttk.Button(actions, text="Recreate Dropbox Folders", command=self.recreate_dropbox_folders).pack(side="left", padx=4)
         ttk.Button(actions, text="Export Account Index", command=self.export_user_index).pack(side="left", padx=4)
         ttk.Button(actions, text="Open Dropbox Folder", command=self.open_dropbox_folder).pack(side="left", padx=4)
         warn = self.card(wrap, "Security Notes")
@@ -733,8 +786,22 @@ class DarkApp(tk.Tk):
     def save_dropbox_folder(self):
         folder = self.dropbox_path_var.get().strip()
         self.db.set_setting("dropbox_folder", folder)
+        if folder:
+            ensure_dropbox_organization(folder)
         self.db.log("Dropbox", f"Dropbox folder set to {folder}")
         messagebox.showinfo("Saved", "Dropbox folder setting saved.")
+
+    def recreate_dropbox_folders(self):
+        folder = self.db.get_setting("dropbox_folder", "").strip()
+        if not folder and hasattr(self, "dropbox_path_var"):
+            folder = self.dropbox_path_var.get().strip()
+        if not folder:
+            messagebox.showwarning("Missing folder", "Set the Dropbox folder first.")
+            return
+        ensure_dropbox_organization(folder)
+        self.db.set_setting("dropbox_folder", folder)
+        self.db.log("Dropbox", f"Recreated/verified J&R Dropbox organization folders at {folder}")
+        messagebox.showinfo("Dropbox Folders Ready", f"J&R Dropbox organization folders are ready at:\n{folder}")
 
     def open_dropbox_folder(self):
         folder = self.db.get_setting("dropbox_folder", "")
@@ -749,10 +816,10 @@ class DarkApp(tk.Tk):
             messagebox.showwarning("Missing folder", "Set the Dropbox folder first.")
             return
         folder = Path(folder)
-        folder.mkdir(parents=True, exist_ok=True)
+        ensure_dropbox_organization(folder)
         self.export_all_reports()
         stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        target = folder / f"J_and_R_Construction_Manager_Backup_{stamp}.zip"
+        target = folder / "07_Backups" / f"J_and_R_Construction_Manager_Backup_{stamp}.zip"
         with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
             for p in [DB_PATH, Path(__file__).resolve(), BASE_DIR / "README.txt", BASE_DIR / "START_HERE.txt"]:
                 if p.exists():
@@ -1986,6 +2053,8 @@ BUSINESS_STANDARD_DEFINITIONS = [
     ('document_delivery_link_rule', 'Document delivery/download link standard', 'Whenever a document is created, retrieved, or requested in chat, provide a direct download/open link in the conversation along with the file name and path. Do not only describe where the file is stored.'),
     ('log_command_rule', 'Chat log command standard', 'When the owner says "log" or asks to log an update, create a dated business log entry summarizing the update, include enough job/customer context to find it later, and confirm what was logged.'),
     ('dropbox_log_sync_rule', 'Dropbox log sync standard', 'Every business log update should refresh the latest business log mirror file and copy it to the configured local Dropbox business folder when Dropbox is set. If Dropbox is not configured or unavailable, clearly say so and keep the export mirror updated.'),
+    ('dropbox_source_folder_standard', 'Dropbox/source folder standard', 'Use the existing app source-folder standard before creating new Dropbox locations: Dropbox/Invoices2026 1.0, Dropbox/J and R Construction, Dropbox/JRC, OneDrive/Desktop/Invoices2026 1.0, OneDrive/Desktop/J and R Construction, Documents/JRC, C:/JRC, Program Evidence, Program Exports, and ChatGPT Imports.'),
+    ('dropbox_organization_repair_rule', 'Dropbox organization repair rule', 'When recreating Dropbox organization folders, create missing standard folders and readme/index files only. Never delete, move, overwrite, or rename existing Dropbox files unless the owner explicitly asks.'),
     ('closeout_rule', 'Closeout checklist standard', 'Each job should have estimate or invoice PDF, internal job cost sheet, receipt evidence, helper payment notes, final paid/unpaid balance note, and final photos where applicable.'),
     ('file_naming_rule', 'File naming standard', 'Use JRC_ prefix or clear customer/job/date names. Avoid unclear temp names for final records.'),
 ]

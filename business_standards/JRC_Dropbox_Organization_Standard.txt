@@ -1,0 +1,40 @@
+J & R Construction Dropbox organization standard
+
+Existing source-folder standard
+- Dropbox/Invoices2026 1.0
+- Dropbox/J and R Construction
+- Dropbox/JRC
+- OneDrive/Desktop/Invoices2026 1.0
+- OneDrive/Desktop/J and R Construction
+- Documents/JRC
+- C:/JRC
+- Program Evidence
+- Program Exports
+- ChatGPT Imports
+
+Safe repair rule
+- Recreate missing folders only.
+- Add readme/index files only when needed.
+- Do not delete, move, overwrite, rename, or archive existing Dropbox files unless the owner explicitly asks.
+- Preserve existing job files, invoices, estimates, receipts, photos, logs, exports, backups, ChatGPT imports, and standards.
+
+Selected Dropbox business folder organization
+- 00_INBOX_To_File
+- 01_Jobs/Active
+- 01_Jobs/Completed
+- 01_Jobs/Leads_Estimates
+- 02_Invoices_Estimates/Invoices
+- 02_Invoices_Estimates/Estimates_Quotes
+- 02_Invoices_Estimates/Paid_Closed
+- 03_Receipts_Materials/Needs_Review
+- 03_Receipts_Materials/Filed
+- 04_Photos_Evidence/Before
+- 04_Photos_Evidence/During
+- 04_Photos_Evidence/After
+- 05_Helper_Pay_Workers
+- 06_Bookkeeping_Taxes/Income
+- 06_Bookkeeping_Taxes/Expenses
+- 06_Bookkeeping_Taxes/Schedule_C
+- 07_Backups
+- 08_Admin_Standards
+- 09_Archive
