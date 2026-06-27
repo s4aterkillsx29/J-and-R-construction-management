@@ -1,31 +1,31 @@
 J & R Construction Dropbox organization standard
 
-Existing source-folder standard
-- Dropbox/Invoices2026 1.0
-- Dropbox/J and R Construction
-- Dropbox/JRC
-- OneDrive/Desktop/Invoices2026 1.0
-- OneDrive/Desktop/J and R Construction
-- Documents/JRC
-- C:/JRC
-- Program Evidence
-- Program Exports
-- ChatGPT Imports
+One-root rule
+- Use one selected Dropbox business folder as the single active J&R Dropbox root.
+- Do not create multiple Dropbox business roots.
+- Do not create multiple invoice/document roots.
+- All J&R working files, job files, invoices, estimates, receipts, photos, logs, backups, imports, exports, and standards belong under the one selected Dropbox business root.
+
+Legacy candidate rule
+- Dropbox/Invoices2026 1.0, Dropbox/J and R Construction, and Dropbox/JRC are legacy/candidate locations only.
+- If they already exist, inspect/index them to avoid losing records.
+- Do not recreate all of them.
+- Do not leave all of them active as separate businesses.
+- Choose one as the configured Dropbox business root, then organize everything under that one root.
+- OneDrive/Desktop, Documents/JRC, and C:/JRC are legacy/local candidates for review or one-time import only, not alternate active business roots.
 
 Safe repair rule
 - Recreate missing folders only.
 - Add readme/index files only when needed.
-- Do not delete, move, overwrite, rename, or archive existing Dropbox files unless the owner explicitly asks.
+- Do not delete, move, overwrite, rename, archive, or merge existing Dropbox files unless the owner explicitly asks.
 - Preserve existing job files, invoices, estimates, receipts, photos, logs, exports, backups, ChatGPT imports, and standards.
 
-Selected Dropbox business folder organization
+Single selected Dropbox business root organization
 - 00_INBOX_To_File
 - 01_Jobs/Active
 - 01_Jobs/Completed
 - 01_Jobs/Leads_Estimates
-- 02_Invoices_Estimates/Invoices
-- 02_Invoices_Estimates/Estimates_Quotes
-- 02_Invoices_Estimates/Paid_Closed
+- 02_Documents_Invoices_Estimates_Quotes
 - 03_Receipts_Materials/Needs_Review
 - 03_Receipts_Materials/Filed
 - 04_Photos_Evidence/Before

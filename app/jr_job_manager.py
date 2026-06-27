@@ -39,7 +39,7 @@ DB_PATH = DATA_DIR / "jr_business.db"
 SETTINGS_PATH = DATA_DIR / "manager_settings.json"
 DEVICE_ID_PATH = DATA_DIR / "trusted_device_id.txt"
 LOG_MIRROR_FILENAME = "JRC_Business_Log_Latest.txt"
-DROPBOX_STANDARD_SOURCE_FOLDERS = [
+DROPBOX_LEGACY_SOURCE_CANDIDATES = [
     "Invoices2026 1.0",
     "J and R Construction",
     "JRC",
@@ -49,9 +49,7 @@ DROPBOX_ORGANIZATION_FOLDERS = [
     "01_Jobs/Active",
     "01_Jobs/Completed",
     "01_Jobs/Leads_Estimates",
-    "02_Invoices_Estimates/Invoices",
-    "02_Invoices_Estimates/Estimates_Quotes",
-    "02_Invoices_Estimates/Paid_Closed",
+    "02_Documents_Invoices_Estimates_Quotes",
     "03_Receipts_Materials/Needs_Review",
     "03_Receipts_Materials/Filed",
     "04_Photos_Evidence/Before",
@@ -177,16 +175,11 @@ def ensure_dropbox_organization(root):
     readme.write_text(
         "J & R Construction Dropbox organization\n\n"
         "This folder tree is safe to recreate. It only creates missing folders and does not delete, move, or overwrite job files.\n\n"
-        "Existing source-folder standard already used by the app:\n"
-        + "\n".join(f"- Dropbox/{rel}" for rel in DROPBOX_STANDARD_SOURCE_FOLDERS)
-        + "\n- OneDrive/Desktop/Invoices2026 1.0\n"
-        + "- OneDrive/Desktop/J and R Construction\n"
-        + "- Documents/JRC\n"
-        + "- C:/JRC\n"
-        + "- Program Evidence\n"
-        + "- Program Exports\n"
-        + "- ChatGPT Imports\n\n"
-        "Organization folders created inside the selected Dropbox business folder:\n"
+        "Active Dropbox standard: use this one selected Dropbox business folder as the single J&R root.\n"
+        "Do not create separate Dropbox business roots or separate invoice roots.\n"
+        "Legacy candidates are search/index-only if they already exist, not folders to recreate:\n"
+        + "\n".join(f"- Dropbox/{rel}" for rel in DROPBOX_LEGACY_SOURCE_CANDIDATES)
+        + "\n\nOrganization folders created inside this one selected Dropbox business folder:\n"
         + "\n".join(f"- {rel}" for rel in DROPBOX_ORGANIZATION_FOLDERS)
         + "\n\nWhen the owner says \"log\", the latest business log mirror should be refreshed and copied here when Dropbox is configured.\n",
         encoding="utf-8",
@@ -2389,13 +2382,25 @@ def _v26_seed_file_sources(db, quiet=False):
         for folder in [EVIDENCE_DIR, EXPORT_DIR, CHATGPT_IMPORTS_DIR, BASE_DIR/'backups']:
             folder.mkdir(parents=True, exist_ok=True)
         existing = db.get_setting('dropbox_folder','')
+        selected_dropbox = bool(existing)
         for name, typ, root in _possible_windows_sources():
             root_str = str(root)
-            enabled = 1 if root.exists() or typ in ('LocalEvidence','LocalExports','ChatGPT') else 0
-            notes = 'Preset by J and R Construction Manager for Jacob admin account. Enable after folder exists.'
-            db.execute("INSERT INTO file_sources(source_name,source_type,root_path,enabled,notes) VALUES(?,?,?,?,?) ON CONFLICT(source_name) DO UPDATE SET source_type=excluded.source_type, root_path=excluded.root_path", (name,typ,root_str,enabled,notes))
-            if enabled and typ == 'DropboxLocal' and not existing:
-                db.set_setting('dropbox_folder', root_str); existing = root_str
+            if typ == 'DropboxLocal':
+                is_configured = bool(existing) and root_str == existing
+                use_as_primary = is_configured or (not selected_dropbox and root.exists())
+                enabled = 1 if use_as_primary else 0
+                notes = 'Single active J&R Dropbox business root.' if use_as_primary else 'Legacy/candidate Dropbox root. Keep disabled unless this is the one chosen J&R Dropbox business root.'
+                if use_as_primary and not existing:
+                    db.set_setting('dropbox_folder', root_str)
+                    existing = root_str
+                    selected_dropbox = True
+            elif typ == 'LocalFolder':
+                enabled = 0
+                notes = 'Legacy/candidate local source. Enable only when needed for one-time import or review.'
+            else:
+                enabled = 1 if typ in ('LocalEvidence','LocalExports','ChatGPT') else 0
+                notes = 'Preset by J and R Construction Manager for Jacob admin account. Enable after folder exists.'
+            db.execute("INSERT INTO file_sources(source_name,source_type,root_path,enabled,notes) VALUES(?,?,?,?,?) ON CONFLICT(source_name) DO UPDATE SET source_type=excluded.source_type, root_path=excluded.root_path, enabled=excluded.enabled, notes=excluded.notes", (name,typ,root_str,enabled,notes))
         if not quiet: db.log('File Sources','Preset Windows/Dropbox/ChatGPT/evidence file sources for owner admin account.')
     except Exception as e:
         try: db.log('File Sources', f'Could not preset sources: {e}')
