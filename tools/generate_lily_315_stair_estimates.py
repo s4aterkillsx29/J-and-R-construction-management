@@ -20,6 +20,10 @@ PHONE = "(910) 712-0936"
 OWNER = "Jacob Cosentino"
 CUSTOMER = "Lily"
 ADDRESS = "315 Sassafras Lane"
+STANDARD_PRICE = 1650.00
+DISCOUNT_AMOUNT = 350.00
+DISCOUNT_LABEL = "Friends & Family Discount"
+CUSTOMER_PRICE = STANDARD_PRICE - DISCOUNT_AMOUNT
 PAYMENT_TERMS = (
     "50% deposit due before work begins. Remaining 50% balance due upon completion "
     "unless otherwise noted in writing."
@@ -29,10 +33,24 @@ EXCLUSIONS = (
     "conditions, or additional required work is discovered after opening up the work "
     "area. Painting, staining, and optional add-ons are excluded unless specifically "
     "included. This quote is based on four (4) steps per stair set; any change to step "
-    "count or total rise after site verification may adjust the price."
+    "count or total rise after site verification may adjust the price. "
+    "Any large fence project at this property will be quoted separately; this friends "
+    "and family stair price is not a combined fence/stair package unless a separate "
+    "written estimate is approved."
+)
+DISCOUNT_NOTE = (
+    "Friends &amp; family best price applied. This reduced rate reflects our relationship "
+    "and the expected follow-on work at 315 Sassafras Lane, including the possible large "
+    "fence project, which will be estimated on its own scope and materials."
 )
 
-COMMON_SCOPE = """Rebuild one exterior stair set per this quote using the following specification:
+
+def money(value: float) -> str:
+    return f"${value:,.2f}"
+
+
+def common_scope() -> str:
+    return f"""Rebuild one exterior stair set per this quote using the following specification:
 - Four (4) steps per stair set.
 - Approximately 4 ft clear tread width (confirm exact width on site).
 - Four (4) pressure-treated 2x6 treads.
@@ -45,11 +63,10 @@ COMMON_SCOPE = """Rebuild one exterior stair set per this quote using the follow
 
 Customer-facing line items:
 - Materials: pressure-treated lumber, fasteners, anchors, and related install supplies — $400.00
-- Labor: layout, pocket stringer cutting, framing, tread/kickplate install, handrail (solo) — $1,250.00"""
-
-
-def money(value: float) -> str:
-    return f"${value:,.2f}"
+- Labor: layout, pocket stringer cutting, framing, tread/kickplate install, handrail (solo) — $1,250.00
+- Standard stair price — {money(STANDARD_PRICE)}
+- {DISCOUNT_LABEL} — -{money(DISCOUNT_AMOUNT)}
+- Friends & family best price — {money(CUSTOMER_PRICE)}"""
 
 
 def now_stamp() -> str:
@@ -59,7 +76,7 @@ def now_stamp() -> str:
 def build_scope(stair_label: str, stair_location: str) -> str:
     return (
         f"{stair_label} — {stair_location}\n\n"
-        f"{COMMON_SCOPE}\n\n"
+        f"{common_scope()}\n\n"
         f"This quote covers only the stair set described above. The second stair set at "
         f"{ADDRESS} is quoted separately."
     )
@@ -70,19 +87,23 @@ QUOTES = [
         "job_id": "JRC-JOB-315-LILY-STAIR-SET-01",
         "doc_no": "EST-JRC-JOB-315-LILY-STAIR-SET-01-001",
         "job_name": "Lily / 315 Sassafras — Stair Set 1",
-        "title": "Estimate — Stair Set 1 Rebuild",
+        "title": "Estimate — Stair Set 1 Rebuild (Friends & Family Rate)",
         "stair_label": "Stair Set 1",
         "stair_location": "First stair set at 315 Sassafras Lane (location to be marked on site)",
-        "price": 1650.00,
+        "price": CUSTOMER_PRICE,
+        "standard_price": STANDARD_PRICE,
+        "discount": DISCOUNT_AMOUNT,
     },
     {
         "job_id": "JRC-JOB-315-LILY-STAIR-SET-02",
         "doc_no": "EST-JRC-JOB-315-LILY-STAIR-SET-02-001",
         "job_name": "Lily / 315 Sassafras — Stair Set 2",
-        "title": "Estimate — Stair Set 2 Rebuild",
+        "title": "Estimate — Stair Set 2 Rebuild (Friends & Family Rate)",
         "stair_label": "Stair Set 2",
         "stair_location": "Second stair set at 315 Sassafras Lane (location to be marked on site)",
-        "price": 1650.00,
+        "price": CUSTOMER_PRICE,
+        "standard_price": STANDARD_PRICE,
+        "discount": DISCOUNT_AMOUNT,
     },
 ]
 
@@ -134,7 +155,9 @@ def write_estimate(quote: dict) -> Path:
             Spacer(1, 0.18 * inch),
             Table(
                 [
-                    ["Total Customer Price", money(quote["price"])],
+                    ["Standard Price", money(quote["standard_price"])],
+                    [DISCOUNT_LABEL, f"-{money(quote['discount'])}"],
+                    ["Friends & Family Best Price", money(quote["price"])],
                     ["Deposit Due Before Work Begins", money(deposit)],
                     ["Balance Due Upon Completion", money(balance)],
                 ],
@@ -142,6 +165,7 @@ def write_estimate(quote: dict) -> Path:
                 style=TableStyle(
                     [
                         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#dcfce7")),
+                        ("BACKGROUND", (0, 2), (-1, 2), colors.HexColor("#ecfdf5")),
                         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
                         ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
                         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
@@ -150,6 +174,8 @@ def write_estimate(quote: dict) -> Path:
                 ),
             ),
             Spacer(1, 0.18 * inch),
+            Paragraph(f"<b>Discount Note</b><br/>{DISCOUNT_NOTE}", normal),
+            Spacer(1, 0.12 * inch),
             Paragraph(f"<b>Payment Terms</b><br/>{PAYMENT_TERMS}", normal),
             Spacer(1, 0.08 * inch),
             Paragraph(f"<b>Notes / Exclusions</b><br/>{EXCLUSIONS}", normal),
