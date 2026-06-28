@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate two customer estimates for Lily's stair rebuilds at 315 Sassafras Lane."""
+"""Generate two customer invoices for Lily's stair rebuilds at 315 Sassafras Lane."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 EXPORT_DIR = BASE_DIR / "exports"
+DOCS_DIR = BASE_DIR / "docs" / "quotes" / "lily-315-sassafras"
 
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
@@ -21,9 +22,9 @@ OWNER = "Jacob Cosentino"
 CUSTOMER = "Lily"
 ADDRESS = "315 Sassafras Lane"
 STANDARD_PRICE = 1650.00
-DISCOUNT_AMOUNT = 350.00
+CUSTOMER_PRICE = 1000.00
+DISCOUNT_AMOUNT = STANDARD_PRICE - CUSTOMER_PRICE
 DISCOUNT_LABEL = "Friends & Family Discount"
-CUSTOMER_PRICE = STANDARD_PRICE - DISCOUNT_AMOUNT
 PAYMENT_TERMS = (
     "50% deposit due before work begins. Remaining 50% balance due upon completion "
     "unless otherwise noted in writing."
@@ -32,7 +33,7 @@ EXCLUSIONS = (
     "Price may change if hidden damage, rot, structural issues, code issues, unsafe "
     "conditions, or additional required work is discovered after opening up the work "
     "area. Painting, staining, and optional add-ons are excluded unless specifically "
-    "included. This quote is based on four (4) steps per stair set; any change to step "
+    "included. This invoice is based on four (4) steps per stair set; any change to step "
     "count or total rise after site verification may adjust the price. "
     "Any large fence project at this property will be quoted separately; this friends "
     "and family stair price is not a combined fence/stair package unless a separate "
@@ -50,7 +51,7 @@ def money(value: float) -> str:
 
 
 def common_scope() -> str:
-    return f"""Rebuild one exterior stair set per this quote using the following specification:
+    return f"""Rebuild one exterior stair set per this invoice using the following specification:
 - Four (4) steps per stair set.
 - Approximately 4 ft clear tread width (confirm exact width on site).
 - Four (4) pressure-treated 2x6 treads.
@@ -62,11 +63,11 @@ def common_scope() -> str:
 - Jobsite cleanup of construction debris related to this stair set.
 
 Customer-facing line items:
-- Materials: pressure-treated lumber, fasteners, anchors, and related install supplies — $400.00
-- Labor: layout, pocket stringer cutting, framing, tread/kickplate install, handrail (solo) — $1,250.00
+- Materials: pressure-treated lumber, fasteners, anchors, and related install supplies — $350.00
+- Labor: layout, pocket stringer cutting, framing, tread/kickplate install, handrail (solo) — $1,300.00
 - Standard stair price — {money(STANDARD_PRICE)}
 - {DISCOUNT_LABEL} — -{money(DISCOUNT_AMOUNT)}
-- Friends & family best price — {money(CUSTOMER_PRICE)}"""
+- Friends & family price — {money(CUSTOMER_PRICE)}"""
 
 
 def now_stamp() -> str:
@@ -77,17 +78,17 @@ def build_scope(stair_label: str, stair_location: str) -> str:
     return (
         f"{stair_label} — {stair_location}\n\n"
         f"{common_scope()}\n\n"
-        f"This quote covers only the stair set described above. The second stair set at "
-        f"{ADDRESS} is quoted separately."
+        f"This invoice covers only the stair set described above. The second stair set at "
+        f"{ADDRESS} is billed on a separate invoice."
     )
 
 
-QUOTES = [
+INVOICES = [
     {
         "job_id": "JRC-JOB-315-LILY-STAIR-SET-01",
-        "doc_no": "EST-JRC-JOB-315-LILY-STAIR-SET-01-001",
+        "doc_no": "INV-JRC-JOB-315-LILY-STAIR-SET-01-001",
         "job_name": "Lily / 315 Sassafras — Stair Set 1",
-        "title": "Estimate — Stair Set 1 Rebuild (Friends & Family Rate)",
+        "title": "Invoice — Stair Set 1 Rebuild (Friends & Family Rate)",
         "stair_label": "Stair Set 1",
         "stair_location": "First stair set at 315 Sassafras Lane (location to be marked on site)",
         "price": CUSTOMER_PRICE,
@@ -96,9 +97,9 @@ QUOTES = [
     },
     {
         "job_id": "JRC-JOB-315-LILY-STAIR-SET-02",
-        "doc_no": "EST-JRC-JOB-315-LILY-STAIR-SET-02-001",
+        "doc_no": "INV-JRC-JOB-315-LILY-STAIR-SET-02-001",
         "job_name": "Lily / 315 Sassafras — Stair Set 2",
-        "title": "Estimate — Stair Set 2 Rebuild (Friends & Family Rate)",
+        "title": "Invoice — Stair Set 2 Rebuild (Friends & Family Rate)",
         "stair_label": "Stair Set 2",
         "stair_location": "Second stair set at 315 Sassafras Lane (location to be marked on site)",
         "price": CUSTOMER_PRICE,
@@ -108,12 +109,17 @@ QUOTES = [
 ]
 
 
-def write_estimate(quote: dict) -> Path:
+def write_invoice(invoice: dict) -> tuple[Path, Path]:
+    stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    filename = f"{invoice['doc_no']}_{stamp}.pdf"
+    export_path = EXPORT_DIR / filename
+    docs_path = DOCS_DIR / filename
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    path = EXPORT_DIR / f"{quote['doc_no']}_{dt.datetime.now().strftime('%Y%m%d-%H%M%S')}.pdf"
-    deposit = round(quote["price"] / 2, 2)
-    balance = round(quote["price"] - deposit, 2)
-    scope = build_scope(quote["stair_label"], quote["stair_location"])
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+
+    deposit = round(invoice["price"] / 2, 2)
+    balance = round(invoice["price"] - deposit, 2)
+    scope = build_scope(invoice["stair_label"], invoice["stair_location"])
 
     styles = getSampleStyleSheet()
     normal = ParagraphStyle("jrc_normal", parent=styles["Normal"], fontName="Helvetica", fontSize=10, leading=13)
@@ -121,7 +127,7 @@ def write_estimate(quote: dict) -> Path:
     header = ParagraphStyle("jrc_header", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=17, textColor=colors.HexColor("#111827"))
 
     doc = SimpleDocTemplate(
-        str(path),
+        str(export_path),
         pagesize=letter,
         rightMargin=0.6 * inch,
         leftMargin=0.6 * inch,
@@ -133,16 +139,16 @@ def write_estimate(quote: dict) -> Path:
         Paragraph(f"Phone: {PHONE} | Created: {now_stamp()}", normal),
         Paragraph(f"Owned and operated by {OWNER}", small),
         Spacer(1, 0.18 * inch),
-        Paragraph(f"<b>ESTIMATE</b> &nbsp;&nbsp; {quote['doc_no']}", normal),
+        Paragraph(f"<b>INVOICE</b> &nbsp;&nbsp; {invoice['doc_no']}", normal),
         Paragraph(
-            f"<b>Job Document ID:</b> {quote['job_id']}<br/>"
+            f"<b>Job Document ID:</b> {invoice['job_id']}<br/>"
             f"<b>Customer:</b> {CUSTOMER}<br/>"
-            f"<b>Job:</b> {quote['job_name']}<br/>"
+            f"<b>Job:</b> {invoice['job_name']}<br/>"
             f"<b>Address:</b> {ADDRESS}",
             normal,
         ),
         Spacer(1, 0.18 * inch),
-        Paragraph(f"<b>{quote['title']}</b>", normal),
+        Paragraph(f"<b>{invoice['title']}</b>", normal),
         Spacer(1, 0.08 * inch),
         Paragraph("<b>Scope of Work</b>", normal),
     ]
@@ -155,9 +161,9 @@ def write_estimate(quote: dict) -> Path:
             Spacer(1, 0.18 * inch),
             Table(
                 [
-                    ["Standard Price", money(quote["standard_price"])],
-                    [DISCOUNT_LABEL, f"-{money(quote['discount'])}"],
-                    ["Friends & Family Best Price", money(quote["price"])],
+                    ["Standard Price", money(invoice["standard_price"])],
+                    [DISCOUNT_LABEL, f"-{money(invoice['discount'])}"],
+                    ["Friends & Family Price", money(invoice["price"])],
                     ["Deposit Due Before Work Begins", money(deposit)],
                     ["Balance Due Upon Completion", money(balance)],
                 ],
@@ -187,13 +193,16 @@ def write_estimate(quote: dict) -> Path:
         ]
     )
     doc.build(story)
-    return path
+    shutil_copy = docs_path
+    shutil_copy.write_bytes(export_path.read_bytes())
+    return export_path, docs_path
 
 
 def main() -> None:
-    paths = [write_estimate(q) for q in QUOTES]
-    for p in paths:
-        print(p)
+    for invoice in INVOICES:
+        export_path, docs_path = write_invoice(invoice)
+        print(export_path)
+        print(docs_path)
 
 
 if __name__ == "__main__":
