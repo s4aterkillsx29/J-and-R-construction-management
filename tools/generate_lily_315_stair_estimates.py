@@ -53,8 +53,8 @@ def money(value: float) -> str:
 def common_scope() -> str:
     return f"""Rebuild one exterior stair set per this invoice using the following specification:
 - Four (4) steps per stair set.
+- Each step uses two (2) pressure-treated 2x6 treads — eight (8) tread boards total per stair set.
 - Approximately 4 ft clear tread width (confirm exact width on site).
-- Four (4) pressure-treated 2x6 treads.
 - Four (4) pressure-treated 1x8 kickplates / riser boards.
 - Three (3) housed / pocket-cut stringers laid out and cut on site.
 - Stair assembly framed, leveled, and secured to existing structure or approved landing points.
@@ -63,8 +63,8 @@ def common_scope() -> str:
 - Jobsite cleanup of construction debris related to this stair set.
 
 Customer-facing line items:
-- Materials: pressure-treated lumber, fasteners, anchors, and related install supplies — $350.00
-- Labor: layout, pocket stringer cutting, framing, tread/kickplate install, handrail (solo) — $1,300.00
+- Materials: pressure-treated lumber (8 tread boards per set), fasteners, anchors, and related install supplies — $420.00
+- Labor: layout, pocket stringer cutting, framing, double-tread and kickplate install, handrail (solo) — $1,230.00
 - Standard stair price — {money(STANDARD_PRICE)}
 - {DISCOUNT_LABEL} — -{money(DISCOUNT_AMOUNT)}
 - Friends & family price — {money(CUSTOMER_PRICE)}"""
