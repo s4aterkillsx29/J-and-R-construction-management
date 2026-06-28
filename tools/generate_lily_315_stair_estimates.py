@@ -28,24 +28,24 @@ EXCLUSIONS = (
     "Price may change if hidden damage, rot, structural issues, code issues, unsafe "
     "conditions, or additional required work is discovered after opening up the work "
     "area. Painting, staining, and optional add-ons are excluded unless specifically "
-    "included. Final tread count and total rise will be confirmed on site before work "
-    "begins; this quote assumes a standard residential exterior stair height unless "
-    "field conditions require adjustment."
+    "included. This quote is based on four (4) steps per stair set; any change to step "
+    "count or total rise after site verification may adjust the price."
 )
 
 COMMON_SCOPE = """Rebuild one exterior stair set per this quote using the following specification:
+- Four (4) steps per stair set.
 - Approximately 4 ft clear tread width (confirm exact width on site).
-- Pressure-treated 2x6 treads.
-- Pressure-treated 1x8 kickplates / riser boards.
+- Four (4) pressure-treated 2x6 treads.
+- Four (4) pressure-treated 1x8 kickplates / riser boards.
 - Three (3) housed / pocket-cut stringers laid out and cut on site.
 - Stair assembly framed, leveled, and secured to existing structure or approved landing points.
-- 2x4 handrail installed along the stair run per standard safe handhold height.
+- 2x4 handrail installed along the 4-step run per standard safe handhold height.
 - Work performed by owner/operator working solo, including stringer layout and cutting.
 - Jobsite cleanup of construction debris related to this stair set.
 
 Customer-facing line items:
-- Materials: pressure-treated lumber, fasteners, anchors, and related install supplies — $650.00
-- Labor: layout, pocket stringer cutting, framing, tread/kickplate install, handrail (solo) — $1,750.00"""
+- Materials: pressure-treated lumber, fasteners, anchors, and related install supplies — $400.00
+- Labor: layout, pocket stringer cutting, framing, tread/kickplate install, handrail (solo) — $1,250.00"""
 
 
 def money(value: float) -> str:
@@ -73,7 +73,7 @@ QUOTES = [
         "title": "Estimate — Stair Set 1 Rebuild",
         "stair_label": "Stair Set 1",
         "stair_location": "First stair set at 315 Sassafras Lane (location to be marked on site)",
-        "price": 2400.00,
+        "price": 1650.00,
     },
     {
         "job_id": "JRC-JOB-315-LILY-STAIR-SET-02",
@@ -82,7 +82,7 @@ QUOTES = [
         "title": "Estimate — Stair Set 2 Rebuild",
         "stair_label": "Stair Set 2",
         "stair_location": "Second stair set at 315 Sassafras Lane (location to be marked on site)",
-        "price": 2400.00,
+        "price": 1650.00,
     },
 ]
 
