@@ -38,6 +38,35 @@ EVIDENCE_DIR = BASE_DIR / "evidence"
 DB_PATH = DATA_DIR / "jr_business.db"
 SETTINGS_PATH = DATA_DIR / "manager_settings.json"
 DEVICE_ID_PATH = DATA_DIR / "trusted_device_id.txt"
+LOG_MIRROR_FILENAME = "JRC_Business_Log_Latest.txt"
+DROPBOX_LEGACY_SOURCE_CANDIDATES = [
+    "Invoices2026 1.0",
+    "J and R Construction",
+    "JRC",
+]
+DROPBOX_ORGANIZATION_FOLDERS = [
+    "00_INBOX_To_File",
+    "01_Jobs/Active",
+    "01_Jobs/Completed",
+    "01_Jobs/Leads_Estimates",
+    "02_Documents_Invoices_Estimates_Quotes",
+    "03_Receipts_Materials/Needs_Review",
+    "03_Receipts_Materials/Filed",
+    "04_Photos_Evidence/Before",
+    "04_Photos_Evidence/During",
+    "04_Photos_Evidence/After",
+    "05_Helper_Pay_Workers",
+    "06_Bookkeeping_Taxes/Income",
+    "06_Bookkeeping_Taxes/Expenses",
+    "06_Bookkeeping_Taxes/Schedule_C",
+    "07_Backups",
+    "08_Admin_Standards",
+    "09_Archive",
+    "10_Logs",
+    "11_Exports",
+    "12_Imports_ChatGPT",
+]
+DEFAULT_DROPBOX_BUSINESS_ROOT = BASE_DIR / "dropbox_business"
 
 try:
     from app.ui_theme import (
@@ -140,6 +169,38 @@ def safe_filename(name):
     cleaned = "".join(ch if ch.isalnum() or ch in " ._-()" else "_" for ch in str(name))
     return cleaned.strip() or "file"
 
+
+def ensure_dropbox_organization(root):
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    for rel in DROPBOX_ORGANIZATION_FOLDERS:
+        (root / rel).mkdir(parents=True, exist_ok=True)
+    readme = root / "_JRC_DROPBOX_ORGANIZATION_README.txt"
+    if not readme.exists():
+        readme.write_text(
+            "J & R Construction Dropbox organization\n\n"
+            "This folder tree is safe to recreate. It only creates missing folders and does not delete, move, or overwrite job files.\n\n"
+            "Active Dropbox standard: use this one selected Dropbox business folder as the single J&R root.\n"
+            "Do not create separate Dropbox business roots or separate invoice roots.\n"
+            "Legacy candidates are search/index-only if they already exist, not folders to recreate:\n"
+            + "\n".join(f"- Dropbox/{rel}" for rel in DROPBOX_LEGACY_SOURCE_CANDIDATES)
+            + "\n\nOrganization folders created inside this one selected Dropbox business folder:\n"
+            + "\n".join(f"- {rel}" for rel in DROPBOX_ORGANIZATION_FOLDERS)
+            + "\n\nWhen the owner says \"log\", the latest business log mirror should be refreshed and copied here when Dropbox is configured.\n",
+            encoding="utf-8",
+        )
+    return root
+
+
+def resolve_dropbox_business_root(db=None):
+    if db is not None:
+        configured = db.get_setting("dropbox_folder", "").strip()
+        if configured:
+            return Path(configured)
+    env_root = os.environ.get("JRC_DROPBOX_FOLDER", "").strip()
+    if env_root:
+        return Path(env_root)
+    return DEFAULT_DROPBOX_BUSINESS_ROOT
 
 
 class Database:
@@ -335,6 +396,29 @@ class Database:
 
     def log(self, category, entry):
         self.execute("INSERT INTO business_log(timestamp, category, entry) VALUES(?,?,?)", (now_stamp(), category, entry))
+        self.mirror_business_log()
+
+    def mirror_business_log(self):
+        try:
+            EXPORT_DIR.mkdir(exist_ok=True)
+            rows = self.q("SELECT timestamp, category, entry FROM business_log ORDER BY id DESC LIMIT 250")
+            lines = [
+                "J and R Construction Manager business log mirror",
+                f"Updated: {now_stamp()}",
+                "",
+            ]
+            for row in reversed(rows):
+                lines.append(f"[{row['timestamp']}] {row['category']}: {row['entry']}")
+            mirror_path = EXPORT_DIR / LOG_MIRROR_FILENAME
+            mirror_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+            dropbox_folder = self.get_setting("dropbox_folder", "").strip()
+            if dropbox_folder:
+                dropbox_root = ensure_dropbox_organization(dropbox_folder)
+                shutil.copy2(mirror_path, dropbox_root / "10_Logs" / LOG_MIRROR_FILENAME)
+                shutil.copy2(mirror_path, dropbox_root / LOG_MIRROR_FILENAME)
+        except Exception:
+            pass
 
     def get_setting(self, key, default=""):
         row = self.one("SELECT value FROM app_settings WHERE key=?", (key,))
@@ -710,6 +794,8 @@ class DarkApp(tk.Tk):
         folder = self.dropbox_path_var.get().strip()
         self.db.set_setting("dropbox_folder", folder)
         self.db.log("Dropbox", f"Dropbox folder set to {folder}")
+        if folder:
+            ensure_dropbox_organization(folder)
         messagebox.showinfo("Saved", "Dropbox folder setting saved.")
 
     def open_dropbox_folder(self):
