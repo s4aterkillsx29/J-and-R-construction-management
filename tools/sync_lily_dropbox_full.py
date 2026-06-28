@@ -139,23 +139,15 @@ def copy_invoice(source: Path, dest: Path) -> Path:
 
 
 def distribute_stair_invoices(dropbox_root: Path) -> list[Path]:
+    """Copy both stair invoices to the Dropbox All Files folder (business root)."""
     saved: list[Path] = []
-    stamp = dt.datetime.now().strftime("%Y%m%d")
-    backup_dir = dropbox_root / "07_Backups" / f"Lily_315_Sassafras_{stamp}"
-
-    dropbox_targets = [
-        "02_Documents_Invoices_Estimates_Quotes/Lily_315_Sassafras",
-        "02_Documents_Invoices_Estimates_Quotes/Lily_315_Sassafras_Stairs",
-        "01_Jobs/Leads_Estimates/Lily_315_Sassafras",
-        "11_Exports",
-    ]
+    all_files_dir = dropbox_root / "All Files"
+    all_files_dir.mkdir(parents=True, exist_ok=True)
 
     for invoice in STAIR_INVOICES:
         source = source_invoice(invoice["send_name"])
-        for rel in dropbox_targets:
-            name = invoice["send_name"] if "Lily_315_Sassafras_Stairs" not in rel else invoice["legacy_name"]
-            saved.append(copy_invoice(source, dropbox_root / rel / name))
-        saved.append(copy_invoice(source, backup_dir / invoice["send_name"]))
+        saved.append(copy_invoice(source, all_files_dir / invoice["send_name"]))
+        saved.append(copy_invoice(source, dropbox_root / invoice["send_name"]))
         saved.append(copy_invoice(source, EXPORT_DIR / invoice["send_name"]))
     return saved
 
@@ -236,11 +228,8 @@ def main() -> None:
         log_entry(
             conn,
             "Document",
-            "Uploaded Lily / 315 Sassafras stair customer invoices to Dropbox folders: "
-            "02_Documents_Invoices_Estimates_Quotes/Lily_315_Sassafras, "
-            "02_Documents_Invoices_Estimates_Quotes/Lily_315_Sassafras_Stairs, "
-            "01_Jobs/Leads_Estimates/Lily_315_Sassafras, 11_Exports, and 07_Backups. "
-            "Files: Lily_315_Sassafras_Stair_Set_1_CUSTOMER_INVOICE.pdf and "
+            "Copied Lily / 315 Sassafras stair customer invoices to Dropbox All Files folder: "
+            "Lily_315_Sassafras_Stair_Set_1_CUSTOMER_INVOICE.pdf and "
             "Lily_315_Sassafras_Stair_Set_2_CUSTOMER_INVOICE.pdf at $1,000.00 each.",
         )
         log_entry(conn, "Business Standards", new_standards_summary())
