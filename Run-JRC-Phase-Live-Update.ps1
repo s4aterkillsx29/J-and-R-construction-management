@@ -21,6 +21,8 @@ $OwnerInstall = Join-Path $Desktop "J and R Construction Manager"
 $AppDataInstall = Join-Path $env:LOCALAPPDATA "J_and_R_Construction_Manager"
 $OfficeBackup = "c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records\07_JRC_MANAGER_PROGRAM_FILES\backups"
 $DropboxRecords = "c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records"
+$env:JRC_WORKSPACE_ROOT = ""
+$env:JRC_DROPBOX_RECORDS = $DropboxRecords
 
 New-Item -ItemType Directory -Force -Path $OfficeBackup | Out-Null
 

@@ -24,10 +24,10 @@ def _now() -> str:
 
 
 def find_dropbox_records(base_dir: Path) -> Optional[Path]:
-    """Locate dropbox-records folder from install, Cursor office project, or cloud mirror."""
-    from app.dropbox_workspace import resolve_dropbox_records
+    """Unified business workspace (same folder for office CSVs, quotes, and phone Cursor)."""
+    from app.jrc_workspace import resolve_workspace
 
-    return resolve_dropbox_records(base_dir)
+    return resolve_workspace(base_dir)
 
 
 def apply_office_business_standards(conn: sqlite3.Connection) -> List[str]:
@@ -180,7 +180,7 @@ def register_dropbox_file_source(conn: sqlite3.Connection, dropbox: Path) -> Non
     if row:
         conn.execute(
             "UPDATE file_sources SET active=1, enabled=1, label=?, source_name=? WHERE id=?",
-            ("dropbox-records (office)", "dropbox-records", int(row[0])),
+            ("JRC Business Workspace", "jrc_workspace", int(row[0])),
         )
     else:
         conn.execute(
@@ -191,12 +191,12 @@ def register_dropbox_file_source(conn: sqlite3.Connection, dropbox: Path) -> Non
             ) VALUES (?,?,?,?,?,1,1,?,?)
             """,
             (
-                "dropbox-records (office)",
-                "dropbox-records",
-                "dropbox_office",
+                "JRC Business Workspace",
+                "jrc_workspace",
+                "dropbox_workspace",
                 path,
                 path,
-                "JRC office source of truth — Cursor assistant",
+                "Unified Dropbox workspace — phone Cursor, office CSVs, Manager",
                 _now(),
             ),
         )

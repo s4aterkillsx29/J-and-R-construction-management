@@ -1,79 +1,67 @@
-J & R CONSTRUCTION — PHONE CURSOR + DROPBOX WORKSPACE
+J & R CONSTRUCTION — ONE WORKSPACE (PHONE + DESKTOP + MANAGER)
 Updated: 2026-06-29
 
-RULE: Business files live in DROPBOX — not GitHub.
-GitHub = app code only. Dropbox = quotes, logs, CSVs, receipts, job records.
+Everything is under ONE Dropbox folder. No separate GitHub or dropbox-records paths.
 
 ================================================================================
-PHONE SETUP (Cursor iPhone app) — DO THIS ONCE
+THE ONE WORKSPACE
 ================================================================================
 
-1. Install Dropbox on iPhone and sign in (same account as office PC).
+Folder name: JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
+Open the INNER folder with the same name.
 
-2. Install Cursor from the App Store and sign in.
+PC path:
+  Dropbox\All Files\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
 
-3. Open workspace on phone:
-   Folder: JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
-   Then open the INNER folder with the same name.
-
-   Full path on PC (for reference):
-   Dropbox\All Files\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
-
-4. Do NOT open the GitHub repo "J-and-R-construction-management" for business work.
-   That repo is application source code only — no quotes, payroll, or job files.
-
-5. VERIFY setup is correct — ask phone Cursor:
-   "Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"
-
-   SUCCESS = you see the $13,890 Lily Sassafras fence quote.
-   FAIL = file not found or it talks about GitHub → workspace is wrong folder.
+Look for JRC_WORKSPACE.txt at the root — that confirms the correct folder.
 
 ================================================================================
-BOOKMARK THESE FILES ON PHONE
+PHONE CURSOR — OPEN THIS WORKSPACE ONLY
 ================================================================================
 
-  00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt   (this file)
+1. Dropbox app on iPhone — signed in, synced.
+2. Cursor app — open workspace: JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22 (inner folder).
+3. Do NOT open GitHub J-and-R-construction-management for business work.
+
+VERIFY:
+  Ask phone Cursor: "Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"
+  SUCCESS = $13,890 Lily Sassafras fence quote.
+
+BOOKMARKS (all under the same workspace):
+  00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt
   00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
   00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt
-  00_START_HERE/LOGGING_STANDARDS_OFFICE_ASSISTANT.txt
 
 ================================================================================
-DAILY WORKFLOW
+WHAT LIVES IN THIS ONE FOLDER
 ================================================================================
 
-ON PHONE (field / customer site):
-  - Open Dropbox business workspace in Cursor
-  - Write job logs, field notes, and updates (Dropbox syncs them)
-  - Use READABLE/BUSINESS_DASHBOARD.txt for quick job status
-
-ON DESKTOP (office laptop) — after a phone session:
-  1. Run: scripts\Sync-JRCBusinessFolders.ps1
-  2. Run: scripts\Refresh-ReadableBusinessReports.ps1
-  3. In Construction Manager: Office Records Sync
-  4. Tell desktop Cursor: "log" to finish the data pipeline
+  00_START_HERE/           phone Cursor + quick files
+  03_BUSINESS_ADMIN/       applications inbox
+  04_FINANCIAL_TRACKING/   income / deposits
+  05_Helper_Pay_Workers/   payroll
+  07_JRC_MANAGER_PROGRAM_FILES/  program backups
+  08_Admin_Standards/      job register + standards
+  JRC_WORKSPACE.txt        confirms this is the right folder
 
 ================================================================================
-DESKTOP SCRIPTS (office PC)
+DESKTOP (Construction Manager)
 ================================================================================
 
-  Sync-JRCBusinessFolders.ps1
-    Copies phone workspace files and links dropbox-records into business root.
+Start Center:
+  Sync Business Workspace   — unify paths + deploy phone files
+  Office Records Sync       — same folder, imports CSVs to database
+  Open Business Workspace   — open in File Explorer
 
-  Refresh-ReadableBusinessReports.ps1
-    Rebuilds 00_START_HERE/READABLE/*.txt from office CSVs and job register.
+Or PowerShell:
+  scripts\Sync-JRCBusinessFolders.ps1
+  scripts\Refresh-ReadableBusinessReports.ps1
+
+After phone work: run both scripts, Office Records Sync, then tell desktop Cursor: log
 
 ================================================================================
-TROUBLESHOOTING
+RULE
 ================================================================================
 
-  Phone cannot find quote file
-    → Open inner JRC_COMPLETE_BUSINESS_FOLDER folder, not GitHub repo
-    → Run Sync-JRCBusinessFolders.ps1 on desktop and wait for Dropbox sync
-
-  Dropbox not updating on phone
-    → Open Dropbox app → pull to refresh → check Wi-Fi/cellular
-
-  Desktop Manager out of date
-    → Start Center → Office Records Sync
-
-Owned and operated by Jacob Cosentino / J & R Construction
+  GitHub  = app code ONLY
+  Dropbox = ONE workspace for ALL business files

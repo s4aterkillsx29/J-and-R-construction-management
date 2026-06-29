@@ -767,15 +767,15 @@ class StartCenter(tk.Tk):
             ]),
             "tools": ("Tools & files", [
                 ("Print File to A42", "Print a PDF or text file to the Phoswift label printer (USB).", self.print_local_file, "primary"),
-                ("Open Dropbox Business", "Open JRC business files in File Explorer — no app required.", self.open_dropbox_business, "secondary"),
+                ("Open Business Workspace", "One Dropbox folder — quotes, logs, office CSVs (phone + desktop).", self.open_business_workspace, "primary"),
+                ("Sync Business Workspace", "Unify Dropbox paths, deploy 00_START_HERE, refresh readable reports.", self.run_sync_business_workspace, "primary"),
                 ("Worker Forms", "Account signup, customer request, and job application links.", self.worker_forms, "secondary"),
                 ("Tools / Repair", "System check, host test, firewall rule, and final verify.", self.tools_window, "warn"),
                 ("Files / Logs", "Exports, backups, logs, program folder, and help documents.", self.files_window, "secondary"),
             ]),
             "developer": ("Developer & admin", [
                 ("Full Live Update", "Sync files, verify packages, run all checks, log and save LIVE_UPDATE_REPORT.txt.", self.run_live_full_update, "primary"),
-                ("Office Records Sync", "Import JRC job register + payroll from dropbox-records; merge exports to office CSVs.", self.run_office_records_sync, "primary"),
-                ("Phone Cursor Dropbox Setup", "Deploy 00_START_HERE files for iPhone Cursor + verify $13,890 Lily quote.", self.run_phone_cursor_dropbox_setup, "primary"),
+                ("Office Records Sync", "Import job register + payroll from the same unified workspace.", self.run_office_records_sync, "primary"),
                 ("Phase Verification", "Run all phase checks; saves PHASE_VERIFICATION_REPORT.txt.", self.run_phase_verification, "info"),
                 ("Developer Tools Console", "Every QA, repair, and admin script — full bells and whistles.", self.developer_tools_window, "info"),
                 ("Account Database Editor", "Users, roles, passwords, sessions — /admin/database/accounts.", self.open_admin_accounts, "primary"),
@@ -1703,34 +1703,39 @@ class StartCenter(tk.Tk):
             return
         self._watch_process(proc, log, "Office Records Sync", "See logs/office_sync_last.log and exports/office_sync/")
 
-    def run_phone_cursor_dropbox_setup(self):
+    def run_sync_business_workspace(self):
         if not self._admin_developer_pc():
-            messagebox.showwarning("Admin Only", "Phone Cursor setup is for Owner Master / admin PCs.")
+            messagebox.showwarning("Admin Only", "Workspace sync is for Owner Master / admin PCs.")
             return
-        self.set_status("Deploying phone Cursor Dropbox workspace (00_START_HERE)...")
+        self.set_status("Syncing ONE business workspace (Dropbox)...")
         sync_ps1 = BASE_DIR / "scripts" / "Sync-JRCBusinessFolders.ps1"
+        refresh_ps1 = BASE_DIR / "scripts" / "Refresh-ReadableBusinessReports.ps1"
         if sync_ps1.is_file():
             proc, log, err = launch_hidden(
                 ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(sync_ps1)],
-                "phone_cursor_sync_last.log",
+                "workspace_sync_last.log",
             )
             if err:
-                messagebox.showwarning("Phone Cursor setup could not start", err)
+                messagebox.showwarning("Workspace sync could not start", err)
                 return
             self._watch_process(
                 proc,
                 log,
-                "Phone Cursor Dropbox Setup",
-                "On phone: open JRC_COMPLETE_BUSINESS_FOLDER workspace.\n"
-                "Verify: Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt ($13,890 quote).\n"
-                "Log: logs/phone_cursor_sync_last.log",
+                "Business Workspace Sync",
+                "ONE workspace: phone Cursor + Manager + office CSVs.\n"
+                "Includes Refresh-ReadableBusinessReports.\n"
+                "Phone verify: 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt",
             )
             return
-        proc, log, err = launch_hidden([PY_CMD, "-m", "app.phone_cursor_workspace", "--deploy"], "phone_cursor_sync_last.log")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.phone_cursor_workspace", "--deploy"], "workspace_sync_last.log")
         if err:
-            messagebox.showwarning("Phone Cursor setup could not start", err)
+            messagebox.showwarning("Workspace sync could not start", err)
             return
-        self._watch_process(proc, log, "Phone Cursor Dropbox Setup", "See logs/phone_cursor_sync_last.log")
+        self._watch_process(proc, log, "Business Workspace Sync", "See logs/workspace_sync_last.log")
+
+    def run_phone_cursor_dropbox_setup(self):
+        """Legacy name — same as run_sync_business_workspace."""
+        self.run_sync_business_workspace()
 
     def run_phase_verification(self):
         if not self._admin_developer_pc():
@@ -2054,16 +2059,33 @@ class StartCenter(tk.Tk):
         messagebox.showinfo("Allow Phone Access", "Windows may ask for Administrator approval. This allows trusted Wi-Fi/VPN devices to reach port 8765.")
         open_path(helper)
 
-    def open_dropbox_business(self):
-        path = Path(r"C:\Users\enrag\Dropbox\All Files\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22")
+    def open_business_workspace(self):
+        try:
+            from app.jrc_workspace import WORKSPACE_NAME, ensure_unified_workspace
+
+            rep = ensure_unified_workspace(BASE_DIR)
+            path = rep.get("workspace")
+            if path:
+                open_path(Path(path))
+                self.set_status(f"Opened unified workspace: {WORKSPACE_NAME}")
+                return
+        except Exception:
+            pass
+        fallback = Path(
+            r"C:\Users\enrag\Dropbox\All Files\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"
+            r"\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"
+        )
         guide = Path(r"C:\Users\enrag\Dropbox\All Files\OPEN_JRC_BUSINESS_HERE.txt")
         if guide.exists():
             open_path(guide)
-        if path.exists():
-            open_path(path)
-            self.set_status("Opened Dropbox business folder.")
+        if fallback.exists():
+            open_path(fallback)
+            self.set_status("Opened business workspace folder.")
         else:
-            messagebox.showwarning("Not found", f"Business folder not found:\n{path}")
+            messagebox.showwarning("Not found", f"Workspace not found:\n{fallback}\n\nRun Sync Business Workspace first.")
+
+    def open_dropbox_business(self):
+        self.open_business_workspace()
 
     def print_local_file(self):
         from tkinter import filedialog
@@ -2109,7 +2131,7 @@ class StartCenter(tk.Tk):
         tk.Label(win, text="If a button appears to do nothing, open Logs and check the newest *_last.log file.", bg=BG, fg=MUTED, font=("Segoe UI", 10), wraplength=440, justify="left").pack(anchor="w", padx=18, pady=(0, 12))
         items = [
             ("Print File to A42", self.print_local_file),
-            ("Open Dropbox Business", self.open_dropbox_business),
+            ("Open Business Workspace", self.open_business_workspace),
             ("Open Program Folder", lambda: open_path(BASE_DIR)),
             ("Open Logs Folder", lambda: open_path(LOG_DIR)),
             ("Open Exports Folder", lambda: open_path(EXPORT_DIR)),

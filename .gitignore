@@ -12,6 +12,7 @@ env/
 # Runtime data and local-only files (never commit business DB or install state)
 data/*
 !data/README_KEEP.txt
+data/jrc_workspace.json
 *.db
 *.db-shm
 *.db-wal

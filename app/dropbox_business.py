@@ -51,17 +51,17 @@ def _desktop_dir() -> Path:
 
 
 def discover_dropbox_presets() -> List[Tuple[str, Path]]:
+    from app.jrc_workspace import WORKSPACE_NAME, resolve_workspace
+
+    root = resolve_workspace(BASE_DIR)
+    if root:
+        return [("JRC Business Workspace (unified)", root)]
     home = Path.home()
     desk = _desktop_dir()
+    inner = home / "Dropbox" / "All Files" / WORKSPACE_NAME / WORKSPACE_NAME
     presets: List[Tuple[str, Path]] = [
+        (f"Unified — {WORKSPACE_NAME}", inner),
         ("Desktop — J and R Construction Manager (local program)", desk / "J and R Construction Manager"),
-        ("Desktop — J and R Construction", desk / "J and R Construction"),
-        ("Desktop — JRC", desk / "JRC"),
-        ("J and R Construction", home / "Dropbox" / "J and R Construction"),
-        ("JRC", home / "Dropbox" / "JRC"),
-        ("Invoices2026 1.0", home / "Dropbox" / "Invoices2026 1.0"),
-        ("Dropbox All Files — JRC", home / "Dropbox" / "All Files" / "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22" / "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"),
-        ("dropbox-records", home / "Dropbox" / "dropbox-records"),
     ]
     return [(name, p) for name, p in presets if p.exists()]
 
@@ -71,11 +71,15 @@ def get_dropbox_folder(conn: sqlite3.Connection) -> str:
     if folder and Path(folder).exists():
         return folder
     try:
-        from app.install_paths import owner_install_dir
-        owner = owner_install_dir()
-        if owner.exists():
-            set_setting(conn, "dropbox_folder", str(owner))
-            return str(owner)
+        from app.jrc_workspace import resolve_workspace, save_workspace
+
+        root = resolve_workspace(BASE_DIR)
+        if root:
+            folder = str(root)
+            set_setting(conn, "dropbox_folder", folder)
+            set_setting(conn, "jrc_workspace_root", folder)
+            save_workspace(root, BASE_DIR)
+            return folder
     except Exception:
         pass
     for _, path in discover_dropbox_presets():
@@ -99,7 +103,7 @@ def ensure_dropbox_file_source(conn: sqlite3.Connection) -> Optional[str]:
             created_at TEXT
         )"""
     )
-    label = "Dropbox Business Folder"
+    label = "JRC Business Workspace"
     existing = conn.execute(
         "SELECT id FROM file_sources WHERE label=? OR folder_path=?", (label, folder)
     ).fetchone()
@@ -112,7 +116,7 @@ def ensure_dropbox_file_source(conn: sqlite3.Connection) -> Optional[str]:
         conn.execute(
             "INSERT INTO file_sources (label, source_type, folder_path, active, notes, created_at) "
             "VALUES (?,?,?,?,?,?)",
-            (label, "dropbox-local", folder, 1, "Owner Dropbox-synced business backup source.", _now()),
+            (label, "dropbox-local", folder, 1, "Unified Dropbox workspace — phone Cursor, office CSVs, backups.", _now()),
         )
     conn.commit()
     return folder
