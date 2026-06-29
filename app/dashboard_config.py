@@ -8,7 +8,7 @@ NavItem = Tuple[str, str, str, str]  # key, label, href, permission
 Tile = Tuple[str, str, str, str]  # label, href, note, css_class
 
 
-def build_nav_items(role: str, perms: set[str], *, is_admin: bool) -> List[NavItem]:
+def build_nav_items(role: str, perms: set[str], *, is_admin: bool, densus_access: bool = False) -> List[NavItem]:
     """Minimal side nav — deep links live on the main dashboard."""
     items: List[NavItem] = [
         ("dashboard", "Home Dashboard", "/", "view_dashboard"),
@@ -25,8 +25,10 @@ def build_nav_items(role: str, perms: set[str], *, is_admin: bool) -> List[NavIt
         items.append(("apply", "Apply to Work", "/apply", "view_dashboard"))
     if "view_admin" in perms:
         items.append(("admin", "Admin Hub", "/admin", "view_admin"))
-    if is_admin:
+    if is_admin and densus_access:
         items.append(("densus", "Security Monitor", "/admin/densus", "view_admin"))
+    elif is_admin:
+        items.append(("densus", "Request Densus", "/admin/densus", "view_admin"))
     if "configure_hosting" in perms:
         items.append(("hosting", "Hosting Setup", "/hosting", "configure_hosting"))
     if "audit" in perms:
@@ -34,7 +36,7 @@ def build_nav_items(role: str, perms: set[str], *, is_admin: bool) -> List[NavIt
     return [(k, l, h, p) for k, l, h, p in items if p in perms or k == "apply"]
 
 
-def dashboard_tiles(role: str, perms: set[str]) -> List[Tuple[str, str, List[Tile]]]:
+def dashboard_tiles(role: str, perms: set[str], *, densus_access: bool = False) -> List[Tuple[str, str, List[Tile]]]:
     """Grouped action tiles for the main dashboard — replaces scattered nav duplicates."""
     sections: List[Tuple[str, str, List[Tile]]] = []
 
@@ -91,7 +93,8 @@ def dashboard_tiles(role: str, perms: set[str]) -> List[Tuple[str, str, List[Til
         admin.append(("Review Login Requests", "/admin#pending-requests", "Approve/deny /register", "btn2"))
         admin.append(("Database Editor", "/admin/database/accounts", "Account permissions", "btn2"))
         admin.append(("Dropbox Sync", "/admin/dropbox", "Office records alignment", "btn2"))
-        admin.append(("Densus Security", "/admin/densus", "Live session monitor", "btn2"))
+    if densus_access:
+        admin.append(("Densus Security", "/admin/densus", "Owner-approved session monitor", "btn2"))
     if "view_applications" in perms:
         admin.append(("Worker Applications", "/applications", "Full /apply hire queue", "btn2"))
     if "manage_devices" in perms:
@@ -113,10 +116,10 @@ def dashboard_tiles(role: str, perms: set[str]) -> List[Tuple[str, str, List[Til
     return sections
 
 
-def render_dashboard_sections(role: str, perms: set[str]) -> str:
+def render_dashboard_sections(role: str, perms: set[str], *, densus_access: bool = False) -> str:
     """HTML for grouped dashboard tiles."""
     parts = []
-    for title, note, tiles in dashboard_tiles(role, perms):
+    for title, note, tiles in dashboard_tiles(role, perms, densus_access=densus_access):
         buttons = "".join(
             f"<a class='btn {css}' href='{href}'><b>{label}</b><br><span class='muted' style='font-size:12px;font-weight:400'>{note}</span></a>"
             for label, href, note, css in tiles

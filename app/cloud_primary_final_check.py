@@ -8,7 +8,7 @@ def read(p):
     try: return Path(p).read_text(encoding='utf-8',errors='ignore')
     except Exception: return ''
 ns=read(APP)
-checks.append(('APP_VERSION_CURRENT','7.12.0 Secure Access' in ns))
+checks.append(('APP_VERSION_CURRENT','7.12.1 Densus' in ns))
 checks.append(('CLOUD_PRIMARY_MODE','CLOUD_PRIMARY_MODE' in ns and 'JRC_CLOUD_PRIMARY_MODE' in ns))
 checks.append(('CLOUD_DATA_DIR_ENV','JRC_DATA_DIR' in ns and 'JRC_DB_PATH' in ns))
 checks.append(('CLOUD_INITIAL_ADMIN','JRC_INITIAL_ADMIN_PASSWORD' in ns and 'cloud initial owner account' in ns.lower()))

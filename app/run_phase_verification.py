@@ -17,10 +17,7 @@ def run_phase_verification(base_dir: Path | None = None) -> tuple[int, Path]:
     os.environ["JRC_DATA_DIR"] = str(base / "data")
     os.environ["JRC_DB_PATH"] = str(base / "data" / "jr_business.db")
     os.environ["JRC_LIVE_DIR"] = str(base)
-    os.environ.setdefault(
-        "JRC_DROPBOX_RECORDS",
-        r"c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records",
-    )
+    os.environ.setdefault("JRC_DROPBOX_RECORDS", "")
 
     lines = [
         "J & R CONSTRUCTION MANAGER — PHASE VERIFICATION REPORT",
@@ -175,6 +172,11 @@ def run_phase_verification(base_dir: Path | None = None) -> tuple[int, Path]:
             lines.append("  [WARN] mobile API customer guards may be missing")
         if "densus_jrc_admin" in (base / "app" / "densus_routes.py").read_text(encoding="utf-8", errors="ignore"):
             lines.append("  Densus JRC admin hub: present")
+        if (base / "app" / "densus_access.py").exists():
+            lines.append("  Densus owner-approval access module: present")
+        else:
+            lines.append("  [MISSING] app/densus_access.py")
+            errors += 1
         lines.append("")
     except Exception as exc:
         lines.append(f"  customer check failed: {exc}")

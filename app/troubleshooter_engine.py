@@ -214,9 +214,34 @@ def check_master_owner() -> TroubleStep:
 def check_densus() -> TroubleStep:
     try:
         from app.densus_bridge import densus_installed, resolve_densus_install
+        from app.densus_access import ensure_schema, pending_count, resolve_densus_package_source
+        import sqlite3
+
+        db_path = BASE_DIR / "data" / "jr_business.db"
+        pending = 0
+        if db_path.exists():
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            ensure_schema(conn)
+            pending = pending_count(conn)
+            conn.close()
+        pkg = resolve_densus_package_source()
         if densus_installed():
-            return TroubleStep("Densus", "Desktop app", "OK", f"Found at {resolve_densus_install()}")
-        return TroubleStep("Densus", "Desktop app", "WARN", "Install Densus to Desktop\\Densus for WiFi/Windows scans.")
+            extra = f"Found at {resolve_densus_install()}"
+            if pending:
+                extra += f" | {pending} Densus access request(s) pending owner approval"
+            return TroubleStep("Densus", "Desktop app", "OK", extra)
+        if pkg:
+            msg = f"Package source at {pkg} — install to Desktop after owner approves admin"
+            if pending:
+                msg += f" ({pending} pending approval)"
+            return TroubleStep("Densus", "Desktop app", "WARN", msg)
+        return TroubleStep(
+            "Densus",
+            "Desktop app",
+            "WARN",
+            "Not on Desktop. Admins need owner approval at /admin/densus before download.",
+        )
     except Exception as exc:
         return TroubleStep("Densus", "Integration", "WARN", str(exc))
 

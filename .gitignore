@@ -45,6 +45,10 @@ dropbox-records/
 # Business standards runtime manifest (local paths synced from Dropbox)
 business_standards/OFFICE_STANDARDS_MANIFEST.json
 
+# Office standard docs — synced locally from Dropbox at install, not published to GitHub
+business_standards/*
+!business_standards/README_KEEP.txt
+
 # Secrets/environment
 .env
 .env.*

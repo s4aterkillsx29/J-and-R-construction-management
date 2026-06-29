@@ -34,9 +34,21 @@ def get_admin_dashboard_status() -> Dict[str, Any]:
 
     try:
         from app.densus_bridge import densus_installed
+        from app.densus_access import ensure_schema, pending_count
+        import sqlite3
+
         status["densus_installed"] = densus_installed()
+        status["densus_pending_approvals"] = 0
+        db_path = BASE_DIR / "data" / "jr_business.db"
+        if db_path.exists():
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            ensure_schema(conn)
+            status["densus_pending_approvals"] = pending_count(conn)
+            conn.close()
     except Exception:
         status["densus_installed"] = False
+        status["densus_pending_approvals"] = 0
 
     db = BASE_DIR / "data" / "jr_business.db"
     status["database_exists"] = db.exists()

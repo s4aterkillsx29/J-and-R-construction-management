@@ -1,0 +1,24 @@
+GITHUB PUBLISH — WHAT STAYS OFF THE REPO
+J & R Construction Manager | Updated June 28, 2026
+
+This repository contains APPLICATION SOURCE CODE ONLY.
+
+NEVER COMMITTED (see .gitignore)
+--------------------------------
+- dropbox-records/ — entire business folder
+- data/* — local database, sessions, secrets (except data/README_KEEP.txt)
+- exports/ — test reports (may contain LAN IP, local paths)
+- 03_BUSINESS_ADMIN/ — runtime inbox copies
+- business_standards/*.txt — office docs synced from Dropbox at install
+- *.db, *.csv (payroll/tax/receipt patterns), *.pdf business docs
+- .env, credentials, W-9, EIN, bank, receipt filenames
+
+SAFE ON GITHUB
+--------------
+- Python app source (app/*.py)
+- Installer scripts, batch files, cloud_hosting templates
+- docs/release-notes, docs/guides (program documentation)
+- tests/, .github/workflows/
+
+Before push: git status — confirm no data/, exports/, dropbox-records/
+Run: python -m app.pre_live_permissions_check (local install only)

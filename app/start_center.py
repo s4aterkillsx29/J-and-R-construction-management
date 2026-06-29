@@ -45,7 +45,7 @@ except Exception:
     is_jrc_server = None
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.12.0 Secure Access & Account Verification Edition"
+APP_VERSION = "7.12.1 Densus Owner-Approval Edition"
 BUSINESS = "J & R Construction"
 OWNER = "Jacob Cosentino"
 DEFAULT_PORT = int(os.environ.get("JRC_PORT", "8765"))
@@ -760,6 +760,7 @@ class StartCenter(tk.Tk):
             ]),
             "admin": ("Admin & security", [
                 ("Admin Web Panel", "Users, sessions, devices — requires host running.", self.open_admin_web_panel, "primary"),
+                ("Densus Security Hub", "Owner-approved admin monitor + download.", self.open_densus_hub, "primary"),
                 ("Account Database Editor", "Users, roles, permission overrides.", self.open_admin_accounts, "primary"),
                 ("All Database Tables", "Browse/edit SQLite tables.", self.open_admin_database, "info"),
                 ("Owner Security Status", "Default password and owner setup.", self.pre_install_security_check, "warn"),
@@ -1019,6 +1020,33 @@ class StartCenter(tk.Tk):
                 messagebox.showwarning("Admin Not Ready", "Local host did not verify login. Run Auto Repair Host, then try again.")
 
             threading.Thread(target=wait_admin, daemon=True).start()
+
+    def open_densus_hub(self):
+        """Open Densus JRC Admin Hub — owner approval required for download/use."""
+        if not self._require_business_storage("open Densus"):
+            return
+        target = urls()["local"] + "/admin/densus"
+        if is_host_running():
+            webbrowser.open(target)
+            self.set_status("Opened Densus hub — owner approves each admin before download/use.")
+            return
+        if messagebox.askyesno(
+            "Start Host for Densus",
+            "Densus runs in your browser after the local host starts.\n\n"
+            "Owner must approve each admin before download or use.\n\nStart host and open Densus?",
+        ):
+            self.start_host()
+
+            def wait_densus():
+                for _ in range(40):
+                    if is_host_running():
+                        webbrowser.open(target)
+                        self.set_status("Densus hub opened.")
+                        return
+                    time.sleep(0.5)
+                messagebox.showwarning("Densus Not Ready", "Host did not start. Run Auto Repair Host, then try again.")
+
+            threading.Thread(target=wait_densus, daemon=True).start()
 
     def run_install_or_update(self):
         from app.startup_setup import launch_installer

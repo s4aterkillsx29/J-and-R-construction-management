@@ -30,7 +30,7 @@ except Exception as exc:
     print("Flask is required. Run INSTALL_JR_JOB_MANAGER.bat first.")
     raise
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.12.0 Secure Access & Account Verification Edition"
+APP_VERSION = "7.12.1 Densus Owner-Approval Edition"
 BUSINESS_NAME = "J & R Construction"
 OWNER = "Jacob Cosentino"
 PHONE = "(910) 712-0936"
@@ -881,6 +881,20 @@ def init_db() -> None:
             reviewed_at TEXT,
             reviewed_by TEXT
         );
+        CREATE TABLE IF NOT EXISTS densus_access_grants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            status TEXT DEFAULT 'Pending',
+            request_note TEXT,
+            admin_notes TEXT,
+            request_ip TEXT,
+            requested_at TEXT,
+            reviewed_at TEXT,
+            reviewed_by TEXT,
+            last_download_at TEXT,
+            UNIQUE(user_id)
+        );
         CREATE TABLE IF NOT EXISTS worker_user_profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE,
@@ -1148,6 +1162,20 @@ def current_user() -> Optional[sqlite3.Row]:
         return None
     row = db().execute("SELECT * FROM users WHERE id=? AND active=1", (uid,)).fetchone()
     return row
+
+
+def session_densus_access() -> bool:
+    user = current_user()
+    if not user:
+        return False
+    try:
+        from app.densus_access import has_densus_access
+
+        return has_densus_access(db(), user["id"], user["username"], user["role"])
+    except Exception:
+        return is_admin_role(user["role"])
+
+
 def touch_session() -> None:
     sid = session.get("sid")
     if sid:
@@ -1223,7 +1251,12 @@ def layout(title: str, body: str, active: str = "dashboard", *, public: bool = F
     norm_role = normalize_role_for_session(role) if user else ""
     from app.dashboard_config import build_nav_items
 
-    nav = build_nav_items(norm_role, perms, is_admin=is_admin_role(role))
+    nav = build_nav_items(
+        norm_role,
+        perms,
+        is_admin=is_admin_role(role),
+        densus_access=session_densus_access() if user else False,
+    )
     nav_html = "".join(
         f'<a class="nav {"on" if key==active else ""}" href="{href}">{label}</a>'
         for key, label, href, need in nav
@@ -1901,7 +1934,7 @@ def dashboard():
     {role_command_center(role, perms)}
     """
     from app.dashboard_config import render_dashboard_sections
-    body += render_dashboard_sections(role, perms)
+    body += render_dashboard_sections(role, perms, densus_access=session_densus_access())
     if "view_jobs" in perms:
         body += f"""<div class="card"><h2>Current Jobs</h2><table><tr><th>ID</th><th>Job</th><th>Status</th>{money_cols}</tr>{job_rows}</table></div>"""
     body += f"""<div class="card"><h2>Your Access</h2><p><b>Role:</b> {html.escape(role_display(role))}</p><p class="muted">Sign-in required for every user. PC verified at login. Use tiles above for all features.</p></div>"""
@@ -2188,8 +2221,15 @@ def _admin_command_center_html() -> str:
     lan = get_lan_ip()
     pending_n = 0
     apps_n = 0
+    densus_pending_n = 0
     try:
         pending_n = db().execute("SELECT COUNT(*) FROM account_requests WHERE status='Pending'").fetchone()[0]
+    except Exception:
+        pass
+    try:
+        from app.densus_access import pending_count
+
+        densus_pending_n = pending_count(db())
     except Exception:
         pass
     try:
@@ -2216,16 +2256,20 @@ def _admin_command_center_html() -> str:
         last_rep = "—"
     pending_badge = "red" if pending_n else "ok"
     apps_badge = "yellow" if apps_n else "ok"
+    densus_badge_stat = "red" if densus_pending_n else ("ok" if densus_badge == "ok" else densus_badge)
+    densus_stat_label = (
+        f"{densus_pending_n} pending approval" if densus_pending_n else densus_txt
+    )
     return f"""
     <div class="card"><h2>Owner Admin Command Center</h2>
       <p class="muted">v{html.escape(APP_VERSION)} · All owner tools in one place. Sign-in required for every user including admin.</p>
       <div class="grid">
         <div class="stat">Shared Host<span class="badge {host_badge}">{'Online' if host_badge=='ok' else 'Check'}</span><span class="muted">Port {port} · LAN <code>http://{html.escape(lan)}:{port}</code><br>{host_detail}</span></div>
         <div class="stat">Pending Logins<span class="badge {pending_badge}">{pending_n}</span><span class="muted">Account requests awaiting your approval</span></div>
+        <div class="stat">Densus Access<span class="badge {densus_badge_stat}">{'Review' if densus_pending_n else ('OK' if densus_badge=='ok' else 'Setup')}</span><span class="muted">{html.escape(densus_stat_label)} — owner approves each admin</span></div>
         <div class="stat">Hire Applications<span class="badge {apps_badge}">{apps_n}</span><span class="muted">/apply submissions to review</span></div>
         <div class="stat">Python Modules<span class="badge {mod_badge}">{'OK' if mod_badge=='ok' else 'Fix'}</span><span class="muted">{mod_msg}</span></div>
         <div class="stat">Database<span class="badge {db_badge}">{'Found' if db_badge=='ok' else 'Missing'}</span><span class="muted">Business data on this PC</span></div>
-        <div class="stat">Densus Security<span class="badge {densus_badge}">{'OK' if densus_badge=='ok' else 'Optional'}</span><span class="muted">{densus_txt}</span></div>
       </div>
       <p class="muted">Last troubleshooter report: <code>{last_rep}</code></p>
     </div>
@@ -2237,7 +2281,7 @@ def _admin_command_center_html() -> str:
         <a class="btn btn2" href="/admin/new_user"><b>Add User</b><br><span class="muted" style="font-size:12px">Create account manually</span></a>
         <a class="btn btn2" href="/admin/devices"><b>Devices</b><br><span class="muted" style="font-size:12px">Trusted PCs and phones</span></a>
         <a class="btn btn2" href="/admin/dropbox"><b>Dropbox Sync</b><br><span class="muted" style="font-size:12px">Office records alignment</span></a>
-        <a class="btn btn2" href="/admin/densus"><b>Densus Monitor</b><br><span class="muted" style="font-size:12px">Sessions + security snapshots</span></a>
+        <a class="btn btn2" href="/admin/densus"><b>Densus Monitor</b><br><span class="muted" style="font-size:12px">Owner-approved — sessions + download</span></a>
         <a class="btn btn2" href="/admin/database/accounts"><b>Account DB</b><br><span class="muted" style="font-size:12px">Roles + permission overrides</span></a>
         <a class="btn btn2" href="/hosting"><b>Hosting / Mobile</b><br><span class="muted" style="font-size:12px">LAN + cloud setup</span></a>
         <a class="btn btn2" href="/connect"><b>Connection Test</b><br><span class="muted" style="font-size:12px">Phone / remote check</span></a>
