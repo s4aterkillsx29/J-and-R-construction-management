@@ -1,0 +1,50 @@
+{
+  "updated": "2026-06-30",
+  "owner": "Jacob Cosentino",
+  "business": "J & R Construction",
+  "jobs": [
+    {
+      "job_id": "JRC-JOB-315-LILLIAN-DOGEAR-FENCE",
+      "customer_name": "Lillian Cosentino",
+      "customer_aliases": ["Lily", "Lillian"],
+      "address": "315 Sassafras Lane",
+      "scope": "Dog ear fence — NOT chain link",
+      "materials_supplier": "SW Supply NC",
+      "status": "Quote in progress / estimate",
+      "document_folder": "02_Documents_Invoices_Estimates_Quotes/Lillian_315_Sassafras",
+      "notes": "Jacob built the dog ear fence quote on PC Cursor (~2026-06-29). Source of truth is PC workspace + Dropbox. NEVER substitute chain-link fence data. Internal numbers are in the quote Jacob prepared — sync from PC if not in GitHub yet.",
+      "invalid_reject": [
+        "chain link",
+        "chain-link",
+        "185 LF chain link",
+        "EST-JRC-JOB-315-LILY-FENCE-001 chain link placeholder",
+        "generate_lily_315_fence_estimate.py chain link script"
+      ]
+    },
+    {
+      "job_id": "JRC-JOB-315-LILLIAN-STAIR-SET-01",
+      "customer_name": "Lillian Cosentino",
+      "address": "315 Sassafras Lane",
+      "scope": "Exterior stair set 1 — 4 steps",
+      "customer_price": 1000.0,
+      "status": "Invoiced",
+      "doc_no": "INV-JRC-JOB-315-LILY-STAIR-SET-01-001"
+    },
+    {
+      "job_id": "JRC-JOB-315-LILLIAN-STAIR-SET-02",
+      "customer_name": "Lillian Cosentino",
+      "address": "315 Sassafras Lane",
+      "scope": "Exterior stair set 2 — 4 steps",
+      "customer_price": 1000.0,
+      "status": "Invoiced",
+      "doc_no": "INV-JRC-JOB-315-LILY-STAIR-SET-02-001"
+    },
+    {
+      "job_id": "JRC-JOB-403-JACKIE-DECK-REBUILD",
+      "customer_name": "Jackie / 403 East 2nd OIB",
+      "address": "403 East 2nd, Ocean Isle Beach",
+      "scope": "Deck rebuild",
+      "status": "Active"
+    }
+  ]
+}

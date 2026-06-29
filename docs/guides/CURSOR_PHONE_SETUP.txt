@@ -1,0 +1,73 @@
+J & R Construction — Cursor on iPhone Setup
+
+Use TWO apps on your phone:
+1. J&R Manager (your business) — run jobs, log work, files
+2. Cursor (code assistant) — update this GitHub repo via cloud agents
+
+=== PART A — ONE-TIME SETUP ON PC (15 min) ===
+
+1. Cursor account — Pro plan or higher (cloud agents need paid plan)
+   https://cursor.com/pricing
+
+2. Connect GitHub
+   https://cursor.com/dashboard → Integrations → GitHub
+   Select repo: J-and-R-construction-management
+
+3. Cloud agent environment (first time)
+   Dashboard → Cloud Agents → set up repo
+   Install: pip install -r requirements.txt
+   Set spend limit when prompted
+
+4. AGENTS.md in repo root tells Cursor agents how J&R business works
+
+=== PART B — INSTALL CURSOR ON IPHONE ===
+
+Option 1 — Native app (best)
+  App Store → search "Cursor"
+  Developer MUST be: Anysphere Incorporated
+  https://apps.apple.com/app/cursor/id6767085653
+  Sign in with same Cursor account as PC
+
+Option 2 — Web / home screen
+  Safari → https://cursor.com/agents
+  Sign in → Share → Add to Home Screen → "Cursor"
+
+Turn on push notifications for agent finished / needs input.
+
+=== PART C — START AN AGENT FROM PHONE ===
+
+1. Open Cursor app (or cursor.com/agents)
+2. New agent → pick GitHub repo: J-and-R-construction-management
+3. Branch: main (or cursor/* feature branch)
+4. Worker: Cloud
+
+Example prompts (voice or type):
+  "Log half day on 403 East 2nd Jackie deck — Jesse $120, me $120, note progress"
+  "Fix mobile job detail page on iPhone Safari"
+  "Add Lowe's receipt to Ray Joyner job expenses"
+
+5. Agent opens a PR — review diffs on phone, merge when good
+6. On PC: pull main, restart host if needed
+
+=== PART D — RUN THE BUSINESS ON PHONE (separate from Cursor) ===
+
+PC: Start Center → Start Local Host
+iPhone Safari: http://<pc-ip>:8765/mobile/setup
+Sign in → Add to Home Screen → "J&R Manager"
+
+For invoices in Files app: Dropbox → J and R Construction folder
+
+=== OPTIONAL — REMOTE CONTROL DESKTOP FROM PHONE ===
+
+If agent must use your PC files/tests:
+  PC Cursor 3.9.8+ → Settings → Agents → Remote Control ON
+  Desktop agent chat: /remote-control
+  Continue same session in Cursor iOS app
+
+Docs: https://cursor.com/docs/cloud-agent/mobile
+
+=== DO NOT ===
+
+- Install fake "Cursor" apps (not from Anysphere)
+- Paste customer bank info or SSNs into agent prompts
+- Confuse Cursor (changes code) with J&R Manager (runs the business)

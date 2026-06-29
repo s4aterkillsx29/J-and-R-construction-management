@@ -13,6 +13,7 @@ PUBLIC_EXACT = frozenset({
     "/emergency-access",
     "/mobile/ping",
     "/connect",
+    "/mobile/setup",
     "/payments/complete",
     "/payments/cancel",
     "/payments/stripe/webhook",
