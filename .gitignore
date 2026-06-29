@@ -42,6 +42,8 @@ LIVE_RELEASE_VERIFY_REPORT.txt
 
 # Dropbox business records — not part of app source
 dropbox-records/
+dropbox-business/*
+!dropbox-business/README_KEEP.txt
 
 # Business standards runtime manifest (local paths synced from Dropbox)
 business_standards/OFFICE_STANDARDS_MANIFEST.json

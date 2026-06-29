@@ -24,24 +24,10 @@ def _now() -> str:
 
 
 def find_dropbox_records(base_dir: Path) -> Optional[Path]:
-    """Locate dropbox-records folder from install or Cursor office project."""
-    candidates: List[Path] = []
-    env = os.environ.get("JRC_DROPBOX_RECORDS", "").strip()
-    if env:
-        candidates.append(Path(env))
-    candidates.extend(
-        [
-            Path(r"c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records"),
-            base_dir.parent / "dropbox-records",
-            Path.home() / "Dropbox" / "All Files" / "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"
-            / "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22",
-        ]
-    )
-    for p in candidates:
-        reg = p / "08_Admin_Standards" / "JRC_JOB_RELATION_REGISTER.csv"
-        if reg.is_file():
-            return p
-    return None
+    """Locate dropbox-records folder from install, Cursor office project, or cloud mirror."""
+    from app.dropbox_workspace import resolve_dropbox_records
+
+    return resolve_dropbox_records(base_dir)
 
 
 def apply_office_business_standards(conn: sqlite3.Connection) -> List[str]:
