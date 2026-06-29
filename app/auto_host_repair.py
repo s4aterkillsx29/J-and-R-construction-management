@@ -119,7 +119,7 @@ def analyze_logs() -> list[dict]:
         LOG_DIR / "desktop_app_last.log",
     ]
     patterns = [
-        (r"ModuleNotFoundError|No module named '?(flask|waitress|reportlab)'?", "missing_dependency", "A required optional package appears missing. Use Repair Features if internet is available."),
+        (r"ModuleNotFoundError|No module named '?(app|flask|waitress|reportlab)'?", "missing_dependency", "A required package or app module path is wrong. Run Admin → Full Auto-Repair or Background Troubleshooter to fix -m app.* launchers and install dependencies."),
         (r"Address already in use|Only one usage of each socket address", "port_in_use", "The local host port is already in use. Auto repair can switch to a nearby free port."),
         (r"PermissionError|Access is denied", "permission_error", "Windows permissions blocked an action. Try running the Start Center normally, then use Allow Phone Access as admin if needed."),
         (r"Connection refused|timed out|No connection could be made", "connection_failed", "The host was not reachable during the test. It may not have started, or the port/firewall is blocking it."),
@@ -155,6 +155,18 @@ def main() -> int:
     for folder in [DATA_DIR, LOG_DIR, EXPORT_DIR, BASE_DIR / "backups", BASE_DIR / "evidence", BASE_DIR / "chatgpt_imports"]:
         folder.mkdir(parents=True, exist_ok=True)
         report["actions"].append(f"Verified folder: {folder}")
+
+    try:
+        from app.launcher_repair import repair_launcher_files, verify_app_imports
+        for action in repair_launcher_files(BASE_DIR):
+            report["actions"].append(action)
+        ok, msg = verify_app_imports(BASE_DIR)
+        if not ok:
+            report["warnings"].append(f"Module import check: {msg}")
+        else:
+            report["actions"].append(msg)
+    except Exception as exc:
+        report["warnings"].append(f"Launcher repair skipped: {exc}")
 
     if not CLOUD_CONNECT.exists():
         CLOUD_CONNECT.write_text(json.dumps({"cloud_base_url": "", "updated_at": now(), "note": "Optional remote/cloud URL for JRC Manager."}, indent=2), encoding="utf-8")

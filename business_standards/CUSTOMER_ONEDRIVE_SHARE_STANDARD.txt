@@ -1,0 +1,57 @@
+================================================================================
+J & R CONSTRUCTION — CUSTOMER ONEDRIVE SHARE STANDARD
+Effective: June 28, 2026 | Owner: Jacob Cosentino
+Reference: JRC-315 fence (Session 22) | JRC-315ST stairs (Session 41)
+================================================================================
+
+PURPOSE
+-------
+When Jacob sends a customer PDF himself (not through the Construction Manager
+host), use the same OneDrive Desktop share workflow every time.
+
+ONEDRIVE SHARE FOLDER (synced to cloud)
+---------------------------------------
+  C:\Users\enrag\OneDrive\Desktop\JRC-Lily-315-Customer-Share\
+    Stairs_1000_Each\          — north + south stair invoices ($1,000 each)
+    Fence_13890\               — fence estimate (when Jacob sends)
+
+DESKTOP SEND DRAFTS (friendly names)
+------------------------------------
+  JRC-315ST1_Stairs_North_For_Lily_SEND_DRAFT.pdf
+  JRC-315ST2_Stairs_South_For_Lily_SEND_DRAFT.pdf
+  JRC-315_Customer_Invoice_For_Lily_SEND_DRAFT.pdf  (fence)
+
+OFFICIAL DROPBOX RECORDS (source of truth)
+------------------------------------------
+  Job folders under 01_Jobs/Leads_Estimates/JRC-315*
+  Copies in 02_Documents_Invoices_Estimates_Quotes/
+  Files named: *__Send_Draft.pdf and *__Send_Draft.txt
+
+SHARE LINK LOG (required every send package)
+--------------------------------------------
+  Job folder: YYYY-MM-DD__JRC-###__...__Customer_Share_Links.txt
+  Log must include:
+    - OneDrive local path
+    - OneDrive web navigation path
+    - Share link URL (paste after Share → Copy link)
+    - Status: NOT income until deposit received
+
+HOW TO GET THE LINK
+-------------------
+  1. https://onedrive.live.com
+  2. Desktop → JRC-Lily-315-Customer-Share → [subfolder]
+  3. File → Share → Anyone with the link can view → Copy link
+
+SCRIPTS
+-------
+  tools/Export-JRC315-CustomerSendDraft.py       — fence
+  tools/Export-JRC315ST-CustomerSendDraft.py   — stairs
+  tools/Publish-OneDriveCustomerShare.ps1      — share folder + log
+
+AFTER SEND PACKAGE
+------------------
+  Daily log entry | NOT income until deposit | Run Sync-JRCBusinessFolders.ps1
+
+================================================================================
+END
+================================================================================

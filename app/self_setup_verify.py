@@ -18,12 +18,14 @@ DATA_DIR.mkdir(exist_ok=True)
 
 CHECKS = [
     ('System Check', APP_DIR / 'system_check.py'),
+    ('Emergency Access Check', APP_DIR / 'emergency_access_check.py'),
     ('Permission View Check', APP_DIR / 'permission_view_check.py'),
     ('Dashboard Role Check', APP_DIR / 'dashboard_role_check.py'),
     ('Security Perspective Audit', APP_DIR / 'security_perspective_audit.py'),
     ('Final Program Verify', APP_DIR / 'final_program_verify.py'),
     ('Cloud Deploy Check', APP_DIR / 'cloud_deploy_check.py'),
     ('Auto Host Repair', APP_DIR / 'auto_host_repair.py'),
+    ('Live Full Update', APP_DIR / 'live_full_update.py'),
     ('v6 Final Readiness', APP_DIR / 'v6_final_readiness.py'),
 ]
 

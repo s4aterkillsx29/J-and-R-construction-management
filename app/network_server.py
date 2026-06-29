@@ -30,7 +30,7 @@ except Exception as exc:
     print("Flask is required. Run INSTALL_JR_JOB_MANAGER.bat first.")
     raise
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.2 Unified Schema Reliable Business Edition"
+APP_VERSION = "7.12.0 Secure Access & Account Verification Edition"
 BUSINESS_NAME = "J & R Construction"
 OWNER = "Jacob Cosentino"
 PHONE = "(910) 712-0936"
@@ -51,8 +51,8 @@ SESSION_TIMEOUT_MINUTES = int(os.environ.get("JRC_SESSION_TIMEOUT_MINUTES", "120
 PUBLIC_HOST_MODE = os.environ.get("JRC_PUBLIC_HOST_MODE", "0") == "1"
 CLOUD_PRIMARY_MODE = os.environ.get("JRC_CLOUD_PRIMARY_MODE", "0") == "1" or PUBLIC_HOST_MODE
 REQUIRE_STRONG_DEFAULT_PASSWORD_CHANGE = True
-DEFAULT_ADMIN_USERNAME = "admin"
-DEFAULT_ADMIN_PASSWORD = "admin"
+DEFAULT_ADMIN_USERNAME = "ivygrows"
+DEFAULT_ADMIN_PASSWORD = "ivygrows"
 CLOUD_INITIAL_ADMIN_PASSWORD = os.environ.get("JRC_INITIAL_ADMIN_PASSWORD", "").strip()
 ALLOW_LOCAL_DEFAULT_ADMIN = os.environ.get("JRC_ALLOW_LOCAL_DEFAULT_ADMIN", "1") == "1"
 # Secure remembered-device cookie settings.
@@ -64,35 +64,7 @@ DEVICE_COOKIE_MAX_AGE_SECONDS = int(os.environ.get("JRC_DEVICE_COOKIE_DAYS", "90
 DEVICE_COOKIE_SAMESITE = os.environ.get("JRC_DEVICE_COOKIE_SAMESITE", "Strict")
 for folder in [DATA_DIR, EXPORT_DIR, EVIDENCE_DIR, CHATGPT_IMPORTS_DIR, BACKUP_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
-PERMISSIONS = {
-    "admin": {
-        "view_dashboard", "view_jobs", "edit_jobs", "view_money", "edit_money", "view_files", "manage_files",
-        "view_workers", "edit_workers", "manage_payroll", "view_admin", "manage_users", "manage_settings", "backup", "audit",
-        "share_files", "share_jobs", "view_shared_sessions", "manage_devices", "owner_recovery", "mobile_access", "configure_ai", "configure_hosting", "view_bookkeeping", "manage_bookkeeping", "view_filekeeping", "manage_filekeeping", "view_applications", "manage_applications"
-    },
-    "manager": {
-        "view_dashboard", "view_jobs", "edit_jobs", "view_money", "edit_money", "view_files", "manage_files",
-        "view_workers", "edit_workers", "manage_payroll", "backup", "share_files", "share_jobs", "view_shared_sessions", "mobile_access", "view_bookkeeping", "manage_bookkeeping", "view_filekeeping", "manage_filekeeping", "view_applications", "manage_applications"
-    },
-    "worker": {"view_dashboard", "view_jobs", "view_files", "view_shared_sessions", "mobile_access", "view_bookkeeping", "view_filekeeping"},
-    "viewer": {"view_dashboard", "view_jobs", "view_files", "view_shared_sessions", "mobile_access", "view_bookkeeping", "view_filekeeping"},
-    # Non-company users are for customers, outside helpers, owners, realty contacts, or reviewers.
-    # They do not get jobs, files, money, payroll, bookkeeping, or admin access by default.
-    # They can only use the limited dashboard, mobile shell, and specifically shared items.
-    "non_company": {"view_dashboard", "view_shared_sessions", "mobile_access"},
-    # Customer users are not company staff. They get a safe customer-only dashboard,
-    # job request tools, and items intentionally shared to their customer account.
-    "customer": {"view_dashboard", "mobile_access", "customer_portal", "customer_request_job", "view_customer_shared"},
-}
-ROLE_LABELS = ["admin", "manager", "worker", "viewer", "non_company", "customer"]
-ROLE_DISPLAY_NAMES = {
-    "admin": "Owner/Admin",
-    "manager": "Manager",
-    "worker": "Company Worker",
-    "viewer": "Read-only Company Viewer",
-    "non_company": "Non-company / External User",
-    "customer": "Customer Portal User",
-}
+from app.role_permissions import PERMISSIONS, ROLE_LABELS, ROLE_DISPLAY_NAMES, HIRE_APPLICATION_ROLES
 ROLE_RANK = {role: index for index, role in enumerate(ROLE_LABELS)}
 def now_iso() -> str:
     return dt.datetime.now().isoformat(timespec="seconds")
@@ -146,14 +118,28 @@ def client_ip() -> str:
     except Exception:
         return "unknown"
 def password_quality(password: str, admin_change: bool = False) -> tuple[bool, str]:
-    """Password rules for all accounts. Owner/admin uses the same 8-character minimum."""
-    password = password or ""
-    minimum = 8
-    if len(password) < minimum:
-        return False, f"Password must be at least {minimum} characters."
-    if password.lower().strip() in {"password", "admin", "admin123", "admin/admin", "jandr", "jrconstruction", "jandrconstruction", "j&rconstruction"}:
-        return False, "Choose a stronger password that is not a common/default password."
-    return True, "OK"
+    """Password rules — Densus policy aligned with JRC roles."""
+    from app.first_setup_security import check_password_change_allowed, is_forbidden_owner_password
+    if is_forbidden_owner_password(password):
+        return False, "Cannot use first-setup or common default passwords."
+    role = "admin" if admin_change else "worker"
+    from app.densus_policy import enforce_densus_password
+    return enforce_densus_password(password, role)
+
+
+def enforce_new_password_policy(new_password: str, mastery_key: str = "", role: str = "") -> tuple[bool, str]:
+    from app.first_setup_security import check_password_change_allowed
+    ok, msg = check_password_change_allowed(new_password, mastery_key)
+    if not ok:
+        return ok, msg
+    if not role:
+        try:
+            from flask import session as flask_session
+            role = flask_session.get("role", "worker") or "worker"
+        except Exception:
+            role = "worker"
+    from app.densus_policy import enforce_densus_password
+    return enforce_densus_password(new_password, role)
 
 def is_local_setup_request() -> bool:
     """True only for the computer running the local app, not remote/customer users."""
@@ -305,19 +291,72 @@ def safe_name(name: str) -> str:
     cleaned = cleaned.strip().replace("..", "_")
     return cleaned or "file"
 def has_permission_role(role: str, permission: str) -> bool:
-    return permission in PERMISSIONS.get(role or "viewer", set())
+    from app.role_utils import normalize_role
+    return permission in PERMISSIONS.get(normalize_role(role), set())
 def role_display(role: str) -> str:
-    return ROLE_DISPLAY_NAMES.get(role or "viewer", role or "viewer")
+    from app.role_utils import role_display as _role_display
+    key = normalize_role_for_session(role)
+    return ROLE_DISPLAY_NAMES.get(key, _role_display(role))
+def normalize_role_for_session(role: str) -> str:
+    from app.role_utils import normalize_role
+    return normalize_role(role)
+def is_admin_role(role: str) -> bool:
+    from app.role_utils import is_admin_role as _is_admin_role
+    return _is_admin_role(role)
+def role_select_options(selected: str = "", *, exclude: tuple[str, ...] = ()) -> str:
+  """HTML <option> list with friendly account-type labels for admin forms."""
+  parts = []
+  sel = normalize_role_for_session(selected or "")
+  for r in ROLE_LABELS:
+    if r in exclude:
+      continue
+    label = ROLE_DISPLAY_NAMES.get(r, r)
+    parts.append(f'<option value="{html.escape(r)}"{" selected" if r == sel else ""}>{html.escape(label)}</option>')
+  return "".join(parts)
+def apply_user_role_change(conn: sqlite3.Connection, user: sqlite3.Row, new_role: str, actor: str, *, mastery_key: str = "") -> tuple[bool, str]:
+  """Validate and apply account-type change; provision profiles and log security event."""
+  old_role = normalize_role_for_session(user["role"] or "viewer")
+  new_role = normalize_role_for_session(new_role or old_role)
+  if new_role not in ROLE_LABELS:
+    return False, "Invalid account type."
+  if new_role == old_role:
+    return True, "unchanged"
+  if int(user["owner_account"] or 0) or user["username"] == DEFAULT_ADMIN_USERNAME:
+    if new_role != "admin":
+      return False, "Owner account must remain Owner / Admin."
+  if new_role == "admin" and old_role != "admin":
+    from app.emergency_access import verify_mastery_key
+    if not verify_mastery_key((mastery_key or "").strip()):
+      return False, "Granting Owner / Admin requires emergency mastery key on the full Edit User page."
+  conn.execute("UPDATE users SET role=?, last_profile_update=? WHERE id=?", (new_role, now_iso(), user["id"]))
+  from app.account_provisioning import provision_user_role_profiles
+  provision_user_role_profiles(conn, int(user["id"]), user["username"], new_role)
+  if new_role != old_role:
+      conn.execute(
+          "UPDATE online_sessions SET active=0, revoked=1, revoke_reason=? WHERE user_id=? AND active=1",
+          (f"Account type changed {old_role} -> {new_role} by {actor}", int(user["id"])),
+      )
+  log_security_event("user_role_changed", user["username"], f"{old_role} -> {new_role} by {actor}", "OK")
+  return True, f"Account type for {user['username']} changed: {role_display(old_role)} → {role_display(new_role)}."
 def role_can_access_share(viewer_role: str, minimum_role: str) -> bool:
     # Lower rank number means higher privilege. Non-company can access only items shared to non_company.
     if viewer_role == "admin":
         return True
     return ROLE_RANK.get(viewer_role or "non_company", 999) <= ROLE_RANK.get(minimum_role or "viewer", 999)
+
+def shared_counts_for_role(role: str) -> Tuple[int, int]:
+    """Count shared files/jobs visible to this role (not global totals)."""
+    role = normalize_role_for_session(role)
+    all_sf = db().execute("SELECT shared_with_role FROM shared_files WHERE active=1").fetchall()
+    all_sj = db().execute("SELECT shared_with_role FROM shared_jobs WHERE active=1").fetchall()
+    sf = sum(1 for r in all_sf if role_can_access_share(role, r["shared_with_role"] or "viewer"))
+    sj = sum(1 for r in all_sj if role_can_access_share(role, r["shared_with_role"] or "viewer"))
+    return sf, sj
 def permission_badges(role: str) -> str:
     perms = sorted(PERMISSIONS.get(role or "viewer", set()))
     return " ".join(f"<span class='badge'>{html.escape(p)}</span>" for p in perms)
 def is_customer_or_external(role: str) -> bool:
-    return role in {"customer", "non_company"}
+    return normalize_role_for_session(role) in {"customer", "non_company", "guest"}
 def forbid_customer_external_admin_surface() -> None:
     role = session.get("role", "")
     if is_customer_or_external(role):
@@ -338,6 +377,14 @@ def db() -> sqlite3.Connection:
         conn.execute("PRAGMA busy_timeout=5000")
         g.db = conn
     return g.db
+def table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (name,),
+    ).fetchone()
+    return row is not None
+
+
 def direct_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -924,7 +971,7 @@ def init_db() -> None:
         total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         admin_row = conn.execute("SELECT id, active, role, salt, password_hash FROM users WHERE username=?", (DEFAULT_ADMIN_USERNAME,)).fetchone()
         if total_users == 0:
-            # Local desktop first setup can use admin/admin.
+            # Local desktop first setup uses ivygrows/ivygrows (localhost only).
             # Cloud-primary/public deployments must use JRC_INITIAL_ADMIN_PASSWORD or create a locked owner account.
             if CLOUD_PRIMARY_MODE:
                 if CLOUD_INITIAL_ADMIN_PASSWORD:
@@ -950,7 +997,7 @@ def init_db() -> None:
                 salt, ph = hash_password(DEFAULT_ADMIN_PASSWORD)
                 conn.execute(
                     "INSERT INTO users (username, display_name, role, salt, password_hash, active, must_change_password, created_at, notes, email, recovery_email, phone, title, owner_account) VALUES (?, ?, ?, ?, ?, 1, 1, ?, ?, ?, ?, ?, ?, 1)",
-                    (DEFAULT_ADMIN_USERNAME, OWNER, "admin", salt, ph, now_iso(), "Default local first-setup admin. Works only for local setup and must be changed before sharing access.", "enragementwow@hotmail.com", "enragementwow@hotmail.com", "(910) 712-0936", "Owner / Administrator")
+                    (DEFAULT_ADMIN_USERNAME, OWNER, "admin", salt, ph, now_iso(), "Default local first-setup owner (ivygrows). Localhost only — must be changed before sharing access.", "enragementwow@hotmail.com", "enragementwow@hotmail.com", "(910) 712-0936", "Owner / Administrator")
                 )
                 conn.execute("INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)", ("owner_setup_complete", "0"))
                 conn.execute("INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)", ("admin_default_password_changed", "0"))
@@ -974,6 +1021,12 @@ def init_db() -> None:
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("owner", OWNER))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("business_name", BUSINESS_NAME))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("app_version", APP_VERSION))
+        try:
+            from app.host_laptop_roles import is_dedicated_host_install, ensure_host_admin_user
+            if is_dedicated_host_install(BASE_DIR):
+                ensure_host_admin_user(conn)
+        except Exception:
+            pass
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("recommended_host", "Cloud-primary live host with HTTPS and persistent data. Local desktop remains offline/admin companion only."))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("std_business_name", "J & R Construction"))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("std_business_phone", "(910) 712-0936"))
@@ -992,7 +1045,10 @@ def init_db() -> None:
             ("Documents - JRC", "local", str(Path.home() / "Documents" / "JRC")),
         ]
         for label, stype, path in default_sources:
-            row = conn.execute("SELECT id FROM file_sources WHERE folder_path=?", (path,)).fetchone()
+            row = conn.execute(
+                "SELECT id FROM file_sources WHERE folder_path=? OR COALESCE(source_name, label)=? OR label=?",
+                (path, label, label),
+            ).fetchone()
             if not row:
                 conn.execute(
                     "INSERT INTO file_sources (label, source_name, source_type, folder_path, root_path, active, enabled, created_at) VALUES (?, ?, ?, ?, ?, 1, 1, ?)",
@@ -1002,6 +1058,9 @@ def init_db() -> None:
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("mobile_mode", "Browser/PWA mobile companion over the shared host URL."))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("remote_mobile_policy", "Remote mobile access must use a secure tunnel/VPN or HTTPS cloud host. Do not expose the laptop directly to the public internet."))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("remote_public_base_url", ""))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("owner_notification_email", "enragementwow@hotmail.com"))
+        conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("smtp_host", "smtp-mail.outlook.com"))
+        conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("smtp_port", "587"))
         conn.execute("INSERT OR REPLACE INTO account_request_settings (key, value) VALUES (?, ?)", ("public_account_requests", "enabled"))
         conn.execute("INSERT OR REPLACE INTO account_request_settings (key, value) VALUES (?, ?)", ("default_requested_role", "worker"))
         conn.execute("INSERT OR REPLACE INTO account_request_settings (key, value) VALUES (?, ?)", ("approval_required", "true"))
@@ -1028,7 +1087,15 @@ def init_db() -> None:
                 enabled = COALESCE(enabled, active, 1)
             """
         )
+        try:
+            from app.dropbox_business import ensure_dropbox_file_source
+            dropbox_path = ensure_dropbox_file_source(conn)
+            if dropbox_path:
+                conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("dropbox_folder", dropbox_path))
+        except Exception:
+            pass
         conn.commit()
+
 def log_event(category: str, message: str, level: str = "INFO") -> None:
     try:
         username = session.get("username") if session else None
@@ -1067,7 +1134,7 @@ def cleanup_stale_sessions() -> int:
         conn.commit()
         return cur.rowcount or 0
 def get_user_permissions(user_id: int, role: str) -> set:
-    perms = set(PERMISSIONS.get(role, set()))
+    perms = set(PERMISSIONS.get(normalize_role_for_session(role), set()))
     rows = db().execute("SELECT permission, allowed FROM permissions_override WHERE user_id=?", (user_id,)).fetchall()
     for row in rows:
         if row["allowed"]:
@@ -1086,7 +1153,7 @@ def touch_session() -> None:
     if sid:
         db().execute("UPDATE online_sessions SET last_seen=? WHERE session_id=?", (now_iso(), sid))
         db().commit()
-def login_required(permission: Optional[str] = None):
+def login_required(permission: Optional[str] = None, any_permission: Optional[Tuple[str, ...]] = None):
     def deco(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -1095,23 +1162,43 @@ def login_required(permission: Optional[str] = None):
                 return redirect(url_for("login", next=request.path))
             sid = session.get("sid")
             cleanup_stale_sessions()
-            if sid:
-                row = db().execute("SELECT active, revoked FROM online_sessions WHERE session_id=?", (sid,)).fetchone()
-                if not row or not row["active"] or row["revoked"]:
-                    session.clear()
-                    flash("Your session was ended by an administrator.", "warning")
-                    return redirect(url_for("login"))
+            if not sid:
+                session.clear()
+                flash("Your session expired. Please sign in again.", "warning")
+                return redirect(url_for("login", next=request.path))
+            row = db().execute("SELECT active, revoked FROM online_sessions WHERE session_id=?", (sid,)).fetchone()
+            if not row or not row["active"] or row["revoked"]:
+                session.clear()
+                flash("Your session was ended by an administrator or expired.", "warning")
+                return redirect(url_for("login"))
             touch_session()
+            session["role"] = user["role"]
+            if is_customer_or_external(user["role"]) and permission in {
+                "view_admin", "manage_users", "manage_settings", "manage_devices",
+                "owner_recovery", "configure_hosting", "configure_ai", "audit", "backup",
+            }:
+                abort(403)
             if int(user["must_change_password"] or 0) == 1 and request.endpoint not in {"change_password", "logout", "static"}:
                 flash("Change the default/temporary password before using the program.", "warning")
                 return redirect(url_for("change_password"))
-            if permission:
-                perms = get_user_permissions(user["id"], user["role"])
-                if permission not in perms:
+            perms = get_user_permissions(user["id"], user["role"])
+            if any_permission:
+                if not any(p in perms for p in any_permission):
                     abort(403)
+            elif permission and permission not in perms:
+                abort(403)
             return func(*args, **kwargs)
         return wrapper
     return deco
+
+
+def require_permission(permission: str) -> None:
+    user = current_user()
+    if not user:
+        abort(403)
+    perms = get_user_permissions(user["id"], user["role"])
+    if permission not in perms:
+        abort(403)
 def get_app_setting(key: str, default: str = "") -> str:
     try:
         row = db().execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone()
@@ -1128,40 +1215,29 @@ def clean_base_url(value: str) -> str:
     return value
 def access_url(base: str, path: str) -> str:
     return (base or "").rstrip("/") + path
-def layout(title: str, body: str, active: str = "dashboard") -> str:
+def layout(title: str, body: str, active: str = "dashboard", *, public: bool = False) -> str:
     user = current_user()
     username = user["username"] if user else "Guest"
     role = user["role"] if user else ""
     perms = get_user_permissions(user["id"], user["role"]) if user else set()
-    nav = [
-        ("dashboard", "Dashboard", "/", "view_dashboard"),
-        ("jobs", "Jobs", "/jobs", "view_jobs"),
-        ("expenses", "Expenses", "/expenses", "view_money"),
-        ("payroll", "Payroll", "/payroll", "manage_payroll"),
-        ("bookkeeping", "Bookkeeping", "/bookkeeping", "view_bookkeeping"),
-        ("accounting", "Job Costs", "/job-costs", "view_money"),
-        ("files", "File Explorer", "/files", "view_files"),
-        ("filekeeping", "Filekeeping", "/filekeeping", "view_filekeeping"),
-        ("sharing", "Shared Items", "/sharing", "view_shared_sessions"),
-        ("customer", "Customer Portal", "/customer", "customer_portal"),
-        ("mobile", "Mobile", "/mobile", "mobile_access"),
-        ("applications", "Applications", "/applications", "view_applications"),
-        ("admin", "Admin", "/admin", "view_admin"),
-        ("devices", "Devices", "/admin/devices", "manage_devices"),
-        ("hosting", "Hosting", "/hosting", "configure_hosting"),
-        ("cloud", "Cloud Setup", "/cloud", "configure_hosting"),
-        ("data", "Data Management", "/data", "backup"),
-        ("ai", "ChatGPT / AI Sources", "/ai", "configure_ai"),
-        ("health", "Troubleshooting", "/health", "audit"),
-    ]
-    nav_html = "".join(f'<a class="nav {"on" if key==active else ""}" href="{href}">{label}</a>' for key, label, href, need in nav if need in perms)
+    norm_role = normalize_role_for_session(role) if user else ""
+    from app.dashboard_config import build_nav_items
+
+    nav = build_nav_items(norm_role, perms, is_admin=is_admin_role(role))
+    nav_html = "".join(
+        f'<a class="nav {"on" if key==active else ""}" href="{href}">{label}</a>'
+        for key, label, href, need in nav
+        if public or need in perms or key in ("dashboard", "apply")
+    )
+    if not user and not public:
+        nav_html = '<a class="nav on" href="/login">Sign In Required</a>'
     flash_html = "".join(f'<div class="flash {cat}">{html.escape(str(msg))}</div>' for cat, msg in get_flashed_messages_safe())
     srv_port = int(os.environ.get("JRC_PORT", "8765"))
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(title)} - {APP_NAME}</title><link rel="manifest" href="/static/manifest.json"><meta name="theme-color" content="#0a0f1c"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="J&R Manager">
+<title>{html.escape(title)} - {APP_NAME}</title><link rel="manifest" href="/static/manifest.json"><meta name="theme-color" content="#84cc16"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="J&R Manager">
 <style>
-:root{{--bg:#0a0f1c;--panel:rgba(15,23,42,.55);--card:rgba(255,255,255,.06);--card-hover:rgba(255,255,255,.09);--glass-border:rgba(255,255,255,.12);--glass-border-light:rgba(255,255,255,.2);--soft:rgba(255,255,255,.08);--text:#f1f5f9;--muted:#94a3b8;--accent:#34d399;--accent2:#60a5fa;--accent-glow:rgba(52,211,153,.35);--danger:#f87171;--warn:#fbbf24;--gold:#fcd34d;--radius-sm:12px;--radius-md:18px;--radius-lg:24px;--radius-xl:28px;--blur:20px;--shadow:0 8px 32px rgba(0,0,0,.35);--shadow-glow:0 4px 24px rgba(52,211,153,.12)}}
+:root{{--bg:#000000;--panel:rgba(10,10,10,.92);--card:rgba(17,17,17,.85);--card-hover:rgba(30,30,30,.9);--glass-border:rgba(132,204,22,.22);--glass-border-light:rgba(163,230,53,.35);--soft:rgba(132,204,22,.08);--text:#f5f5f5;--muted:#a3a3a3;--accent:#84cc16;--accent2:#a3e635;--accent-glow:rgba(132,204,22,.4);--danger:#ef4444;--warn:#facc15;--gold:#bef264;--radius-sm:12px;--radius-md:18px;--radius-lg:24px;--radius-xl:28px;--blur:20px;--shadow:0 8px 32px rgba(0,0,0,.55);--shadow-glow:0 4px 24px rgba(132,204,22,.18)}}
 *{{box-sizing:border-box}}
 body{{margin:0;min-height:100vh;color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--bg);background-image:radial-gradient(ellipse 80% 60% at 10% -10%,rgba(52,211,153,.18),transparent 55%),radial-gradient(ellipse 70% 50% at 95% 5%,rgba(96,165,250,.16),transparent 50%),radial-gradient(ellipse 60% 40% at 50% 100%,rgba(139,92,246,.1),transparent 55%),linear-gradient(160deg,#0a0f1c 0%,#111827 45%,#0c1222 100%);background-attachment:fixed}}
 a{{color:var(--accent2);text-decoration:none;transition:color .2s ease}} a:hover{{color:#93c5fd}}
@@ -1171,22 +1247,22 @@ label{{display:block;font-size:13px;font-weight:600;color:#cbd5e1;margin-bottom:
 .top{{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background:rgba(10,15,28,.72);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-bottom:1px solid var(--glass-border);position:sticky;top:0;z-index:10;box-shadow:0 4px 24px rgba(0,0,0,.2)}}
 .brand{{font-size:1.25rem;font-weight:800;color:#fff;letter-spacing:-.02em}} .sub{{color:var(--muted);font-size:12px;line-height:1.5}} .user{{text-align:right;color:var(--muted);font-size:13px;line-height:1.6}}
 .wrap{{display:flex;min-height:calc(100vh - 64px)}} .side{{width:260px;background:rgba(10,15,28,.55);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border-right:1px solid var(--glass-border);padding:20px 14px}} .main{{flex:1;padding:24px 28px;max-width:1500px}}
-.nav{{display:block;padding:11px 16px;border-radius:var(--radius-sm);color:#cbd5e1;margin:4px 0;border:1px solid transparent;transition:all .22s ease}} .nav:hover{{background:var(--soft);color:#fff;border-color:var(--glass-border);transform:translateX(2px)}} .nav.on{{background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(96,165,250,.12));color:#fff;border-color:rgba(52,211,153,.35);box-shadow:var(--shadow-glow)}}
+.nav{{display:block;padding:11px 16px;border-radius:var(--radius-sm);color:#cbd5e1;margin:4px 0;border:1px solid transparent;transition:all .22s ease}} .nav:hover{{background:var(--soft);color:#fff;border-color:var(--glass-border);transform:translateX(2px)}} .nav.on{{background:linear-gradient(135deg,rgba(132,204,22,.22),rgba(163,230,53,.12));color:#fff;border-color:rgba(132,204,22,.45);box-shadow:var(--shadow-glow)}}
 .card{{background:var(--card);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:22px;margin:0 0 20px 0;box-shadow:var(--shadow);transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease}} .card:hover{{border-color:var(--glass-border-light);box-shadow:var(--shadow),var(--shadow-glow)}}
 .card-narrow{{max-width:480px;margin-left:auto;margin-right:auto}} .card-wide{{max-width:780px;margin-left:auto;margin-right:auto}}
 .glass-note{{display:flex;gap:12px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}}
 .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}} .stat{{background:rgba(255,255,255,.05);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:18px;transition:transform .2s ease,border-color .2s ease}} .stat:hover{{transform:translateY(-2px);border-color:var(--glass-border-light)}}
 .stat b{{display:block;font-size:1.6rem;color:#fff;margin-top:6px;font-weight:800;letter-spacing:-.02em}} .muted{{color:var(--muted);line-height:1.55}}
-input,select,textarea{{background:rgba(15,23,42,.65);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);padding:11px 14px;width:100%;font:inherit;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}} input:focus,select:focus,textarea:focus{{outline:none;border-color:rgba(52,211,153,.55);box-shadow:0 0 0 3px rgba(52,211,153,.15);background:rgba(15,23,42,.85)}} textarea{{min-height:96px;resize:vertical}}
+input,select,textarea{{background:rgba(15,23,42,.65);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);padding:11px 14px;width:100%;font:inherit;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}} input:focus,select:focus,textarea:focus{{outline:none;border-color:rgba(132,204,22,.65);box-shadow:0 0 0 3px rgba(132,204,22,.18);background:rgba(10,10,10,.95)}} textarea{{min-height:96px;resize:vertical}}
 input[type=checkbox]{{width:auto;accent-color:var(--accent)}}
-button,.btn{{background:linear-gradient(135deg,#34d399,#22c55e);color:#052e16;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-sm);padding:11px 18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:44px;line-height:1.15;text-align:center;white-space:normal;box-shadow:0 4px 16px rgba(52,211,153,.25);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}} button:hover,.btn:hover{{transform:translateY(-1px);box-shadow:0 6px 22px rgba(52,211,153,.35);filter:brightness(1.05)}}
+button,.btn{{background:linear-gradient(135deg,#84cc16,#65a30d);color:#000;border:1px solid rgba(163,230,53,.35);border-radius:var(--radius-sm);padding:11px 18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:44px;line-height:1.15;text-align:center;white-space:normal;box-shadow:0 4px 16px rgba(132,204,22,.28);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}} button:hover,.btn:hover{{transform:translateY(-1px);box-shadow:0 6px 22px rgba(132,204,22,.4);filter:brightness(1.06)}}
 .btn2{{background:rgba(255,255,255,.08);color:#e2e8f0;border-color:var(--glass-border);box-shadow:none}} .btn2:hover{{background:rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(0,0,0,.2)}}
 .danger{{background:linear-gradient(135deg,#f87171,#ef4444);color:#fff;border-color:rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(248,113,113,.25)}} .warn{{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1c1917;border-color:rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(251,191,36,.2)}}
 .action-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px}} .action-grid .btn{{width:100%;min-height:50px;border-radius:var(--radius-md)}} .dashboard-note{{font-size:13px;color:#a5b4fc;margin-top:8px}}
 table{{width:100%;border-collapse:separate;border-spacing:0;background:rgba(255,255,255,.03);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:var(--radius-md);overflow:hidden}} th,td{{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;vertical-align:top}} th{{color:#f8fafc;background:rgba(255,255,255,.05);font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}} tr:last-child td{{border-bottom:0}} tbody tr{{transition:background .15s ease}} tbody tr:hover{{background:rgba(255,255,255,.04)}}
 .row{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}} .row3{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}} form p{{margin:0 0 14px 0}}
 .flash{{padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:14px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}} .flash.warning{{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35)}} .flash.error{{background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.35)}}
-.badge{{display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--glass-border);color:#e2e8f0;font-size:12px;font-weight:600}} .ok{{background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.35);color:#6ee7b7}} .red{{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:#fca5a5}} .yellow{{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.35);color:#fde68a}}
+.badge{{display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:#e2e8f0;font-size:12px;font-weight:600}} .ok{{background:rgba(132,204,22,.18);border-color:rgba(132,204,22,.4);color:#bef264}} .red{{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.35);color:#fca5a5}} .yellow{{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.35);color:#fde68a}} .pill{{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(132,204,22,.2);color:#bef264;font-size:11px;font-weight:700;margin-left:6px}}
 .side hr{{border:0;border-top:1px solid var(--glass-border);margin:16px 0}}
 .footer{{color:var(--muted);font-size:12px;margin-top:32px;padding-top:16px;border-top:1px solid var(--glass-border);line-height:1.6}}
 ::-webkit-scrollbar{{width:10px;height:10px}} ::-webkit-scrollbar-track{{background:rgba(255,255,255,.03)}} ::-webkit-scrollbar-thumb{{background:rgba(255,255,255,.15);border-radius:999px;border:2px solid transparent;background-clip:padding-box}} ::-webkit-scrollbar-thumb:hover{{background:rgba(255,255,255,.25)}}
@@ -1212,6 +1288,35 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=dt.timedelta(minutes=SESSION_TIMEOUT_MINUTES),
     MAX_CONTENT_LENGTH=200 * 1024 * 1024,
 )
+
+@app.before_request
+def enforce_global_login_required():
+    """Every user including admin must sign in before any program page."""
+    from app.auth_gate import enforce_web_login_gate
+
+    resp = enforce_web_login_gate(session, lambda nxt: redirect(url_for("login", next=nxt)))
+    if resp is not None:
+        return resp
+
+
+@app.before_request
+def protect_admin_and_sensitive_surfaces():
+    """Block customers/external users and non-admins from admin-only URLs."""
+    path = request.path or ""
+    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/ping", "/register", "/apply", "/emergency-access"}:
+        return
+    role = session.get("role", "")
+    if session.get("user_id") and is_customer_or_external(role):
+        blocked = (
+            "/admin", "/hosting", "/cloud", "/owner-recovery", "/data", "/ai",
+            "/payroll", "/expenses", "/bookkeeping", "/job-costs", "/jobs", "/files",
+            "/business", "/invoices", "/applications", "/customers", "/filekeeping",
+        )
+        if any(path.startswith(p) for p in blocked):
+            forbid_customer_external_admin_surface()
+    if session.get("user_id") and path.startswith("/admin") and not has_permission_role(role, "view_admin"):
+        abort(403)
+
 @app.after_request
 def set_security_headers(resp):
     sensitive_prefixes = ("/admin", "/hosting", "/cloud", "/owner-recovery", "/payroll", "/expenses", "/bookkeeping", "/job-costs", "/files", "/applications", "/customers")
@@ -1369,7 +1474,7 @@ def login_start():
     <div class='card'><h2>Login First</h2>
       <p>Use this page before opening any dashboard. The installer does not collect passwords; login happens here inside the secured app.</p>
       <p><a class='btn' href='/login'>Open Login Screen</a> <a class='btn btn2' href='/setup-status'>Setup Status</a></p>
-      <p class='muted'>Default first setup account: <b>admin / admin</b>. Change it after you sign in.</p>
+      <p class='muted'>Default first setup account: <b>ivygrows / ivygrows</b> (localhost only). Change it after you sign in.</p>
     </div>
     <div class='card'><h2>Dashboard After Login</h2><p>After successful login, JRC Manager sends each account to the right dashboard: owner/admin, manager, worker, viewer, customer, or non-company external.</p></div>
     """
@@ -1390,35 +1495,82 @@ def login():
             flash("This device has been blocked by an administrator.", "error")
             return redirect(url_for("login"))
         if user and verify_password(password, user["salt"], user["password_hash"]):
-            # Default admin/admin is a LOCAL FIRST-SETUP fallback only.
-            # It must never work for customers, external users, phones, or cloud/public host mode.
+            # Default ivygrows/ivygrows is LOCALHOST first-setup only — never LAN/remote/cloud.
             if username == DEFAULT_ADMIN_USERNAME and password == DEFAULT_ADMIN_PASSWORD and is_default_admin_password_active():
-                if PUBLIC_HOST_MODE or not is_local_setup_request():
-                    log_security_event("default_admin_remote_blocked", username, "Blocked remote/customer attempt to use default admin/admin", "ERROR")
-                    flash("Default admin/admin is blocked outside local first setup. The owner must sign in locally and change the admin password before sharing access.", "error")
+                if PUBLIC_HOST_MODE or not is_local_setup_request() or not ALLOW_LOCAL_DEFAULT_ADMIN:
+                    log_security_event("default_admin_remote_blocked", username, "Blocked non-localhost attempt to use first-setup owner login", "ERROR")
+                    flash("First-setup owner login works only on this PC at localhost during initial setup. Use your changed password or emergency mastery access.", "error")
                     return redirect(url_for("login"))
             sid = str(uuid.uuid4())
             ua = request.headers.get("User-Agent", "")
             trust_status = record_known_device(user["id"], user["username"], token, ua, remember_device)
             fingerprint = _hash_device_token(token) if token and remember_device else ""
             session.clear()
+            session.permanent = True
             session["user_id"] = user["id"]
             session["username"] = user["username"]
-            session["role"] = user["role"]
+            normalized_role = normalize_role_for_session(user["role"])
+            session["role"] = normalized_role
             session["sid"] = sid
             db().execute("UPDATE users SET last_login=?, last_ip_address=?, last_user_agent=? WHERE id=?", (now_iso(), client_ip(), ua, user["id"]))
             db().execute("INSERT INTO online_sessions (session_id,user_id,username,role,ip_address,user_agent,trusted_device_id,client_device_fingerprint,client_device_label,device_trust_status,login_time,last_seen,active) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)",
-                         (sid, user["id"], user["username"], user["role"], client_ip(), ua, get_device_id(), fingerprint, client_device_label(ua), trust_status, now_iso(), now_iso()))
+                         (sid, user["id"], user["username"], normalized_role, client_ip(), ua, get_device_id(), fingerprint, client_device_label(ua), trust_status, now_iso(), now_iso()))
+            if normalized_role != (user["role"] or ""):
+                db().execute("UPDATE users SET role=? WHERE id=?", (normalized_role, user["id"]))
             db().commit()
+            try:
+                from app.master_owner import register_master_owner_device, owner_login_trust_level
+                register_master_owner_device(user["username"], db())
+                trust = owner_login_trust_level(user["username"], client_ip())
+                log_security_event("owner_login_trust", username, f"Admin login trust level: {trust}", "OK" if trust == "master" else "INFO")
+            except Exception:
+                pass
             log_event("Login", f"User {username} logged in from {client_ip()} on {client_device_label(ua)}"); log_security_event("login_success", username, f"Login successful; device {trust_status}", "OK")
+            try:
+                from app.auth_gate import record_pc_verification
+                record_pc_verification(db(), user["id"], username, client_ip(), ua)
+            except Exception:
+                pass
             if username == DEFAULT_ADMIN_USERNAME and password == DEFAULT_ADMIN_PASSWORD and is_default_admin_password_active():
-                flash("Default admin/admin is active for local setup only. Change this password now before sharing access.", "warning")
+                flash("First-setup login active (ivygrows / ivygrows). Change this password now before sharing access.", "warning")
             resp = redirect(request.args.get("next") or url_for("setup_complete"))
             if remember_device and token:
                 set_secure_device_cookie(resp, token)
             else:
                 clear_device_cookie(resp)
             return resp
+        pending = db().execute(
+            "SELECT * FROM account_requests WHERE requested_username=? AND status='Pending'",
+            (username,),
+        ).fetchone()
+        if pending and verify_password(password, pending["salt"], pending["password_hash"]):
+            log_security_event(
+                "login_pending_approval",
+                username,
+                "Login blocked — account request pending owner/admin approval",
+                "INFO",
+            )
+            flash(
+                "Your account request is waiting for owner/admin approval. "
+                "You will receive an email when it is approved or denied.",
+                "warning",
+            )
+            return redirect(url_for("login"))
+        denied = db().execute(
+            "SELECT salt, password_hash, status FROM account_requests WHERE requested_username=? ORDER BY id DESC LIMIT 1",
+            (username,),
+        ).fetchone()
+        if (
+            denied
+            and denied["status"] == "Denied"
+            and verify_password(password, denied["salt"], denied["password_hash"])
+        ):
+            log_security_event("login_denied_request", username, "Login blocked — account request was denied", "WARN")
+            flash(
+                "Your account request was denied by the owner/admin. Contact J & R Construction if you need access.",
+                "error",
+            )
+            return redirect(url_for("login"))
         log_security_event("login_failed", username, "Invalid login or inactive account", "WARN")
         flash("Invalid login or inactive account.", "error")
     body = """
@@ -1434,30 +1586,40 @@ def login():
         <button>Login</button>
       </form>
       <p class="muted">After login, the program automatically opens the correct dashboard for your account type: owner/admin, manager, worker, viewer, customer, or non-company external user.</p>
-      <p class="muted">Default first login: admin / admin. Change it after setup.</p>
-      <p><a class="btn btn2" href="/register">Create worker/customer/user account request</a></p>
+      <p class="muted">First-time owner setup (this PC only): <b>ivygrows / ivygrows</b>. Change it immediately after login.</p>
+      <p><a class="btn btn2" href="/apply">Apply for work (full employee application)</a></p>
+      <p><a class="btn btn2" href="/register">Request login account</a></p>
       <p><a class="btn btn2" href="/owner-recovery">Owner emergency recovery</a></p>
-      <p class="muted">Share the /register page with workers or trusted users. They can request an account from a phone or computer without installing the desktop program. Device tracking is used for security and admin audit only.</p>
+      <p><a class="btn btn2" href="/emergency-access">Emergency owner access (mastery key)</a></p>
+      <p class="muted">Sign-in is required for every user before any dashboard, jobs, or admin tools. Public pages: login, register, apply, emergency access only.</p>
     </div>"""
-    return layout("Login", body, "")
+    return layout("Login", body, "", public=True)
 @app.route("/register", methods=["GET", "POST"])
 def public_account_request():
     init_db()
+    if get_app_setting("public_account_requests", "enabled") != "enabled":
+        body = """<div class='card card-wide'><h2>Account Requests Paused</h2>
+        <p class='muted'>Public account requests are temporarily disabled by the administrator. Contact Jacob / J &amp; R Construction to request access.</p>
+        <p><a class='btn' href='/login'>Back to login</a></p></div>"""
+        return layout("Request Access", body, "")
     if request.method == "POST":
         ip = client_ip()
         username = request.form.get("username", "").strip().lower()
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
         display_name = request.form.get("display_name", "").strip()
-        role = request.form.get("requested_role", "worker")
-        if role not in ["worker", "viewer", "non_company", "customer"]:
-            role = "worker"
+        role = request.form.get("requested_role", "guest")
+        allowed_register = {"worker", "helper", "subcontractor", "viewer", "guest", "non_company", "customer"}
+        if role not in allowed_register:
+            role = "guest"
         ok_pw, pw_msg = password_quality(password)
         if request_rate_limited(ip):
             log_security_event("account_request_rate_limit", username, "Too many account requests from this IP", "WARN")
             flash("Too many account requests from this connection today. Ask Jacob/admin to add the account manually.", "error")
         elif not username or not password or not display_name:
             flash("Name, username, and password are required.", "error")
+        elif not (request.form.get("email") or "").strip():
+            flash("Email is required so we can notify you when the owner approves or denies your request.", "error")
         elif password != confirm:
             flash("Passwords do not match.", "error")
         elif not ok_pw:
@@ -1468,34 +1630,54 @@ def public_account_request():
             flash("That username already has a pending request.", "warning")
         else:
             salt, ph = hash_password(password)
-            db().execute("""INSERT INTO account_requests
+            conn = db()
+            cur = conn.execute("""INSERT INTO account_requests
                 (requested_username, display_name, email, recovery_email, phone, address, worker_type, skills, emergency_contact, preferred_rate, requested_role, salt, password_hash, status, request_ip, request_user_agent, created_at)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (username, display_name, request.form.get("email"), request.form.get("recovery_email"), request.form.get("phone"), request.form.get("address"), request.form.get("worker_type"), request.form.get("skills"), request.form.get("emergency_contact"), parse_float(request.form.get("preferred_rate")), role, salt, ph, "Pending", ip, request.headers.get("User-Agent", ""), now_iso()))
-            db().commit()
-            log_event("Account Request", f"New account request for {username} from {ip}")
-            log_security_event("account_request_created", username, f"Requested role: {role}", "INFO")
-            body = """
-            <div class='card card-wide'><h2>Request Sent</h2>
-            <p>Your account request was saved. An administrator must approve it before you can log in.</p>
+            req_id = int(cur.lastrowid)
+            conn.commit()
+            log_event("Account Request", f"New account request #{req_id} for {username} from {ip} — pending owner approval")
+            log_security_event("account_request_created", username, f"Requested role: {role}; owner approval required", "INFO")
+            try:
+                from app.application_notifications import ensure_account_request_notification_columns, notify_owner_new_account_request
+
+                ensure_account_request_notification_columns(conn)
+                ok, note = notify_owner_new_account_request(conn, req_id, request_base_url=request.url_root.rstrip("/"))
+                log_event("Account Request", f"Owner notified for request #{req_id}: {note}")
+            except Exception as exc:
+                log_event("Account Request", f"Owner notify error request #{req_id}: {exc}")
+            body = f"""
+            <div class='card card-wide'><h2>Request Sent — Owner Approval Required</h2>
+            <p>Your account request <b>#{req_id}</b> was saved. <b>Jacob / owner-admin must approve</b> before you can sign in.</p>
+            <p class='muted'>You will receive an email at {html.escape((request.form.get('email') or '').strip())} when your request is approved or denied.</p>
             <p><a class='btn' href='/login'>Back to login</a></p></div>"""
-            return layout("Account Request Sent", body, "")
+            return layout("Account Request Sent", body, "", public=True)
     body = """
     <div class='card card-wide'>
       <h2>Request J&R Manager Access</h2>
-      <p class='muted'>Use this form from a phone or computer. No program install is needed. Jacob/admin will review and approve accounts. New accounts start as read-only worker/viewer unless an admin upgrades them.</p>
+      <p class='muted'>Use this form from a phone or computer. No install needed. <b>Owner/admin must approve</b> every request before login works. You will be emailed when approved or denied.</p>
       <form method='post'>
         <div class='row'><p><label>Full Name</label><input name='display_name' required></p><p><label>Desired Username</label><input name='username' required></p></div>
-        <div class='row'><p><label>Password</label><input name='password' type='password' required placeholder='At least 8 characters'></p><p><label>Confirm Password</label><input name='confirm_password' type='password' required></p></div>
-        <div class='row3'><p><label>Email</label><input name='email' type='email'></p><p><label>Recovery Email</label><input name='recovery_email' type='email'></p><p><label>Phone</label><input name='phone'></p></div>
+        <div class='row'><p><label>Password</label><input name='password' type='password' required placeholder='Min 8 chars, upper/lower/number'></p><p><label>Confirm Password</label><input name='confirm_password' type='password' required></p></div>
+        <div class='row3'><p><label>Email (required)</label><input name='email' type='email' required placeholder='Status updates sent here'></p><p><label>Recovery Email</label><input name='recovery_email' type='email'></p><p><label>Phone</label><input name='phone'></p></div>
         <p><label>Address</label><input name='address'></p>
-        <div class='row3'><p><label>Worker Type / Relationship</label><input name='worker_type' placeholder='Helper, manager, subcontractor, viewer'></p><p><label>Preferred Rate</label><input name='preferred_rate' placeholder='140'></p><p><label>Requested Access</label><select name='requested_role'><option value='worker'>Worker read-only</option><option value='viewer'>Company viewer read-only</option><option value='non_company'>Non-company / external minimal access</option><option value='customer'>Customer portal access</option></select></p></div>
+        <div class='row3'><p><label>Worker Type / Relationship</label><input name='worker_type' placeholder='Helper, subcontractor, customer'></p><p><label>Preferred Rate</label><input name='preferred_rate' placeholder='140'></p><p><label>Requested Access</label><select name='requested_role'>
+          <option value='guest'>Guest / applicant (minimal until approved)</option>
+          <option value='helper'>Field helper</option>
+          <option value='worker'>Company employee</option>
+          <option value='subcontractor'>Subcontractor (1099)</option>
+          <option value='viewer'>Read-only staff</option>
+          <option value='non_company'>External contact</option>
+          <option value='customer'>Customer portal</option>
+        </select></p></div>
+        <p class='muted'>For full hire onboarding (insurance, W-9, work history), use <a href='/apply'>Apply for Work</a> instead.</p>
         <p><label>Skills / Job Role</label><textarea name='skills' placeholder='Carpentry, painting, helper, office, photo uploads, etc.'></textarea></p>
         <p><label>Emergency Contact / Notes</label><textarea name='emergency_contact'></textarea></p>
-        <button>Submit Account Request</button> <a class='btn btn2' href='/login'>Cancel</a>
+        <button>Submit Account Request</button> <a class='btn btn2' href='/login'>Cancel</a> <a class='btn btn2' href='/apply'>Full job application</a>
       </form>
     </div>"""
-    return layout("Request Access", body, "")
+    return layout("Request Access", body, "", public=True)
 @app.route("/logout")
 def logout():
     sid = session.get("sid")
@@ -1510,7 +1692,7 @@ def role_command_center(role: str, perms: set[str]) -> str:
     Uses button grids instead of inline buttons so dashboard actions appear correctly
     on desktop, tablets, and phones. Every action shown is role appropriate.
     """
-    role = role or "viewer"
+    role = normalize_role_for_session(role or "viewer")
     def grid(title, note, actions):
         buttons = "".join(f"<a class='btn {cls}' href='{href}'>{label}</a>" for label, href, cls in actions)
         return f"""
@@ -1531,7 +1713,22 @@ def role_command_center(role: str, perms: set[str]) -> str:
     if role == "worker":
         return grid("Worker Dashboard", "Field-friendly access. Money, admin tools, bookkeeping, and internal files stay hidden.", [
             ("Shared Items", "/sharing", ""), ("Mobile View", "/mobile", "btn2"),
-            ("Account", "/account/change-password", "btn2"),
+            ("Live Chat", "/chat", "btn2"), ("Account", "/account/change-password", "btn2"),
+        ])
+    if role == "helper":
+        return grid("Helper Dashboard", "Field helper access — shared job items, mobile view, and team chat.", [
+            ("Shared Items", "/sharing", ""), ("Mobile View", "/mobile", "btn2"),
+            ("Live Chat", "/chat", "btn2"), ("Jobs (read)", "/jobs", "btn2"),
+        ])
+    if role == "subcontractor":
+        return grid("Subcontractor Dashboard", "Limited outside-worker access. W-9 and insurance onboarding required before pay.", [
+            ("Shared Items", "/sharing", ""), ("Mobile View", "/mobile", "btn2"),
+            ("Apply / Update Info", "/apply", "btn2"),
+        ])
+    if role == "guest":
+        return grid("Guest / Applicant", "Apply to work with J&R. No company access until owner approves your application and account.", [
+            ("Apply for Work", "/apply", ""), ("Request Login Account", "/register", "btn2"),
+            ("Mobile Info", "/mobile", "btn2"),
         ])
     if role == "viewer":
         return grid("Read-only Dashboard", "Review permitted company information only. Editing and money/admin tools stay hidden.", [
@@ -1539,8 +1736,9 @@ def role_command_center(role: str, perms: set[str]) -> str:
             ("Account", "/account/change-password", "btn2"),
         ])
     if role == "customer":
-        return grid("Customer Quick Actions", "Customer portal only: submit work requests and view your own request history.", [
+        return grid("Customer Quick Actions", "Customer portal only: submit work requests, shared customer items, and office announcements.", [
             ("Create Job Request", "/customer/request", ""), ("View My Requests", "/customer/requests", "btn2"),
+            ("Shared With Me", "/sharing", "btn2"), ("Office Announcements", "/chat", "btn2"),
             ("Mobile Portal", "/mobile", "btn2"), ("Account", "/account/change-password", "btn2"),
         ])
     return grid("External Access Center", "Minimal outside access. You only see items specifically shared by J&R.", [
@@ -1560,8 +1758,9 @@ def change_password():
         elif new_password != confirm:
             flash("New password and confirmation do not match.", "error")
         else:
-            is_admin_change = (user["username"] == DEFAULT_ADMIN_USERNAME or user["role"] == "admin")
-            ok, msg = password_quality(new_password, admin_change=is_admin_change)
+            is_admin_change = (user["username"] == DEFAULT_ADMIN_USERNAME or normalize_role_for_session(user["role"]) == "admin")
+            mastery = request.form.get("mastery_key", "").strip()
+            ok, msg = enforce_new_password_policy(new_password, mastery)
             if not ok:
                 flash(msg, "error")
             else:
@@ -1576,18 +1775,21 @@ def change_password():
                 db().commit()
                 flash("Password changed. The default admin login is now disabled for this business database." if user["username"] == DEFAULT_ADMIN_USERNAME else "Password changed.", "success")
                 return redirect(url_for("setup_complete"))
+    from app.densus_policy import password_policy_summary
+    policy_note = password_policy_summary()
     body = f"""
     <div class='card card-narrow'><h2>Change Password</h2>
-      <p class='muted'>Use at least 8 characters. Passwords are stored as hashes, not readable text.</p>
+      <p class='muted'>{html.escape(policy_note)} Passwords are stored as hashes, not readable text.</p>
       <form method='post'>
         <p><label>Current password</label><input type='password' name='current_password' autocomplete='current-password'></p>
         <p><label>New password</label><input type='password' name='new_password' autocomplete='new-password'></p>
         <p><label>Confirm new password</label><input type='password' name='confirm_password' autocomplete='new-password'></p>
+        <p><label>Mastery key (only if restoring first-setup password)</label><input type='password' name='mastery_key' autocomplete='off' placeholder='Emergency key — optional'></p>
         <button>Save New Password</button> <a class='btn btn2' href='/logout'>Cancel / Logout</a>
       </form>
     </div>
     """
-    return layout("Change Password", body, "admin" if user and user["role"] == "admin" else "dashboard")
+    return layout("Change Password", body, "admin" if user and normalize_role_for_session(user["role"]) == "admin" else "dashboard")
 
 @app.route("/owner-security-status")
 @login_required("view_admin")
@@ -1597,9 +1799,9 @@ def owner_security_status():
     body = f"""
     <div class='card'><h2>Owner Login Security</h2>
       <div class='grid'>
-        <div class='stat'>Default admin/admin<b>{'ACTIVE' if default_active else 'Disabled'}</b><span class='muted'>{'Change it before sharing any access.' if default_active else 'Your changed admin password is preserved across updates.'}</span></div>
+        <div class='stat'>First-setup login<b>{'ACTIVE' if default_active else 'Disabled'}</b><span class='muted'>{'Change ivygrows password before sharing access.' if default_active else 'Your changed owner password is preserved across updates.'}</span></div>
         <div class='stat'>Owner Setup<b>{'Complete' if owner_done else 'Required'}</b><span class='muted'>Tracked in this business database.</span></div>
-        <div class='stat'>Remote Default Login<b>Blocked</b><span class='muted'>admin/admin cannot be used by customers or public/cloud users.</span></div>
+        <div class='stat'>Remote First-Setup Login<b>Blocked</b><span class='muted'>ivygrows/ivygrows cannot be used from phones, LAN, or cloud.</span></div>
       </div>
       <p><a class='btn' href='/account/change-password'>Change Owner/Admin Password</a></p>
     </div>
@@ -1621,7 +1823,7 @@ def setup_complete():
       </div>
       <p><a class='btn' href='{url_for('dashboard')}'>Open My Dashboard</a> <a class='btn btn2' href='/account/change-password'>Change Password</a> <a class='btn btn2' href='/setup'>Run Setup / Verification Center</a></p>
     </div>
-    <div class='card'><h2>Recommended next steps</h2><ol><li>Change default admin/admin if still active; once changed, updates preserve the new password and remote default login stays blocked.</li><li>Run Self Setup + Verify from the Start Center.</li><li>Use Cloud Access for remote users when this PC is off.</li><li>Use customer/external accounts only for customer-safe information.</li></ol></div>
+    <div class='card'><h2>Recommended next steps</h2><ol><li>Change first-setup ivygrows password if still active; updates preserve your new password.</li><li>Run Dropbox Live Check and backup sync from Admin → Dropbox Business.</li><li>Run Self Setup + Verify from the Start Center.</li><li>Use customer/external accounts only for customer-safe information.</li></ol></div>
     """
     return layout("Setup Complete", body, "dashboard")
 @app.route("/")
@@ -1629,7 +1831,7 @@ def setup_complete():
 def dashboard():
     conn = db()
     user = current_user()
-    role = user["role"] if user else "viewer"
+    role = normalize_role_for_session(user["role"] if user else "viewer")
     perms = get_user_permissions(user["id"], role) if user else set()
     if role == "non_company":
         shared_files = conn.execute("SELECT COUNT(*) FROM shared_files WHERE active=1 AND shared_with_role='non_company'").fetchone()[0]
@@ -1697,9 +1899,12 @@ def dashboard():
       <div class="stat">Indexed Files<b>{files_count if 'view_files' in perms else 'Limited'}</b></div><div class="stat">Online Users<b>{online}</b></div>
     </div>
     {role_command_center(role, perms)}
-    <div class="card"><h2>Current Jobs</h2><table><tr><th>ID</th><th>Job</th><th>Status</th>{money_cols}</tr>{job_rows}</table></div>
-    <div class="card"><h2>Your Access</h2><p><b>Role:</b> {html.escape(role_display(role))}</p><p class="muted">This screen only shows features your account is allowed to use.</p><a class="btn" href="/sharing">Shared Items</a>{tools}</div>
     """
+    from app.dashboard_config import render_dashboard_sections
+    body += render_dashboard_sections(role, perms)
+    if "view_jobs" in perms:
+        body += f"""<div class="card"><h2>Current Jobs</h2><table><tr><th>ID</th><th>Job</th><th>Status</th>{money_cols}</tr>{job_rows}</table></div>"""
+    body += f"""<div class="card"><h2>Your Access</h2><p><b>Role:</b> {html.escape(role_display(role))}</p><p class="muted">Sign-in required for every user. PC verified at login. Use tiles above for all features.</p></div>"""
     return layout("Dashboard", body, "dashboard")
 @app.route("/jobs", methods=["GET", "POST"])
 @login_required("view_jobs")
@@ -1718,11 +1923,11 @@ def jobs():
             conn.commit(); log_event("Jobs", f"Added job: {name}"); flash("Job saved.", "success")
         return redirect(url_for("jobs"))
     rows = conn.execute("SELECT * FROM jobs ORDER BY updated_at DESC, id DESC").fetchall()
-    trs = "".join(f"<tr><td>{r['id']}</td><td>{html.escape(r['job_name'])}</td><td>{html.escape(r['status'] or '')}</td><td>{money(r['price'])}</td><td>{money(r['deposit'])}</td><td>{money(r['paid'])}</td><td>{html.escape(r['notes'] or '')}</td></tr>" for r in rows)
+    trs = "".join(f"<tr><td>{r['id']}</td><td>{html.escape(r['job_code'] or '')}</td><td>{html.escape(r['job_name'])}</td><td>{html.escape(r['status'] or '')}</td><td>{money(r['price'])}</td><td>{money(r['deposit'])}</td><td>{money(r['paid'])}</td><td>{html.escape(r['notes'] or '')}</td></tr>" for r in rows)
     form = """
     <div class="card"><h2>Add Job</h2><form method="post"><div class="row3"><p><label>Job Name</label><input name="job_name"></p><p><label>Status</label><select name="status"><option>Lead</option><option>Estimate Sent</option><option>Approved</option><option>Active</option><option>Waiting Payment</option><option>Closed Paid</option><option>Closed Unpaid</option></select></p><p><label>Price</label><input name="price"></p></div><div class="row3"><p><label>Deposit</label><input name="deposit"></p><p><label>Paid</label><input name="paid"></p><p><label>Payment Method</label><input name="payment_method"></p></div><p><label>Address</label><input name="address"></p><p><label>Scope</label><textarea name="scope"></textarea></p><p><label>Notes</label><textarea name="notes"></textarea></p><button>Save Job</button></form></div>
     """
-    body = form + f"<div class='card'><h2>Jobs</h2><table><tr><th>ID</th><th>Job</th><th>Status</th><th>Price</th><th>Deposit</th><th>Paid</th><th>Notes</th></tr>{trs}</table></div>"
+    body = form + f"<div class='card'><h2>Jobs</h2><table><tr><th>ID</th><th>Code</th><th>Job</th><th>Status</th><th>Price</th><th>Deposit</th><th>Paid</th><th>Notes</th></tr>{trs}</table></div>"
     return layout("Jobs", body, "jobs")
 @app.route("/expenses", methods=["GET", "POST"])
 @login_required("view_money")
@@ -1828,13 +2033,39 @@ def refresh_files():
 @app.route("/files/open/<int:file_id>")
 @login_required("view_files")
 def open_file(file_id: int):
-    row = db().execute("SELECT file_path FROM file_index WHERE id=?", (file_id,)).fetchone()
+    from app.file_access_security import (
+        get_allowed_file_roots,
+        path_under_allowed_roots,
+        role_may_open_indexed_file,
+    )
+
+    user = current_user()
+    role = session.get("role") or (user["role"] if user else "viewer")
+    row = db().execute("SELECT file_path, file_name FROM file_index WHERE id=?", (file_id,)).fetchone()
     if not row:
         abort(404)
     path = Path(row["file_path"])
+    allowed, reason = role_may_open_indexed_file(role, str(path))
+    if not allowed:
+        log_security_event(
+            "file_access_denied",
+            session.get("username", ""),
+            f"Blocked indexed file {row['file_name']}: {reason}",
+            "WARN",
+        )
+        abort(403)
     if not path.exists() or not path.is_file():
         flash("File is no longer available at that path. Refresh sources.", "warning")
         return redirect(url_for("files"))
+    roots = get_allowed_file_roots(BASE_DIR)
+    if roots and not path_under_allowed_roots(path, roots):
+        log_security_event(
+            "file_path_outside_roots",
+            session.get("username", ""),
+            f"Blocked path outside allowed roots: {path}",
+            "ERROR",
+        )
+        abort(403)
     return send_file(path, as_attachment=False)
 @app.route("/files/sources", methods=["GET", "POST"])
 @login_required("manage_files")
@@ -1862,14 +2093,15 @@ def owner_recovery():
     if request.method == "POST":
         new_password = request.form.get("new_password", "").strip()
         confirm = request.form.get("confirm", "").strip()
-        ok, msg = password_quality(new_password)
+        mastery = request.form.get("mastery_key", "").strip()
+        ok, msg = enforce_new_password_policy(new_password, mastery)
         if not ok:
             flash(msg, "error")
         elif new_password != confirm:
             flash("Passwords do not match.", "error")
         else:
             salt, ph = hash_password(new_password)
-            db().execute("UPDATE users SET salt=?, password_hash=?, must_change_password=0, active=1 WHERE username='admin'", (salt, ph))
+            db().execute("UPDATE users SET salt=?, password_hash=?, must_change_password=0, active=1 WHERE username=?", (salt, ph, DEFAULT_ADMIN_USERNAME))
             mark_admin_password_changed(db())
             db().execute("INSERT INTO owner_recovery_events (event_time,action,username,ip_address,user_agent,trusted_admin_device_id,result,notes) VALUES (?,?,?,?,?,?,?,?)",
                          (now_iso(), "reset_admin_password", "admin", client_ip(), request.headers.get("User-Agent", ""), get_device_id(), "OK", "Transparent owner recovery used on trusted local host device"))
@@ -1880,7 +2112,7 @@ def owner_recovery():
     body = """
     <div class='card card-narrow'><h2>Owner Emergency Recovery</h2>
     <p>This is a transparent owner-only recovery tool for Jacob's trusted host PC. It does not access other users' computers and every use is logged.</p>
-    <form method='post'><p><label>New admin password</label><input type='password' name='new_password'></p><p><label>Confirm password</label><input type='password' name='confirm'></p><button>Reset Admin Password</button></form>
+    <form method='post'><p><label>New owner password</label><input type='password' name='new_password'></p><p><label>Confirm password</label><input type='password' name='confirm'></p><p><label>Mastery key (required to restore ivygrows default)</label><input type='password' name='mastery_key' autocomplete='off'></p><button>Reset Owner Password</button></form>
     <p class='muted'>Use only if the normal admin password is lost. Choose a strong password and keep it private.</p></div>
     """
     return layout("Owner Recovery", body, "admin")
@@ -1927,30 +2159,173 @@ def admin_device_action(device_id: int, action: str):
     log_security_event("device_status_changed", session.get("username", ""), f"Device {device_id} set to {status}", "WARN" if status == "blocked" else "INFO")
     flash(f"Device set to {status}.", "success")
     return redirect(url_for("admin_devices"))
+def _admin_user_role_cell(user_row: sqlite3.Row) -> str:
+    """Inline account-type changer for Admin → Users table."""
+    uid = int(user_row["id"])
+    current = normalize_role_for_session(user_row["role"] or "viewer")
+    display = role_display(current)
+    if int(user_row["owner_account"] or 0) or user_row["username"] == DEFAULT_ADMIN_USERNAME:
+        return f"<b>{html.escape(display)}</b><br><span class='muted'>Owner — fixed</span>"
+    opts = role_select_options(current, exclude=("admin",))
+    return (
+        f"<b>{html.escape(display)}</b>"
+        f"<form method='post' action='/admin/user/{uid}/role' style='margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center'>"
+        f"<select name='role' style='min-width:160px'>{opts}</select>"
+        f"<button class='btn btn2' type='submit'>Change type</button>"
+        f"</form>"
+    )
+def _admin_empty_row(colspan: int, message: str) -> str:
+    return f"<tr><td colspan='{colspan}' class='muted' style='text-align:center;padding:16px'>{html.escape(message)}</td></tr>"
+
+
+def _require_admin_role():
+    if normalize_role_for_session(session.get("role", "")) != "admin":
+        abort(403)
+
+
+def _admin_command_center_html() -> str:
+    port = int(os.environ.get("JRC_PORT", "8765"))
+    lan = get_lan_ip()
+    pending_n = 0
+    apps_n = 0
+    try:
+        pending_n = db().execute("SELECT COUNT(*) FROM account_requests WHERE status='Pending'").fetchone()[0]
+    except Exception:
+        pass
+    try:
+        apps_n = db().execute("SELECT COUNT(*) FROM job_applications WHERE status IN ('Pending','Review','Need Info')").fetchone()[0]
+    except Exception:
+        pass
+    try:
+        from app.admin_tools import get_admin_dashboard_status
+        st = get_admin_dashboard_status()
+        mod_ok = st.get("module_ok", True)
+        mod_msg = html.escape(str(st.get("module_message", ""))[:180])
+        mod_badge = "ok" if mod_ok else "red"
+        host_badge = "ok" if st.get("host_status") == "OK" else "yellow"
+        host_detail = html.escape(str(st.get("host_detail", ""))[:120])
+        densus_badge = "ok" if st.get("densus_installed") else "yellow"
+        densus_txt = "Installed on Desktop" if st.get("densus_installed") else "Not on Desktop — optional"
+        db_badge = "ok" if st.get("database_exists") else "yellow"
+        last_rep = html.escape(st.get("last_report") or "None yet")
+    except Exception:
+        mod_badge, mod_msg = "yellow", "Status unavailable"
+        host_badge, host_detail = "yellow", ""
+        densus_badge, densus_txt = "yellow", "Unknown"
+        db_badge = "yellow"
+        last_rep = "—"
+    pending_badge = "red" if pending_n else "ok"
+    apps_badge = "yellow" if apps_n else "ok"
+    return f"""
+    <div class="card"><h2>Owner Admin Command Center</h2>
+      <p class="muted">v{html.escape(APP_VERSION)} · All owner tools in one place. Sign-in required for every user including admin.</p>
+      <div class="grid">
+        <div class="stat">Shared Host<span class="badge {host_badge}">{'Online' if host_badge=='ok' else 'Check'}</span><span class="muted">Port {port} · LAN <code>http://{html.escape(lan)}:{port}</code><br>{host_detail}</span></div>
+        <div class="stat">Pending Logins<span class="badge {pending_badge}">{pending_n}</span><span class="muted">Account requests awaiting your approval</span></div>
+        <div class="stat">Hire Applications<span class="badge {apps_badge}">{apps_n}</span><span class="muted">/apply submissions to review</span></div>
+        <div class="stat">Python Modules<span class="badge {mod_badge}">{'OK' if mod_badge=='ok' else 'Fix'}</span><span class="muted">{mod_msg}</span></div>
+        <div class="stat">Database<span class="badge {db_badge}">{'Found' if db_badge=='ok' else 'Missing'}</span><span class="muted">Business data on this PC</span></div>
+        <div class="stat">Densus Security<span class="badge {densus_badge}">{'OK' if densus_badge=='ok' else 'Optional'}</span><span class="muted">{densus_txt}</span></div>
+      </div>
+      <p class="muted">Last troubleshooter report: <code>{last_rep}</code></p>
+    </div>
+    <div class="card"><h2>Quick Actions</h2>
+      <div class="action-grid">
+        <a class="btn" href="/admin#pending-requests"><b>Review Login Requests</b><br><span class="muted" style="font-size:12px">{pending_n} pending — approve/deny + email notify</span></a>
+        <a class="btn btn2" href="/applications"><b>Worker Applications</b><br><span class="muted" style="font-size:12px">Full hire forms (/apply)</span></a>
+        <a class="btn btn2" href="/chat"><b>Live Chat</b><br><span class="muted" style="font-size:12px">Team chat + Office Announcements</span></a>
+        <a class="btn btn2" href="/admin/new_user"><b>Add User</b><br><span class="muted" style="font-size:12px">Create account manually</span></a>
+        <a class="btn btn2" href="/admin/devices"><b>Devices</b><br><span class="muted" style="font-size:12px">Trusted PCs and phones</span></a>
+        <a class="btn btn2" href="/admin/dropbox"><b>Dropbox Sync</b><br><span class="muted" style="font-size:12px">Office records alignment</span></a>
+        <a class="btn btn2" href="/admin/densus"><b>Densus Monitor</b><br><span class="muted" style="font-size:12px">Sessions + security snapshots</span></a>
+        <a class="btn btn2" href="/admin/database/accounts"><b>Account DB</b><br><span class="muted" style="font-size:12px">Roles + permission overrides</span></a>
+        <a class="btn btn2" href="/hosting"><b>Hosting / Mobile</b><br><span class="muted" style="font-size:12px">LAN + cloud setup</span></a>
+        <a class="btn btn2" href="/connect"><b>Connection Test</b><br><span class="muted" style="font-size:12px">Phone / remote check</span></a>
+        <a class="btn btn2" href="/business"><b>Business Hub</b><br><span class="muted" style="font-size:12px">Command center</span></a>
+        <a class="btn btn2" href="/health"><b>System Check</b><br><span class="muted" style="font-size:12px">Verify before live use</span></a>
+      </div>
+      <p style="margin-top:14px">
+        <a class="btn" href="/admin/troubleshooter">Open Full Troubleshooter</a>
+        <a class="btn btn2" href="/security-audit">Security Audit</a>
+        <a class="btn btn2" href="/backup">Backup ZIP</a>
+        <a class="btn btn2" href="/cloud">Cloud Setup</a>
+        <a class="btn btn2" href="/data">Data</a>
+        <a class="btn btn2" href="/owner-security-status">Owner Security</a>
+      </p>
+      <form method="post" action="/admin/run-auto-repair" class="admin-repair-form" style="margin-top:12px;display:inline">
+        <button type="submit">Run Full Auto-Repair (recommended)</button>
+      </form>
+      <form method="post" action="/admin/fix-launchers" class="admin-repair-form" style="margin-top:12px;display:inline;margin-left:8px">
+        <button type="submit" class="btn btn2">Fix Module / Launcher Errors</button>
+      </form>
+      <p class="muted">File security: payroll/tax/internal files are admin/manager only. Customers use Shared Items only.</p>
+    </div>
+    <div class="card"><h2>Share Links (same Wi-Fi / VPN)</h2>
+      <p><b>Mobile:</b> <code>http://{html.escape(lan)}:{port}/mobile</code></p>
+      <p><b>Connection test:</b> <code>http://{html.escape(lan)}:{port}/connect</code></p>
+      <p><b>Account request:</b> <code>http://{html.escape(lan)}:{port}/register</code></p>
+      <p><b>Apply for work:</b> <code>http://{html.escape(lan)}:{port}/apply</code></p>
+      <p><a class="btn" href="/connect" target="_blank">Open Connection Test Page</a></p>
+    </div>"""
 @app.route("/admin")
 @login_required("view_admin")
 def admin():
     online_cut = (dt.datetime.now() - dt.timedelta(minutes=15)).isoformat(timespec="seconds")
-    online = db().execute("SELECT * FROM online_sessions WHERE active=1 AND revoked=0 ORDER BY last_seen DESC").fetchall()
+    online = db().execute("SELECT * FROM online_sessions WHERE active=1 AND revoked=0 AND last_seen >= ? ORDER BY last_seen DESC", (online_cut,)).fetchall()
     users = db().execute("SELECT id, username, display_name, role, active, must_change_password, created_at, last_login, last_ip_address, email, phone FROM users ORDER BY username").fetchall()
     pending = db().execute("SELECT * FROM account_requests WHERE status='Pending' ORDER BY created_at DESC").fetchall()
     reg_url = url_for('public_account_request', _external=True)
     security = db().execute("SELECT * FROM security_events ORDER BY id DESC LIMIT 12").fetchall() if db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name='security_events'").fetchone() else []
     online_rows = ''.join(f"<tr><td><b>{html.escape(r['username'])}</b></td><td>{html.escape(r['role'] or '')}</td><td>{html.escape(r['ip_address'] or '')}</td><td><b>{html.escape(r['client_device_label'] or 'Unknown')}</b><br><span class='muted'>{html.escape((r['user_agent'] or '')[:80])}</span><br><span class='badge'>{html.escape(r['device_trust_status'] or 'observed')}</span></td><td>{html.escape(r['login_time'] or '')}</td><td>{html.escape(r['last_seen'] or '')}</td><td><a class='btn danger' href='/admin/revoke/{html.escape(r['session_id'])}'>End</a></td></tr>" for r in online)
-    user_rows = ''.join(f"<tr><td>{r['id']}</td><td><b>{html.escape(r['username'])}</b><br><span class='muted'>{html.escape(r['email'] or '')}</span></td><td>{html.escape(r['display_name'] or '')}<br><span class='muted'>{html.escape(r['phone'] or '')}</span></td><td>{html.escape(r['role'])}</td><td>{'Yes' if r['active'] else 'No'}</td><td>{html.escape(r['last_login'] or '')}<br><span class='muted'>Last IP: {html.escape(r['last_ip_address'] or '')}</span></td><td><a href='/admin/user/{r['id']}'>Edit</a></td></tr>" for r in users)
-    pending_rows = ''.join(f"<tr><td><b>{html.escape(r['requested_username'])}</b><br>{html.escape(r['display_name'] or '')}</td><td>{html.escape(r['requested_role'] or '')}</td><td>{html.escape(r['phone'] or '')}<br><span class='muted'>{html.escape(r['email'] or '')}</span></td><td>{html.escape(r['worker_type'] or '')}<br><span class='muted'>{html.escape(r['skills'] or '')}</span></td><td>{html.escape(r['request_ip'] or '')}<br><span class='muted'>{html.escape((r['request_user_agent'] or '')[:55])}</span></td><td>{html.escape(r['created_at'] or '')}</td><td><form method='post' action='/admin/request/{r['id']}/approve' style='display:inline'><select name='role'><option>worker</option><option>viewer</option><option>manager</option><option>admin</option></select><button>Approve</button></form> <form method='post' action='/admin/request/{r['id']}/deny' style='display:inline'><button class='danger'>Deny</button></form></td></tr>" for r in pending)
+    user_rows = ''.join(
+        f"<tr><td>{r['id']}</td><td><b>{html.escape(r['username'])}</b><br><span class='muted'>{html.escape(r['email'] or '')}</span></td>"
+        f"<td>{html.escape(r['display_name'] or '')}<br><span class='muted'>{html.escape(r['phone'] or '')}</span></td>"
+        f"<td>{_admin_user_role_cell(r)}</td>"
+        f"<td>{'Yes' if r['active'] else 'No'}</td>"
+        f"<td>{html.escape(r['last_login'] or '')}<br><span class='muted'>Last IP: {html.escape(r['last_ip_address'] or '')}</span></td>"
+        f"<td><a class='btn btn2' href='/admin/user/{r['id']}'>Full edit</a></td></tr>"
+        for r in users
+    )
+    pending_rows = ''.join(
+        f"<tr><td><b>{html.escape(r['requested_username'])}</b><br>{html.escape(r['display_name'] or '')}</td>"
+        f"<td>{html.escape(role_display(r['requested_role'] or 'guest'))}</td>"
+        f"<td>{html.escape(r['phone'] or '')}<br><span class='muted'>{html.escape(r['email'] or '')}</span></td>"
+        f"<td>{html.escape(r['worker_type'] or '')}<br><span class='muted'>{html.escape(r['skills'] or '')}</span></td>"
+        f"<td>{html.escape(r['request_ip'] or '')}<br><span class='muted'>{html.escape((r['request_user_agent'] or '')[:55])}</span></td>"
+        f"<td>{html.escape(r['created_at'] or '')}</td>"
+        f"<td><form method='post' action='/admin/request/{r['id']}/approve' style='display:inline'>"
+        f"<select name='role'>{role_select_options(r['requested_role'] or 'guest', exclude=('admin', 'manager'))}</select>"
+        f"<button>Approve</button></form> "
+        f"<form method='post' action='/admin/request/{r['id']}/deny' style='display:inline'><button class='danger'>Deny</button></form></td></tr>"
+        for r in pending
+    )
     security_rows = ''.join(f"<tr><td>{html.escape(r['event_time'] or '')}</td><td>{html.escape(r['level'] or '')}</td><td>{html.escape(r['event_type'] or '')}</td><td>{html.escape(r['username'] or '')}</td><td>{html.escape(r['ip_address'] or '')}</td><td>{html.escape((r['message'] or '')[:120])}</td></tr>" for r in security)
+    if not online:
+        online_rows = _admin_empty_row(7, "No users online in the last 15 minutes.")
+    if not users:
+        user_rows = _admin_empty_row(7, "No users in database yet.")
+    if not pending:
+        pending_rows = _admin_empty_row(7, "No pending account requests.")
+    if not security:
+        security_rows = _admin_empty_row(6, "No security events logged yet.")
     body = f"""
-    <div class="card"><h2>Shareable Account Request Link</h2><p>Send this link to workers or trusted users so they can request access without installing the program:</p><p><input value="{html.escape(reg_url)}" readonly onclick="this.select()"></p><p><a class="btn" href="{html.escape(reg_url)}" target="_blank">Open Request Page</a></p><p class='muted'>Requests are saved to this database as Pending. Admin approval is required before login. Workers/viewers start read-only unless you upgrade their role.</p></div>
-    <div class="card"><h2>Pending Account Requests</h2><table><tr><th>Requested User</th><th>Role</th><th>Contact</th><th>Worker Info</th><th>IP</th><th>Requested</th><th>Action</th></tr>{pending_rows}</table></div>
+    {_admin_command_center_html()}
+    <div class="card"><h2>Shareable Account Request Link</h2><p>Send this link to workers or trusted users. <b>Owner/admin approval is required</b> before anyone can log in. Owner is emailed on each new request; requester is emailed on approve/deny.</p><p><input value="{html.escape(reg_url)}" readonly onclick="this.select()"></p><p><a class="btn" href="{html.escape(reg_url)}" target="_blank">Open Request Page</a></p><p class='muted'>Only owner/admin can approve or deny pending requests. Manager role cannot be granted via self-registration.</p></div>
+    <div class="card" id="pending-requests"><h2>Pending Account Requests — Owner Approval Required</h2><table><tr><th>Requested User</th><th>Role</th><th>Contact</th><th>Worker Info</th><th>IP</th><th>Requested</th><th>Owner Action</th></tr>{pending_rows}</table></div>
     <div class="card"><h2>Current Online Sessions</h2><p><a class="btn btn2" href="/admin/devices">Open Device Manager</a></p><table><tr><th>User</th><th>Role</th><th>IP Address</th><th>Device / Browser</th><th>Login</th><th>Last Seen</th><th>Action</th></tr>{online_rows}</table></div>
-    <div class="card"><h2>Users and Permissions</h2><p><a class="btn" href="/admin/new_user">Add User</a> <a class="btn btn2" href="/admin/export_users">Export User Index</a></p><table><tr><th>ID</th><th>Username</th><th>Name</th><th>Role</th><th>Active</th><th>Last Login</th><th>Action</th></tr>{user_rows}</table></div>
+    <div class="card"><h2>Users and Account Types</h2><p class='muted'>Change account type inline below, or use <b>Full edit</b> for password, contact info, and Owner/Admin promotion (mastery key).</p><p><a class="btn" href="/admin/new_user">Add User</a> <a class="btn btn2" href="/admin/export_users">Export User Index</a></p><table><tr><th>ID</th><th>Username</th><th>Name</th><th>Account Type</th><th>Active</th><th>Last Login</th><th>Action</th></tr>{user_rows}</table></div>
     <div class="card"><h2>Recent Security / Account Events</h2><table><tr><th>Time</th><th>Level</th><th>Type</th><th>User</th><th>IP</th><th>Message</th></tr>{security_rows}</table></div>
-    <div class="card"><h2>Permissions by Role</h2><table><tr><th>Role</th><th>Permissions</th></tr><tr><td>admin</td><td>{permission_badges('admin')}</td></tr><tr><td>manager</td><td>{permission_badges('manager')}</td></tr><tr><td>worker</td><td>{permission_badges('worker')}</td></tr><tr><td>viewer</td><td>{permission_badges('viewer')}</td></tr></table></div><div class="card"><h2>Checks and Balances</h2><ul><li>Passwords are hashed, not stored as readable text.</li><li>Admins can revoke active sessions and identify users by username, IP address, browser/device information, and remembered device status.</li><li>Workers can request accounts from /register without installing the program; admins approve or deny access.</li><li>All major actions are timestamped in the business log.</li><li>Health checks inspect database, backups, sources, and default password risk.</li><li>Workers and viewers are read-only for money/file changes.</li><li>Use only trusted LAN/VPN or a properly secured cloud host for remote users.</li></ul></div>"""
+    <div class="card"><h2>Permissions by Role</h2><table><tr><th>Role</th><th>Permissions</th></tr>
+    {''.join(f"<tr><td>{html.escape(ROLE_DISPLAY_NAMES.get(r, r))}</td><td>{permission_badges(r)}</td></tr>" for r in ROLE_LABELS if r != 'admin')}
+    <tr><td>{html.escape(ROLE_DISPLAY_NAMES.get('admin', 'admin'))}</td><td>{permission_badges('admin')}</td></tr>
+    </table></div><div class="card"><h2>Checks and Balances</h2><ul><li>Passwords are hashed, not stored as readable text.</li><li>Admins can revoke active sessions and identify users by username, IP address, browser/device information, and remembered device status.</li><li>Workers can request accounts from /register without installing the program; admins approve or deny access.</li><li>All major actions are timestamped in the business log.</li><li>Health checks inspect database, backups, sources, and default password risk.</li><li>Workers and viewers are read-only for money/file changes.</li><li>Use only trusted LAN/VPN or a properly secured cloud host for remote users.</li></ul></div>"""
     return layout("Admin Panel", body, "admin")
 @app.route("/admin/request/<int:req_id>/approve", methods=["POST"])
 @login_required("manage_users")
 def approve_account_request(req_id: int):
+    if not is_admin_role(session.get("role", "")):
+        log_security_event("account_approval_denied", session.get("username", ""), "Non-admin attempted account approval", "WARN")
+        abort(403)
     req = db().execute("SELECT * FROM account_requests WHERE id=?", (req_id,)).fetchone()
     if not req or req["status"] != "Pending":
         flash("Account request is not available or already reviewed.", "warning")
@@ -1958,6 +2333,12 @@ def approve_account_request(req_id: int):
     role = request.form.get("role") or req["requested_role"] or "worker"
     if role not in ROLE_LABELS:
         role = "worker"
+    if role == "admin":
+        flash("Admin role cannot be granted via account request approval.", "error")
+        return redirect(url_for("admin"))
+    if role == "manager":
+        flash("Manager role cannot be granted via public account request. Create managers manually in Admin.", "error")
+        return redirect(url_for("admin"))
     if db().execute("SELECT id FROM users WHERE username=?", (req["requested_username"],)).fetchone():
         db().execute("UPDATE account_requests SET status='Denied', reviewed_at=?, reviewed_by=?, admin_notes=? WHERE id=?", (now_iso(), session.get("username"), "Username already exists during approval", req_id))
         db().commit()
@@ -1967,31 +2348,75 @@ def approve_account_request(req_id: int):
                       VALUES (?,?,?,?,?,1,0,?,?,?,?,?,?)""",
                       (req["requested_username"], req["display_name"], role, req["salt"], req["password_hash"], now_iso(), f"Approved from account request #{req_id}. IP: {req['request_ip']}", req["email"], req["recovery_email"], req["phone"], req["worker_type"]))
     user_id = cur.lastrowid
-    db().execute("""INSERT OR REPLACE INTO worker_user_profiles (user_id, username, display_name, email, phone, address, worker_type, skills, emergency_contact, preferred_rate, account_request_id, created_at, updated_at)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                  (user_id, req["requested_username"], req["display_name"], req["email"], req["phone"], req["address"], req["worker_type"], req["skills"], req["emergency_contact"], req["preferred_rate"], req_id, now_iso(), now_iso()))
+    from app.account_provisioning import provision_user_role_profiles
+    provision_user_role_profiles(db(), user_id, req["requested_username"], role, req)
     db().execute("UPDATE account_requests SET status='Approved', reviewed_at=?, reviewed_by=?, admin_notes=? WHERE id=?", (now_iso(), session.get("username"), f"Approved as {role}", req_id))
     db().commit()
     log_event("Admin", f"Approved account request {req['requested_username']} as {role}")
-    log_security_event("account_request_approved", req["requested_username"], f"Approved as {role}", "OK")
-    flash(f"Approved {req['requested_username']} as {role}.", "success")
+    log_security_event("account_request_approved", req["requested_username"], f"Approved as {role} by owner/admin", "OK")
+    try:
+        from app.application_notifications import notify_requester_account_decision
+
+        conn = db()
+        n_ok, n_msg = notify_requester_account_decision(
+            conn, req_id, "Approved", role, request_base_url=request.url_root.rstrip("/")
+        )
+        if n_ok:
+            flash(f"Approved {req['requested_username']} as {role}. Requester emailed — they can sign in now.", "success")
+        else:
+            flash(f"Approved {req['requested_username']} as {role}. Email note: {n_msg}", "warning")
+    except Exception as exc:
+        flash(f"Approved {req['requested_username']} as {role}. Email notify error: {exc}", "warning")
     return redirect(url_for("admin"))
 @app.route("/admin/request/<int:req_id>/deny", methods=["POST"])
 @login_required("manage_users")
 def deny_account_request(req_id: int):
+    if not is_admin_role(session.get("role", "")):
+        log_security_event("account_approval_denied", session.get("username", ""), "Non-admin attempted account denial", "WARN")
+        abort(403)
     req = db().execute("SELECT * FROM account_requests WHERE id=?", (req_id,)).fetchone()
     if req and req["status"] == "Pending":
-        db().execute("UPDATE account_requests SET status='Denied', reviewed_at=?, reviewed_by=?, admin_notes=? WHERE id=?", (now_iso(), session.get("username"), "Denied by admin", req_id))
+        db().execute("UPDATE account_requests SET status='Denied', reviewed_at=?, reviewed_by=?, admin_notes=? WHERE id=?", (now_iso(), session.get("username"), "Denied by owner/admin", req_id))
         db().commit()
         log_event("Admin", f"Denied account request {req['requested_username']}")
-        log_security_event("account_request_denied", req["requested_username"], "Denied by admin", "WARN")
-        flash("Account request denied.", "success")
+        log_security_event("account_request_denied", req["requested_username"], "Denied by owner/admin", "WARN")
+        try:
+            from app.application_notifications import notify_requester_account_decision
+
+            n_ok, n_msg = notify_requester_account_decision(
+                db(), req_id, "Denied", request_base_url=request.url_root.rstrip("/")
+            )
+            flash("Account request denied." + (f" Requester emailed." if n_ok else f" ({n_msg})"), "success")
+        except Exception as exc:
+            flash(f"Account request denied. Email notify error: {exc}", "warning")
     return redirect(url_for("admin"))
 @app.route("/admin/revoke/<sid>")
 @login_required("view_admin")
 def revoke_session(sid: str):
     db().execute("UPDATE online_sessions SET revoked=1, active=0, revoke_reason=? WHERE session_id=?", (f"Revoked by {session.get('username')}", sid))
-    db().commit(); log_event("Admin", f"Revoked session {sid}"); flash("Session ended.", "success"); return redirect(url_for("admin"))
+    db().commit(); log_event("Admin", f"Revoked session {sid}"); flash("Session ended.", "success");     return redirect(url_for("admin"))
+@app.route("/admin/user/<int:user_id>/role", methods=["POST"])
+@login_required("manage_users")
+def quick_change_user_role(user_id: int):
+    if not is_admin_role(session.get("role", "")):
+        log_security_event("role_change_denied", session.get("username", ""), "Non-admin attempted account type change", "WARN")
+        abort(403)
+    user = db().execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+    if not user:
+        abort(404)
+    new_role = request.form.get("role") or user["role"]
+    conn = db()
+    ok, msg = apply_user_role_change(conn, user, new_role, session.get("username", ""))
+    if not ok:
+        flash(msg, "error")
+        return redirect(url_for("admin"))
+    if msg == "unchanged":
+        flash(f"No change — {user['username']} is already {role_display(user['role'])}.", "warning")
+    else:
+        conn.commit()
+        log_event("Admin", msg)
+        flash(msg, "success")
+    return redirect(url_for("admin"))
 @app.route("/admin/new_user", methods=["GET", "POST"])
 @login_required("manage_users")
 def new_user():
@@ -2003,15 +2428,24 @@ def new_user():
             flash("Username and password required.", "error")
         elif role not in ROLE_LABELS:
             flash("Invalid role.", "error")
+        elif role == "admin":
+            flash("Cannot create admin accounts here. Use owner first-setup or emergency mastery access.", "error")
         else:
-            try:
-                salt, ph = hash_password(password)
-                db().execute("INSERT INTO users (username,display_name,role,salt,password_hash,active,must_change_password,created_at,notes) VALUES (?,?,?,?,?,1,1,?,?)", (username, request.form.get("display_name"), role, salt, ph, now_iso(), request.form.get("notes")))
-                db().commit(); log_event("Admin", f"Created user {username} role {role}"); flash("User added.", "success"); return redirect(url_for("admin"))
-            except sqlite3.IntegrityError:
-                flash("Username already exists.", "error")
-    role_opts = ''.join(f'<option>{r}</option>' for r in ROLE_LABELS)
-    body = f"""<div class="card"><h2>Add User</h2><form method="post"><div class="row3"><p><label>Username</label><input name="username"></p><p><label>Display Name</label><input name="display_name"></p><p><label>Role</label><select name="role">{role_opts}</select></p></div><p><label>Temporary Password</label><input name="password" type="password"></p><p><label>Notes</label><textarea name="notes"></textarea></p><button>Add User</button></form></div>"""
+            ok, msg = enforce_new_password_policy(password, role=role)
+            if not ok:
+                flash(msg, "error")
+            else:
+                try:
+                    salt, ph = hash_password(password)
+                    db().execute("INSERT INTO users (username,display_name,role,salt,password_hash,active,must_change_password,created_at,notes) VALUES (?,?,?,?,?,1,1,?,?)", (username, request.form.get("display_name"), role, salt, ph, now_iso(), request.form.get("notes")))
+                    user_id = db().execute("SELECT last_insert_rowid()").fetchone()[0]
+                    from app.account_provisioning import provision_user_role_profiles
+                    provision_user_role_profiles(db(), user_id, username, role)
+                    db().commit(); log_event("Admin", f"Created user {username} role {role}"); flash("User added.", "success"); return redirect(url_for("admin"))
+                except sqlite3.IntegrityError:
+                    flash("Username already exists.", "error")
+    role_opts = role_select_options(exclude=("admin",))
+    body = f"""<div class="card"><h2>Add User</h2><form method="post"><div class="row3"><p><label>Username</label><input name="username"></p><p><label>Display Name</label><input name="display_name"></p><p><label>Account Type</label><select name="role">{role_opts}</select></p></div><p><label>Temporary Password</label><input name="password" type="password"></p><p><label>Notes</label><textarea name="notes"></textarea></p><button>Add User</button></form></div>"""
     return layout("Add User", body, "admin")
 @app.route("/admin/user/<int:user_id>", methods=["GET", "POST"])
 @login_required("manage_users")
@@ -2021,13 +2455,37 @@ def edit_user(user_id: int):
     if request.method == "POST":
         role = request.form.get("role") or user["role"]
         active = 1 if request.form.get("active") == "on" else 0
-        db().execute("UPDATE users SET display_name=?, role=?, active=?, notes=?, email=?, recovery_email=?, phone=?, title=?, last_profile_update=? WHERE id=?", (request.form.get("display_name"), role, active, request.form.get("notes"), request.form.get("email"), request.form.get("recovery_email"), request.form.get("phone"), request.form.get("title"), now_iso(), user_id))
+        conn = db()
+        ok_role, role_msg = apply_user_role_change(
+            conn, user, role, session.get("username", ""), mastery_key=request.form.get("mastery_key", "")
+        )
+        if not ok_role:
+            flash(role_msg, "error")
+            return redirect(url_for("edit_user", user_id=user_id))
+        db().execute(
+            "UPDATE users SET display_name=?, active=?, notes=?, email=?, recovery_email=?, phone=?, title=?, last_profile_update=? WHERE id=?",
+            (request.form.get("display_name"), active, request.form.get("notes"), request.form.get("email"),
+             request.form.get("recovery_email"), request.form.get("phone"), request.form.get("title"), now_iso(), user_id),
+        )
         if request.form.get("new_password"):
+            mastery = request.form.get("mastery_key", "").strip()
+            ok, msg = enforce_new_password_policy(request.form.get("new_password"), mastery)
+            if not ok:
+                flash(msg, "error")
+                return redirect(url_for("edit_user", user_id=user_id))
             salt, ph = hash_password(request.form.get("new_password"))
             db().execute("UPDATE users SET salt=?, password_hash=?, must_change_password=1 WHERE id=?", (salt, ph, user_id))
-        db().commit(); log_event("Admin", f"Updated user {user['username']}"); flash("User updated.", "success"); return redirect(url_for("admin"))
-    role_opts = ''.join(f'<option {"selected" if r==user["role"] else ""}>{r}</option>' for r in ROLE_LABELS)
-    body = f"""<div class="card"><h2>Edit User: {html.escape(user['username'])}</h2><form method="post"><div class="row3"><p><label>Display Name</label><input name="display_name" value="{html.escape(user['display_name'] or '')}"></p><p><label>Role</label><select name="role">{role_opts}</select></p><p><label>Active</label><input type="checkbox" name="active" {'checked' if user['active'] else ''}></p></div><div class='row3'><p><label>Email</label><input name='email' value="{html.escape(user['email'] or '')}"></p><p><label>Recovery Email</label><input name='recovery_email' value="{html.escape(user['recovery_email'] or '')}"></p><p><label>Phone</label><input name='phone' value="{html.escape(user['phone'] or '')}"></p></div><p><label>Title / Worker Type</label><input name='title' value="{html.escape(user['title'] or '')}"></p><p><label>Reset Password</label><input name="new_password" type="password" placeholder="Leave blank to keep current"></p><p><label>Notes</label><textarea name="notes">{html.escape(user['notes'] or '')}</textarea></p><button>Save</button></form></div>"""
+        db().commit()
+        log_event("Admin", f"Updated user {user['username']}" + (f"; {role_msg}" if role_msg != "unchanged" else ""))
+        flash("User updated." + (f" {role_msg}" if role_msg != "unchanged" else ""), "success")
+        return redirect(url_for("admin"))
+    role_opts = role_select_options(user["role"])
+    role_help = "<br>".join(f"<span class='muted'><b>{html.escape(ROLE_DISPLAY_NAMES.get(r, r))}</b> — {permission_badges(r)}</span>" for r in ROLE_LABELS if r == normalize_role_for_session(user["role"] or ""))
+    body = f"""<div class="card"><h2>Edit User: {html.escape(user['username'])}</h2>
+    <p class='muted'>Current account type: <b>{html.escape(role_display(user['role']))}</b>. Changing type updates permissions immediately. Promoting to Owner/Admin requires mastery key below.</p>
+    <form method="post"><div class="row3"><p><label>Display Name</label><input name="display_name" value="{html.escape(user['display_name'] or '')}"></p><p><label>Account Type</label><select name="role">{role_opts}</select></p><p><label>Active</label><input type="checkbox" name="active" {'checked' if user['active'] else ''}></p></div>
+    <p>{role_help}</p>
+    <div class='row3'><p><label>Email</label><input name='email' value="{html.escape(user['email'] or '')}"></p><p><label>Recovery Email</label><input name='recovery_email' value="{html.escape(user['recovery_email'] or '')}"></p><p><label>Phone</label><input name='phone' value="{html.escape(user['phone'] or '')}"></p></div><p><label>Title / Worker Type</label><input name='title' value="{html.escape(user['title'] or '')}"></p><p><label>Reset Password</label><input name="new_password" type="password" placeholder="Leave blank to keep current"></p><p><label>Mastery key (Owner/Admin promotion or ivygrows reset)</label><input name="mastery_key" type="password" autocomplete="off"></p><p><label>Notes</label><textarea name="notes">{html.escape(user['notes'] or '')}</textarea></p><button>Save</button> <a class='btn btn2' href='/admin'>Back to Admin</a></form></div>"""
     return layout("Edit User", body, "admin")
 @app.route("/admin/export_users")
 @login_required("view_admin")
@@ -2041,6 +2499,93 @@ def export_users():
             writer.writerow([r["username"], r["display_name"], r["role"], r["active"], r["must_change_password"], r["created_at"], r["last_login"], r["last_ip_address"], r["email"], r["phone"], r["title"], r["notes"], "hashed in SQLite - not exported"])
     log_event("Admin", "Exported user account index")
     return send_file(path, as_attachment=True)
+
+
+@app.route("/admin/troubleshooter", methods=["GET", "POST"])
+@login_required("view_admin")
+def admin_troubleshooter_page():
+    _require_admin_role()
+    from app.troubleshooter_engine import format_steps_html, run_full_troubleshoot
+
+    steps = []
+    report_name = ""
+    if request.method == "POST":
+        action = request.form.get("action", "repair")
+        repair = action != "check"
+        try:
+            report_path, steps = run_full_troubleshoot(repair=repair)
+            report_name = report_path.name
+            log_event("Admin", f"Troubleshooter ({'repair' if repair else 'check'}): {report_name}")
+            flash(f"Troubleshooter complete. Report: {report_name}", "success")
+        except Exception as exc:
+            flash(f"Troubleshooter error: {exc}", "error")
+
+    rows = format_steps_html(steps)
+    body = f"""
+    <div class="card"><h2>Full Troubleshooter</h2>
+      <p class="muted">Checks and safely repairs launchers, Python packages, database, shortcuts, shared host, Densus link, data pipeline, and health — all in one place.</p>
+      <form method="post" style="display:inline;margin-right:10px">
+        <input type="hidden" name="action" value="repair">
+        <button type="submit">Run Auto-Repair (fix safe issues)</button>
+      </form>
+      <form method="post" style="display:inline;margin-right:10px">
+        <input type="hidden" name="action" value="check">
+        <button type="submit" class="btn btn2">Check Only (no changes)</button>
+      </form>
+      <a class="btn btn2" href="/admin">Back to Admin</a>
+      <p class="muted" style="margin-top:10px">Reports save to <code>exports\\JRC_Full_Troubleshooter_*.txt</code></p>
+    </div>
+    <div class="card"><h2>Results</h2>
+      <table><tr><th>Status</th><th>Category</th><th>Check</th><th>Detail</th></tr>{rows}</table>
+    </div>"""
+    return layout("Troubleshooter", body, "admin")
+
+
+def _admin_troubleshooter_redirect(mode: str):
+    from app.troubleshooter_engine import run_full_troubleshoot
+    try:
+        repair = mode == "repair"
+        report_path, _ = run_full_troubleshoot(repair=repair)
+        log_event("Admin", f"Troubleshooter: {report_path.name}")
+        flash(f"Troubleshooter complete. Report: {report_path.name}", "success")
+    except Exception as exc:
+        flash(f"Troubleshooter error: {exc}", "error")
+    return redirect(url_for("admin_troubleshooter_page"))
+
+
+@app.route("/admin/run-troubleshooter", methods=["POST"])
+@login_required("view_admin")
+def admin_run_troubleshooter():
+    _require_admin_role()
+    return _admin_troubleshooter_redirect("check")
+
+
+@app.route("/admin/run-auto-repair", methods=["POST"])
+@login_required("view_admin")
+def admin_run_auto_repair():
+    _require_admin_role()
+    return _admin_troubleshooter_redirect("repair")
+
+
+@app.route("/admin/fix-launchers", methods=["POST"])
+@login_required("view_admin")
+def admin_fix_launchers():
+    _require_admin_role()
+    try:
+        from app.launcher_repair import repair_launcher_files, verify_app_imports
+        actions = repair_launcher_files()
+        ok, msg = verify_app_imports()
+        if not ok:
+            from app.troubleshooter_engine import check_dependencies
+            check_dependencies(repair=True)
+            ok, msg = verify_app_imports()
+        log_event("Admin", f"Launcher repair; import={'OK' if ok else 'FAIL'}")
+        flash(("Fixed: " + "; ".join(actions[:2]) + f" — {msg}")[:450], "success" if ok else "warning")
+    except Exception as exc:
+        flash(f"Launcher repair error: {exc}", "error")
+    return redirect(url_for("admin"))
+
+
 def run_health_checks() -> List[Tuple[str, str, str]]:
     results = []
     try:
@@ -2112,6 +2657,11 @@ def remote_mobile_access():
         remote_url = clean_base_url(request.form.get("remote_public_base_url", ""))
         set_app_setting("remote_public_base_url", remote_url)
         set_app_setting("remote_mobile_updated_at", now_iso())
+        try:
+            from app.cloud_url_sync import sync_cloud_url
+            sync_cloud_url(remote_url)
+        except Exception:
+            pass
         log_event("Remote Mobile", f"Remote mobile base URL updated to {remote_url or 'blank'}")
         flash("Remote mobile URL setting saved. Use HTTPS/VPN/tunnel for outside access.", "success")
         return redirect(url_for("remote_mobile_access"))
@@ -2177,6 +2727,17 @@ def hosting():
     sessions = db().execute("SELECT COUNT(*) FROM online_sessions WHERE active=1 AND revoked=0").fetchone()[0]
     events = db().execute("SELECT * FROM host_events ORDER BY id DESC LIMIT 50").fetchall()
     event_rows = ''.join(f"<tr><td>{html.escape(r['event_time'])}</td><td>{html.escape(r['level'])}</td><td>{html.escape(r['host_mode'] or '')}</td><td>{html.escape(r['message'] or '')}</td><td>{html.escape(r['ip_address'] or '')}</td><td>{html.escape(r['username'] or '')}</td></tr>" for r in events)
+    try:
+        from app.data_pipeline import mode_label, resolve_paths
+        pl = resolve_paths()
+        pipeline_card = f"""<div class="card"><h2>Data Pipeline</h2>
+      <p><b>Mode:</b> {html.escape(pl.mode)} — {html.escape(mode_label())}</p>
+      <p><b>Authority:</b> {html.escape(pl.data_authority)}</p>
+      <p><b>Database:</b> <code>{html.escape(str(pl.db_path))}</code></p>
+      <p><b>Sessions archive:</b> <code>{html.escape(str(pl.sessions_archive_dir))}</code></p>
+      <p class="muted">Master PC stores live DB + session snapshots locally. Cloud uses JRC_DATA_DIR on server volume. Worker PCs store nothing.</p></div>"""
+    except Exception:
+        pipeline_card = ""
     body = f"""
     <div class="grid">
       <div class="stat">Server Mode<b>{'Public/Hosted' if PUBLIC_HOST_MODE else 'Local/LAN'}</b><span class="muted">PUBLIC_HOST_MODE={public_mode}</span></div>
@@ -2184,6 +2745,7 @@ def hosting():
       <div class="stat">LAN URL<b>{lan_ip}:{port}</b></div>
       <div class="stat">Active Sessions<b>{sessions}</b><span class="muted">Cleaned stale: {cleanup_count}</span></div>
     </div>
+    {pipeline_card}
     <div class="card"><h2>Best Hosting Path</h2>
       <p><b>Most secure for now:</b> Jacob's administrator laptop hosting on trusted LAN or VPN only.</p>
       <p><b>Best future internet host:</b> a dedicated cloud/VPS server or managed app host with HTTPS, backups, firewall rules, and a real domain. Do not expose the laptop server directly to the open internet.</p>
@@ -2210,7 +2772,9 @@ def data_status_snapshot() -> Dict[str, Any]:
     snapshot["jobs"] = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
     snapshot["expenses"] = conn.execute("SELECT COUNT(*) FROM expenses").fetchone()[0]
     snapshot["workers"] = conn.execute("SELECT COUNT(*) FROM workers").fetchone()[0]
-    snapshot["worker_payments", "payroll_periods", "job_cost_snapshots", "invoices", "invoice_payments"] = conn.execute("SELECT COUNT(*) FROM worker_payments").fetchone()[0]
+    snapshot["worker_payments"] = conn.execute("SELECT COUNT(*) FROM worker_payments").fetchone()[0]
+    snapshot["payroll_periods"] = conn.execute("SELECT COUNT(*) FROM payroll_periods").fetchone()[0]
+    snapshot["invoices"] = conn.execute("SELECT COUNT(*) FROM invoices").fetchone()[0]
     snapshot["file_sources"] = conn.execute("SELECT COUNT(*) FROM file_sources WHERE active=1").fetchone()[0]
     snapshot["indexed_files"] = conn.execute("SELECT COUNT(*) FROM file_index").fetchone()[0]
     snapshot["open_conflicts"] = conn.execute("SELECT COUNT(*) FROM data_conflicts WHERE status='Open'").fetchone()[0]
@@ -2220,6 +2784,11 @@ def data_status_snapshot() -> Dict[str, Any]:
         snapshot["db_quick_check"] = conn.execute("PRAGMA quick_check").fetchone()[0]
     except Exception as exc:
         snapshot["db_quick_check"] = str(exc)
+    try:
+        from app.mobile_pipeline import pipeline_api_payload
+        snapshot["pipeline"] = pipeline_api_payload(conn)
+    except Exception:
+        snapshot["pipeline"] = {}
     return snapshot
 def detect_data_conflicts() -> List[str]:
     conn = db()
@@ -2345,7 +2914,7 @@ def cloud_setup():
     """
     return layout("Cloud Setup", body, "cloud")
 @app.route("/sharing", methods=["GET", "POST"])
-@login_required("view_shared_sessions")
+@login_required(any_permission=("view_shared_sessions", "view_customer_shared"))
 def sharing_center():
     if request.method == "POST":
         action = request.form.get("action")
@@ -2394,17 +2963,45 @@ def sharing_center():
     """
     return layout("Shared Sessions and Info Sharing", body, "sharing")
 @app.route("/shared/file/<int:share_id>")
-@login_required("view_shared_sessions")
+@login_required(any_permission=("view_shared_sessions", "view_customer_shared"))
 def open_shared_file(share_id: int):
+    from app.file_access_security import path_under_allowed_roots, get_allowed_file_roots, role_may_open_indexed_file
+
     row = db().execute("SELECT * FROM shared_files WHERE id=? AND active=1", (share_id,)).fetchone()
-    if not row: abort(404)
+    if not row:
+        abort(404)
     viewer_role = session.get("role") or "viewer"
     min_role = row["shared_with_role"] or "viewer"
     if not role_can_access_share(viewer_role, min_role):
+        log_security_event(
+            "shared_file_denied",
+            session.get("username", ""),
+            f"Share #{share_id} requires {min_role}, user is {viewer_role}",
+            "WARN",
+        )
+        abort(403)
+    allowed, reason = role_may_open_indexed_file(viewer_role, row["file_path"] or "")
+    if not allowed and viewer_role not in ("admin", "manager"):
+        log_security_event(
+            "shared_sensitive_denied",
+            session.get("username", ""),
+            f"Blocked sensitive shared file: {reason}",
+            "WARN",
+        )
         abort(403)
     path = Path(row["file_path"])
     if not path.exists():
-        flash("Shared file is no longer available at that path. Refresh sources.", "warning"); return redirect(url_for("sharing_center"))
+        flash("Shared file is no longer available at that path. Refresh sources.", "warning")
+        return redirect(url_for("sharing_center"))
+    roots = get_allowed_file_roots(BASE_DIR)
+    if roots and not path_under_allowed_roots(path, roots):
+        log_security_event(
+            "shared_path_outside_roots",
+            session.get("username", ""),
+            f"Blocked shared path outside roots: {path}",
+            "ERROR",
+        )
+        abort(403)
     return send_file(path, as_attachment=False)
 @app.route("/files/upload", methods=["POST"])
 @login_required("manage_files")
@@ -2434,6 +3031,23 @@ def mobile_home():
         <div class='card mobile-actions'><h2>Allowed Actions</h2><a class='btn' href='/sharing'>Open Shared Items</a> <a class='btn btn2' href='/logout'>Logout</a></div>
         """
         return layout("External Mobile Access", body, "mobile")
+    if role == "customer":
+        ensure_customer_request_schema()
+        profile = ensure_customer_profile_for_current_user()
+        open_reqs = db().execute("SELECT COUNT(*) FROM customer_job_requests WHERE customer_user_id=? AND status NOT IN ('Closed','Cancelled','Converted to Job')", (profile["id"],)).fetchone()[0]
+        shared_files, shared_jobs = shared_counts_for_role(role)
+        body = f"""
+        <div class='card'><h2>Customer Mobile Portal</h2><p>Submit and track your job requests. Internal J&R job lists, payroll, and files are hidden.</p>
+        <p><b>Phone URL on this network:</b> <code>http://{lan_ip}:{port}/mobile</code></p></div>
+        <div class='grid'><div class='stat'>Open Requests<b>{open_reqs}</b></div><div class='stat'>Shared Files<b>{shared_files}</b></div><div class='stat'>Shared Jobs<b>{shared_jobs}</b></div></div>
+        <div class='card mobile-actions'><h2>Allowed Actions</h2>
+        <a class='btn' href='/customer/request'>Create Job Request</a>
+        <a class='btn btn2' href='/customer/requests'>My Requests</a>
+        <a class='btn btn2' href='/sharing'>Shared With Me</a>
+        <a class='btn btn2' href='/chat'>Office Announcements</a>
+        <a class='btn btn2' href='/logout'>Logout</a></div>
+        """
+        return layout("Customer Mobile Portal", body, "mobile")
     jobs_count = db().execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
     active_jobs = db().execute("SELECT COUNT(*) FROM jobs WHERE status NOT LIKE 'Closed%'").fetchone()[0]
     files_count = db().execute("SELECT COUNT(*) FROM file_index").fetchone()[0] if "view_files" in perms else 0
@@ -2445,12 +3059,23 @@ def mobile_home():
         paid_col = "<th>Paid</th>"
     jobs_recent = db().execute("SELECT id,job_name,status,price,paid,updated_at FROM jobs ORDER BY updated_at DESC, id DESC LIMIT 8").fetchall() if "view_jobs" in perms else []
     jr = ''.join(f"<tr><td><a href='/mobile/job/{r['id']}'>{html.escape(r['job_name'])}</a></td><td>{html.escape(r['status'] or '')}</td>{('<td>'+money(r['paid'])+'</td>') if 'view_money' in perms else ''}</tr>" for r in jobs_recent)
+    pipeline_snippet = ""
+    if "view_jobs" in perms:
+        try:
+            from app.mobile_pipeline import pipeline_counts
+            pc = pipeline_counts(db())
+            pipeline_snippet = "<div class='card'><h2>Pipeline Snapshot</h2><div class='grid'>" + "".join(
+                f"<div class='stat'><span class='muted'>{html.escape(k)}</span><b>{v}</b></div>" for k, v in pc.items() if v > 0
+            ) + f"</div><p><a class='btn' href='/mobile/pipeline'>Open Job Pipeline Board</a></p></div>"
+        except Exception:
+            pipeline_snippet = "<div class='card'><p><a class='btn' href='/mobile/pipeline'>Open Job Pipeline Board</a></p></div>"
     body=f"""
     <div class='card'><h2>Mobile Access Center</h2><p>This is the phone-friendly home screen for J and R Construction Manager. Use it from a trusted LAN/VPN or secured cloud host.</p>
     <p><b>Phone URL on this network:</b> <code>http://{lan_ip}:{port}/mobile</code></p>
     <p class='muted'>This screen only shows actions your account is allowed to use.</p></div>
     <div class='grid'>{money_card}<div class='stat'>Active Jobs<b>{active_jobs}</b></div><div class='stat'>Total Jobs<b>{jobs_count}</b></div><div class='stat'>Indexed Files<b>{files_count if 'view_files' in perms else 'Limited'}</b></div></div>
-    <div class='card mobile-actions'><h2>Quick Actions</h2>{('<a class=\'btn\' href=\'/mobile/jobs\'>Mobile Jobs</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/files\'>Mobile Files</a>') if 'view_files' in perms else ''} <a class='btn btn2' href='/sharing'>Shared Items</a></div>
+    <div class='card mobile-actions'><h2>Quick Actions</h2>{('<a class=\'btn\' href=\'/mobile/pipeline\'>Job Pipeline Board</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn\' href=\'/mobile/jobs\'>Mobile Jobs</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/files\'>Mobile Files</a>') if 'view_files' in perms else ''} {('<a class=\'btn btn2\' href=\'/chat\'>Live Chat</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''} {('<a class=\'btn btn2\' href=\'/sharing\'>Shared Items</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''}</div>
+    {pipeline_snippet}
     <div class='card'><h2>Recent Jobs</h2><table><tr><th>Job</th><th>Status</th>{paid_col}</tr>{jr}</table></div>
     <div class='card'><h2>Mobile Rules</h2><ul><li>Admins and managers can update records based on permissions.</li><li>Workers and viewers are read-only unless an owner/admin grants more access.</li><li>Non-company users only see intentionally shared items.</li></ul></div>
     """
@@ -2472,6 +3097,23 @@ def mobile_jobs():
     full_jobs_link = "<a class='btn btn2' href='/jobs'>Full Jobs Page</a>" if 'view_jobs' in perms else ""
     body = f"""<div class='card mobile-actions'><a class='btn btn2' href='/mobile'>Back to Mobile Home</a> {full_jobs_link}</div><div class='card'><h2>Mobile Jobs</h2><table><tr>{heads}</tr>{trs}</table></div>"""
     return layout("Mobile Jobs", body, "mobile")
+
+@app.route("/mobile/pipeline")
+@login_required("mobile_access")
+def mobile_pipeline():
+    user = current_user()
+    perms = get_user_permissions(user["id"], user["role"])
+    if "view_jobs" not in perms:
+        flash("This account can only use shared items, not the job pipeline.", "warning")
+        return redirect(url_for("sharing_center"))
+    from app.mobile_pipeline import render_mobile_pipeline_html
+    body = (
+        "<div class='card mobile-actions'><a class='btn btn2' href='/mobile'>Back to Mobile Home</a> "
+        "<a class='btn btn2' href='/mobile/jobs'>List View</a></div>"
+        + render_mobile_pipeline_html(db(), "view_money" in perms, money)
+    )
+    return layout("Job Pipeline", body, "mobile")
+
 @app.route("/mobile/job/<int:job_id>")
 @login_required("mobile_access")
 def mobile_job_detail(job_id: int):
@@ -2529,8 +3171,8 @@ def pwa_manifest():
         "start_url": "/mobile",
         "scope": "/",
         "display": "standalone",
-        "background_color": "#0a0f1c",
-        "theme_color": "#0a0f1c",
+        "background_color": "#000000",
+        "theme_color": "#84cc16",
         "description": "Mobile access for J and R Construction Manager jobs, files, and shared sessions.",
         "icons": []
     })
@@ -2556,15 +3198,54 @@ def ai_sources():
 @app.route("/api/mobile/dashboard")
 @login_required("mobile_access")
 def api_mobile_dashboard():
-    return jsonify(data_status_snapshot())
+    user = current_user()
+    role = normalize_role_for_session(user["role"] if user else "viewer")
+    if is_customer_or_external(role):
+        shared_files, shared_jobs = shared_counts_for_role(role)
+        return jsonify({"role": role, "shared_files": shared_files, "shared_jobs": shared_jobs, "internal_metrics_hidden": True})
+    snap = data_status_snapshot()
+    perms = get_user_permissions(user["id"], role)
+    if "view_money" not in perms:
+        snap.pop("expenses", None)
+        snap.pop("worker_payments", None)
+        snap.pop("invoices", None)
+    return jsonify(snap)
 @app.route("/api/mobile/jobs")
 @login_required("mobile_access")
 def api_mobile_jobs():
+    user = current_user()
+    role = normalize_role_for_session(user["role"] if user else "viewer")
+    perms = get_user_permissions(user["id"], role)
+    if is_customer_or_external(role) or "view_jobs" not in perms:
+        return jsonify([])
     rows = db().execute("SELECT id, job_name, status, price, paid, updated_at FROM jobs ORDER BY updated_at DESC, id DESC LIMIT 100").fetchall()
-    return jsonify([dict(r) for r in rows])
+    out = []
+    for r in rows:
+        item = {"id": r["id"], "job_name": r["job_name"], "status": r["status"], "updated_at": r["updated_at"]}
+        if "view_money" in perms:
+            item["price"] = r["price"]
+            item["paid"] = r["paid"]
+        out.append(item)
+    return jsonify(out)
+@app.route("/api/mobile/pipeline")
+@login_required("mobile_access")
+def api_mobile_pipeline():
+    user = current_user()
+    role = normalize_role_for_session(user["role"] if user else "viewer")
+    perms = get_user_permissions(user["id"], role)
+    if is_customer_or_external(role) or "view_jobs" not in perms:
+        return jsonify({"error": "forbidden", "internal_metrics_hidden": True}), 403
+    from app.mobile_pipeline import pipeline_api_payload
+    return jsonify(pipeline_api_payload(db()))
+
 @app.route("/api/mobile/files")
 @login_required("mobile_access")
 def api_mobile_files():
+    user = current_user()
+    role = normalize_role_for_session(user["role"] if user else "viewer")
+    perms = get_user_permissions(user["id"], role)
+    if is_customer_or_external(role) or "view_files" not in perms:
+        return jsonify([])
     rows = db().execute("SELECT id,file_name,extension,size,modified_at,analysis FROM file_index ORDER BY modified_at DESC LIMIT 100").fetchall()
     return jsonify([dict(r) for r in rows])
 @app.route("/api/data_status")
@@ -2771,6 +3452,12 @@ def ensure_job_application_schema() -> None:
             except sqlite3.OperationalError:
                 pass
         conn.commit()
+    from app.application_notifications import ensure_notification_columns
+
+    with direct_db() as conn:
+        ensure_notification_columns(conn)
+
+
 def log_application_event(application_id: int, event_type: str, message: str, username: str = "") -> None:
     try:
         with direct_db() as conn:
@@ -2779,6 +3466,8 @@ def log_application_event(application_id: int, event_type: str, message: str, us
             conn.commit()
     except Exception:
         pass
+
+
 def job_cost_row(conn: sqlite3.Connection, job_id: int) -> dict[str, float]:
     job = conn.execute("SELECT COALESCE(price,0) price, COALESCE(deposit,0) deposit, COALESCE(paid,0) paid FROM jobs WHERE id=?", (job_id,)).fetchone()
     if not job:
@@ -3092,15 +3781,18 @@ def public_job_application():
         desired_username = request.form.get("requested_username", "").strip().lower()
         if not full_name or not phone:
             flash("Full name and phone are required.", "error")
+        elif not email:
+            flash("Email is required so we can send you application status updates.", "error")
         else:
             conn = db()
+            status_token = secrets.token_urlsafe(24)
             cur = conn.execute("""INSERT INTO job_applications(
                 created_at,updated_at,status,requested_username,desired_role,full_name,email,recovery_email,phone,address,date_of_birth,
                 emergency_contact_name,emergency_contact_phone,preferred_rate,rate_type,availability,transportation,drivers_license_status,
                 own_tools,skills,experience_years,work_history,references_text,insurance_full_legal_name,insurance_address,insurance_phone,
                 insurance_email,insurance_date_of_birth,insurance_driver_license_state,insurance_driver_license_number,insurance_vehicle_use,
-                insurance_employment_classification,insurance_requested_coverage,insurance_notes,w9_status,id_document_status,request_ip,request_user_agent)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                insurance_employment_classification,insurance_requested_coverage,insurance_notes,w9_status,id_document_status,request_ip,request_user_agent,status_token)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (now_iso(), now_iso(), "Pending Owner Review", desired_username, request.form.get("desired_role") or "worker", full_name, email,
                  request.form.get("recovery_email"), phone, request.form.get("address"), request.form.get("date_of_birth"), request.form.get("emergency_contact_name"),
                  request.form.get("emergency_contact_phone"), parse_float(request.form.get("preferred_rate")), request.form.get("rate_type") or "daily",
@@ -3111,21 +3803,33 @@ def public_job_application():
                  request.form.get("insurance_driver_license_state"), request.form.get("insurance_driver_license_number"), request.form.get("insurance_vehicle_use"),
                  request.form.get("insurance_employment_classification") or "Needs owner review", request.form.get("insurance_requested_coverage"),
                  request.form.get("insurance_notes"), request.form.get("w9_status") or "Needed if paid as contractor", request.form.get("id_document_status") or "Not received",
-                 client_ip(), request.headers.get("User-Agent", "")))
+                 client_ip(), request.headers.get("User-Agent", ""), status_token))
             app_id = cur.lastrowid
             conn.commit()
             log_application_event(app_id, "submitted", f"Application submitted by {full_name}", full_name)
-            log_security_event("job_application_submitted", desired_username or full_name, f"Application #{app_id} submitted", "INFO")
-            flash("Application submitted. Jacob / J & R Construction will review it before any account or work approval is granted.", "success")
-            return redirect(url_for("public_job_application_thanks", app_id=app_id))
+            log_security_event("job_application_submitted", desired_username or full_name, f"Application #{app_id} submitted — owner notified", "INFO")
+            try:
+                from app.application_notifications import notify_owner_new_application
+
+                ok, note = notify_owner_new_application(conn, int(app_id), request_base_url=request.url_root.rstrip("/"))
+                log_application_event(app_id, "owner_notified", note, "system")
+            except Exception as exc:
+                log_application_event(app_id, "owner_notify_error", str(exc), "system")
+            flash("Application submitted and sent to Jacob for owner review. Check your email for status updates.", "success")
+            return redirect(url_for("public_job_application_thanks", app_id=app_id, token=status_token))
     body = """
-    <div class='card'><h2>J & R Construction Worker / Job Application</h2><p class='muted'>This form collects worker, contact, skills, insurance, and onboarding information for owner review. Submitting this does not guarantee work, employment, insurance coverage, or account access.</p></div>
+    <div class='card'><h2>J & R Construction Worker / Job Application</h2><p class='muted'>Applications go directly to Jacob (owner) for review. You will receive email status updates when your application is reviewed. This does not guarantee work, employment, insurance coverage, or account access.</p></div>
     <form method='post'>
     <div class='card'><h2>Basic Information</h2><div class='row'>
       <label>Full legal name<input name='full_name' required></label><label>Desired username<input name='requested_username'></label>
-      <label>Email<input name='email' type='email'></label><label>Recovery email<input name='recovery_email' type='email'></label>
+      <label>Email<input name='email' type='email' required placeholder='Required for status updates'></label><label>Recovery email<input name='recovery_email' type='email'></label>
       <label>Phone<input name='phone' required></label><label>Date of birth<input name='date_of_birth' placeholder='YYYY-MM-DD'></label>
-      <label>Address<textarea name='address'></textarea></label><label>Desired role<select name='desired_role'><option>worker</option><option>viewer</option></select></label>
+      <label>Address<textarea name='address'></textarea></label><label>Desired role<select name='desired_role'>
+        <option value='helper'>Field Helper (W-2 employee candidate)</option>
+        <option value='worker'>Company Employee</option>
+        <option value='subcontractor'>Subcontractor / 1099</option>
+        <option value='viewer'>Office read-only staff</option>
+      </select></label>
     </div></div>
     <div class='card'><h2>Worker Details</h2><div class='row'>
       <label>Preferred rate<input name='preferred_rate' placeholder='140'></label><label>Rate type<select name='rate_type'><option>daily</option><option>hourly</option><option>job-based</option></select></label>
@@ -3144,13 +3848,57 @@ def public_job_application():
       <label>W-9 / tax form status<select name='w9_status'><option>Needed if paid as contractor</option><option>Provided</option><option>Not applicable yet</option></select></label><label>ID document status<select name='id_document_status'><option>Not received</option><option>Viewed by owner</option><option>Provided separately</option></select></label>
       <label>Insurance notes<textarea name='insurance_notes'></textarea></label>
     </div></div>
-    <div class='card'><button>Submit Application for Owner Review</button> <a class='btn btn2' href='/register'>Request login account instead</a></div>
+    <div class='card'><button>Submit Application for Owner Review</button> <a class='btn btn2' href='/register'>Request login only (no application)</a> <a class='btn btn2' href='/login'>Already have an account — Sign In</a></div>
     </form>"""
-    return layout("Worker Application", body, "applications")
+    return layout("Worker Application", body, "apply", public=True)
 @app.route("/apply/thanks/<int:app_id>")
-def public_job_application_thanks(app_id:int):
-    body = f"""<div class='card'><h2>Application Received</h2><p>Your application number is <b>#{app_id}</b>.</p><p class='muted'>Jacob / J & R Construction will review it. This does not create login access or employment/insurance coverage until approved separately.</p><p><a class='btn' href='/login'>Return to Login</a></p></div>"""
-    return layout("Application Received", body, "applications")
+def public_job_application_thanks(app_id: int):
+    token = request.args.get("token", "")
+    status_link = ""
+    if token:
+        status_link = f"<p><a class='btn' href='/apply/status/{app_id}/{html.escape(token)}'>Check application status</a></p>"
+    body = f"""<div class='card'><h2>Application Received — Owner Review Queue</h2>
+    <p>Your application number is <b>#{app_id}</b>.</p>
+    <p class='muted'>A copy was sent to Jacob for owner review. You will receive email updates when the status changes.</p>
+    {status_link}
+    <p><a class='btn btn2' href='/login'>Sign In</a> <a class='btn btn2' href='/register'>Request Account</a></p></div>"""
+    return layout("Application Received", body, "apply", public=True)
+
+
+@app.route("/apply/status/<int:app_id>/<token>")
+def public_job_application_status(app_id: int, token: str):
+    ensure_job_application_schema()
+    row = db().execute(
+        "SELECT id, full_name, status, owner_notes, reviewed_at, reviewed_by, created_at, updated_at, "
+        "applicant_notified_status, applicant_notified_at FROM job_applications WHERE id=? AND status_token=?",
+        (app_id, token),
+    ).fetchone()
+    if not row:
+        body = "<div class='card'><h2>Application not found</h2><p class='muted'>Invalid or expired status link.</p><p><a href='/apply'>Submit a new application</a></p></div>"
+        return layout("Application Status", body, "apply", public=True)
+    events = db().execute(
+        "SELECT event_time, event_type, message FROM application_events WHERE application_id=? ORDER BY id DESC LIMIT 12",
+        (app_id,),
+    ).fetchall()
+    ev_rows = "".join(
+        f"<tr><td>{html.escape(e['event_time'] or '')}</td><td>{html.escape(e['event_type'] or '')}</td>"
+        f"<td>{html.escape(e['message'] or '')}</td></tr>"
+        for e in events
+    )
+    visible_notes = (row["owner_notes"] or "").strip()
+    notes_html = f"<p><b>Owner message:</b> {html.escape(visible_notes)}</p>" if visible_notes else ""
+    body = f"""<div class='card'><h2>Application #{app_id} Status</h2>
+    <p><b>{html.escape(row['full_name'] or '')}</b></p>
+    <div class='stat'>Current status<b>{html.escape(row['status'] or '')}</b></div>
+    <p class='muted'>Submitted: {html.escape(row['created_at'] or '')} | Last update: {html.escape(row['updated_at'] or '')}</p>
+    {notes_html}
+  </div>
+  <div class='card'><h2>Update history</h2>
+    <table><tr><th>When</th><th>Event</th><th>Detail</th></tr>{ev_rows or '<tr><td colspan=3>No events yet.</td></tr>'}</table>
+  </div>"""
+    return layout("Application Status", body, "apply", public=True)
+
+
 @app.route("/applications", methods=["GET", "POST"])
 @login_required("view_applications")
 def applications_center():
@@ -3166,6 +3914,42 @@ def applications_center():
             status = {"review":"Under Owner Review", "approve":"Approved for Onboarding", "deny":"Denied", "needs_info":"Needs More Information"}[action]
             conn.execute("UPDATE job_applications SET status=?, owner_notes=?, reviewed_by=?, reviewed_at=?, updated_at=? WHERE id=?",
                          (status, notes, user["username"], now_iso(), now_iso(), aid))
+            if action == "approve" and "manage_applications" in perms:
+                app_row = conn.execute("SELECT * FROM job_applications WHERE id=?", (aid,)).fetchone()
+                if app_row:
+                    uname = (app_row["requested_username"] or "").strip().lower()
+                    hire_role = normalize_role_for_session(app_row["desired_role"] or "helper")
+                    if hire_role not in HIRE_APPLICATION_ROLES:
+                        hire_role = "helper"
+                    if uname and not conn.execute("SELECT id FROM users WHERE username=?", (uname,)).fetchone():
+                        temp_pw = secrets.token_urlsafe(12)
+                        salt, ph = hash_password(temp_pw)
+                        cur = conn.execute(
+                            """INSERT INTO users (username, display_name, role, salt, password_hash, active, must_change_password, created_at, notes, email, phone)
+                               VALUES (?,?,?,?,?,1,1,?,?,?,?)""",
+                            (uname, app_row["full_name"] or uname, hire_role, salt, ph, now_iso(),
+                             f"Created from job application #{aid}. W-9: {app_row['w9_status'] or ''}",
+                             app_row["email"] or "", app_row["phone"] or ""),
+                        )
+                        uid = int(cur.lastrowid)
+                        from app.account_provisioning import provision_user_role_profiles
+                        provision_user_role_profiles(db(), uid, uname, hire_role)
+                        conn.execute("UPDATE job_applications SET approved_user_id=? WHERE id=?", (uid, aid))
+                        log_application_event(aid, "account_created", f"User {uname} created as {hire_role}", user["username"])
+                        flash(f"Application approved. Account created: {uname} | temporary password: {temp_pw} (user must change on first login).", "success")
+            try:
+                from app.application_notifications import notify_applicant_status_update
+
+                n_ok, n_msg = notify_applicant_status_update(
+                    conn, aid, status, notes, request_base_url=request.url_root.rstrip("/")
+                )
+                log_application_event(aid, "applicant_notified", n_msg, user["username"])
+                if n_ok:
+                    flash(f"Applicant emailed: {status}", "success")
+                elif "no email" not in n_msg.lower():
+                    flash(f"Applicant notification: {n_msg}", "warning")
+            except Exception as exc:
+                log_application_event(aid, "applicant_notify_error", str(exc), user["username"])
             conn.commit(); log_application_event(aid, action, f"Status changed to {status}", user["username"]); log_event("Applications", f"Application #{aid} set to {status}")
         return redirect(url_for("applications_center"))
     apps = conn.execute("SELECT * FROM job_applications ORDER BY CASE status WHEN 'Pending Owner Review' THEN 0 WHEN 'Under Owner Review' THEN 1 WHEN 'Needs More Information' THEN 2 ELSE 3 END, created_at DESC").fetchall()
@@ -3176,7 +3960,17 @@ def applications_center():
         if "manage_applications" in perms:
             action_html = f"""<form method='post'><input type='hidden' name='application_id' value='{a['id']}'><textarea name='owner_notes' placeholder='Owner notes'>{html.escape(a['owner_notes'] or '')}</textarea><button name='action' value='review'>Review</button> <button name='action' value='approve'>Approve</button> <button class='warn' name='action' value='needs_info'>Need Info</button> <button class='danger' name='action' value='deny'>Deny</button></form>"""
         rows.append(f"""<tr><td><b>#{a['id']} {html.escape(a['full_name'] or '')}</b><br><span class='badge'>{html.escape(a['status'] or '')}</span><br><span class='muted'>User: {html.escape(a['requested_username'] or '')}</span></td><td>{html.escape(a['phone'] or '')}<br>{html.escape(a['email'] or '')}<br><span class='muted'>{html.escape(a['address'] or '')}</span></td><td>{html.escape(a['skills'] or '')}<br><span class='muted'>Rate: {money(a['preferred_rate'])} {html.escape(a['rate_type'] or '')}</span></td><td>{html.escape(a['insurance_employment_classification'] or '')}<br><span class='muted'>DL: {html.escape(a['insurance_driver_license_state'] or '')} {html.escape(a['insurance_driver_license_number'] or '')}</span><br>W-9: {html.escape(a['w9_status'] or '')}<br>ID: {html.escape(a['id_document_status'] or '')}</td><td>{html.escape(a['request_ip'] or '')}<br><span class='muted'>{html.escape((a['request_user_agent'] or '')[:60])}</span></td><td>{action_html}</td></tr>""")
-    body = f"""<div class='card'><h2>Worker Application Owner Review</h2><p>Share this public application link with potential workers. They do not need to install the program:</p><p><input value='{html.escape(public_link)}' readonly onclick='this.select()'></p><p><a class='btn' href='{html.escape(public_link)}' target='_blank'>Open Application Form</a> <a class='btn btn2' href='/applications/export'>Export Applications CSV</a> <a class='btn btn2' href='/admin'>Admin Accounts</a></p><p class='muted'>Applications are separate from login accounts. Approval here means owner onboarding approval; login access still stays under admin control.</p></div><div class='card'><h2>Applications</h2><table><tr><th>Applicant</th><th>Contact</th><th>Work Info</th><th>Insurance / Onboarding</th><th>Source</th><th>Owner Review</th></tr>{''.join(rows)}</table></div>"""
+    from app.application_notifications import get_owner_email
+
+    owner_email = get_owner_email(conn)
+    pending = conn.execute("SELECT COUNT(*) FROM job_applications WHERE status IN ('Pending Owner Review','Under Owner Review','Needs More Information')").fetchone()[0]
+    body = f"""<div class='card'><h2>Worker Applications — Owner Review Queue</h2>
+    <p>New applications email <b>{html.escape(owner_email)}</b> automatically. Applicants receive email when you update status here.</p>
+    <p class='muted'>Pending / in review: <b>{pending}</b> | Copies also saved to <code>data/application_email_outbox/</code> and Dropbox <code>03_BUSINESS_ADMIN/Job_Application_Inbox/</code></p>
+    <p>Share this public link (no install needed):</p><p><input value='{html.escape(public_link)}' readonly onclick='this.select()'></p>
+    <p><a class='btn' href='{html.escape(public_link)}' target='_blank'>Open Application Form</a> <a class='btn btn2' href='/applications/export'>Export CSV</a> <a class='btn btn2' href='/admin'>Admin</a></p>
+    <p class='muted'>Set <code>JRC_SMTP_USER</code> + <code>JRC_SMTP_PASSWORD</code> (Outlook app password) for live email send. Without SMTP, inbox file copies are still created every submit.</p></div>
+    <div class='card'><h2>Applications</h2><table><tr><th>Applicant</th><th>Contact</th><th>Work Info</th><th>Insurance / Onboarding</th><th>Source</th><th>Owner Review</th></tr>{''.join(rows)}</table></div>"""
     return layout("Applications", body, "applications")
 @app.route("/applications/export")
 @login_required("view_applications")
@@ -3194,7 +3988,11 @@ def applications_export():
 @app.route("/customer")
 @login_required("customer_portal")
 def customer_home():
-    return redirect(url_for("dashboard"))
+    user = current_user()
+    role = normalize_role_for_session(user["role"] if user else "")
+    if role != "customer":
+        return redirect(url_for("dashboard"))
+    return dashboard()
 def ensure_customer_profile_for_current_user():
     user = current_user()
     row = db().execute("SELECT * FROM customer_user_profiles WHERE user_id=?", (user["id"],)).fetchone()
@@ -3410,7 +4208,13 @@ def security_audit_run():
 def health():
     rows = db().execute("SELECT * FROM health_events ORDER BY id DESC LIMIT 100").fetchall()
     trs = ''.join(f"<tr><td>{html.escape(r['event_time'])}</td><td><span class='badge {'ok' if r['level']=='OK' else 'yellow' if r['level'] in ['WARN','FIXED'] else 'red'}'>{html.escape(r['level'])}</span></td><td>{html.escape(r['component'])}</td><td>{html.escape(r['message'])}</td></tr>" for r in rows)
-    body = f"""<div class="card"><h2>Automatic Troubleshooting</h2><p><a class="btn" href="/health/run">Run Health Check and Auto-Fix Safe Issues</a> <a class="btn btn2" href="/backup">Create Backup ZIP</a></p></div><div class="card"><h2>Recent Health Events</h2><table><tr><th>Time</th><th>Level</th><th>Component</th><th>Message</th></tr>{trs}</table></div>"""
+    body = f"""<div class="card"><h2>Automatic Troubleshooting</h2>
+    <p><a class="btn" href="/health/run">Run Health Check and Auto-Fix Safe Issues</a>
+    <a class="btn btn2" href="/backup">Create Backup ZIP</a>
+    <a class="btn btn2" href="/admin/troubleshooter">Full Troubleshooter</a>
+    <a class="btn btn2" href="/admin">Admin Command Center</a></p>
+    <form method="post" action="/admin/run-auto-repair" style="display:inline"><button type="submit">Run Full Auto-Repair</button></form>
+    <p class="muted">Full troubleshooter covers launchers, database, shortcuts, host, Densus, pipeline, and health with safe automatic repairs.</p></div><div class="card"><h2>Recent Health Events</h2><table><tr><th>Time</th><th>Level</th><th>Component</th><th>Message</th></tr>{trs}</table></div>"""
     return layout("Troubleshooting", body, "health")
 @app.route("/health/run")
 @login_required("audit")
@@ -3424,16 +4228,80 @@ def health_run():
 def backup():
     BACKUP_DIR.mkdir(exist_ok=True)
     out = BACKUP_DIR / f"J_and_R_Construction_Manager_Backup_{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}.zip"
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        for folder in [DATA_DIR, EXPORT_DIR, EVIDENCE_DIR, CHATGPT_IMPORTS_DIR]:
-            if folder.exists():
-                for p in folder.rglob("*"):
-                    if p.is_file():
-                        z.write(p, p.relative_to(BASE_DIR))
-        manifest = f"{APP_NAME} backup\nCreated: {now_iso()}\nOwner: {OWNER}\nBusiness: {BUSINESS_NAME}\n"
-        z.writestr("BACKUP_MANIFEST.txt", manifest)
+    from app.dropbox_business import build_backup_zip, sync_backup_to_dropbox
+    build_backup_zip(out)
     log_event("Backup", f"Created backup {out.name}")
+    try:
+        ok, msg, _ = sync_backup_to_dropbox(db(), BASE_DIR)
+        if ok:
+            flash(f"Backup created and pushed to Dropbox: {msg}", "success")
+        else:
+            flash(f"Local backup created. Dropbox: {msg}", "warning")
+    except Exception as exc:
+        flash(f"Local backup created. Dropbox sync skipped: {exc}", "warning")
     return send_file(out, as_attachment=True)
+
+@app.route("/admin/dropbox", methods=["GET", "POST"])
+@login_required("view_admin")
+def admin_dropbox():
+    from app.dropbox_business import (
+        discover_dropbox_presets,
+        ensure_dropbox_file_source,
+        get_dropbox_folder,
+        push_business_exports_to_dropbox,
+        run_dropbox_live_check,
+        set_setting,
+        sync_backup_to_dropbox,
+    )
+    conn = db()
+    if request.method == "POST":
+        action = request.form.get("action", "")
+        if action == "save_folder":
+            set_setting(conn, "dropbox_folder", request.form.get("dropbox_folder", "").strip())
+            ensure_dropbox_file_source(conn)
+            flash("Dropbox business folder saved and registered as file source.", "success")
+        elif action == "sync_backup":
+            ok, msg, _ = sync_backup_to_dropbox(conn, BASE_DIR)
+            flash(msg, "success" if ok else "error")
+        elif action == "mirror_exports":
+            count, msg = push_business_exports_to_dropbox(conn)
+            flash(msg, "success")
+        elif action == "run_check":
+            report = run_dropbox_live_check(conn, BASE_DIR)
+            EXPORT_DIR.mkdir(exist_ok=True)
+            (EXPORT_DIR / "JRC_Dropbox_Live_Check.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+            flash("Dropbox live check complete — see exports/JRC_Dropbox_Live_Check.json", "success" if report.get("ok") else "warning")
+        return redirect(url_for("admin_dropbox"))
+    folder = get_dropbox_folder(conn)
+    presets = discover_dropbox_presets()
+    preset_opts = "".join(f"<option value='{html.escape(str(p))}'>{html.escape(name)}</option>" for name, p in presets)
+    last_backup = get_app_setting("dropbox_last_backup", "Never")
+    body = f"""
+    <div class='card'><h2>Dropbox Business Backup Source</h2>
+    <p class='muted'>Sensitive business files, database backups, and exports are pushed to your local Dropbox-synced folder.
+    Dropbox Desktop must be installed and syncing. SQLite is backed up — not live-shared for simultaneous edits.</p>
+    <form method='post'><input type='hidden' name='action' value='save_folder'>
+    <p><label>Dropbox business folder</label><input name='dropbox_folder' value='{html.escape(folder)}' placeholder='C:\\Users\\...\\Dropbox\\J and R Construction'></p>
+    <p><label>Quick pick preset</label><select onchange="document.querySelector('[name=dropbox_folder]').value=this.value">{preset_opts}</select></p>
+    <button>Save Folder &amp; Register Source</button></form></div>
+    <div class='card'><h2>Actions</h2>
+    <form method='post' style='display:inline'><input type='hidden' name='action' value='sync_backup'><button>Push Sensitive Backup to Dropbox</button></form>
+    <form method='post' style='display:inline'><input type='hidden' name='action' value='mirror_exports'><button class='btn2'>Mirror Exports to Dropbox</button></form>
+    <form method='post' style='display:inline'><input type='hidden' name='action' value='run_check'><button class='btn2'>Run Dropbox Live Check</button></form>
+    <p class='muted'>Last Dropbox backup: {html.escape(last_backup)}</p></div>
+    <div class='card'><h2>Live Test</h2><ol>
+    <li>Confirm Dropbox Desktop is running and green checkmark on your business folder.</li>
+    <li>Save folder above → Run Dropbox Live Check → all checks OK.</li>
+    <li>Push Sensitive Backup → verify ZIP appears in Dropbox under JRC-Sensitive-Backups.</li>
+    <li>Open File Explorer → Refresh Sources → confirm Dropbox files index.</li></ol></div>
+    """
+    return layout("Dropbox Business", body, "admin")
+
+@app.route("/api/dropbox/status")
+@login_required("view_admin")
+def api_dropbox_status():
+    from app.dropbox_business import run_dropbox_live_check
+    return jsonify(run_dropbox_live_check(db(), BASE_DIR))
 @app.route("/mobile/ping")
 def mobile_ping():
     """Public lightweight phone/LAN connection test."""
@@ -3481,11 +4349,56 @@ def api_connection():
         "mobile_url": f"http://{get_lan_ip()}:{port}/mobile",
         "connect_url": f"http://{get_lan_ip()}:{port}/connect",
     })
+@app.route("/api/local-host-admin")
+def api_local_host_admin():
+    """Local-only admin status for Start Center monitor (no browser login required on owner PC)."""
+    if client_ip() not in ("127.0.0.1", "::1"):
+        abort(403)
+    cleanup_stale_sessions()
+    online_cut = (dt.datetime.now() - dt.timedelta(minutes=15)).isoformat(timespec="seconds")
+    rows = db().execute(
+        "SELECT session_id, username, role, ip_address, login_time, last_seen, active, revoked FROM online_sessions WHERE active=1 AND revoked=0 AND last_seen >= ? ORDER BY last_seen DESC",
+        (online_cut,),
+    ).fetchall()
+    port = int(os.environ.get("JRC_PORT", "8765"))
+    return jsonify({
+        "status": "ok",
+        "app": APP_NAME,
+        "version": APP_VERSION,
+        "mode": "public" if PUBLIC_HOST_MODE else "local_lan",
+        "port": port,
+        "lan_ip": get_lan_ip(),
+        "session_timeout_minutes": SESSION_TIMEOUT_MINUTES,
+        "active_sessions": len(rows),
+        "sessions": [dict(r) for r in rows],
+        "cloud_url": get_app_setting("remote_public_base_url", ""),
+        "last_boot": get_app_setting("last_server_boot", ""),
+        "last_shutdown": get_app_setting("last_server_shutdown", ""),
+    })
+
+
+@app.route("/api/admin/revoke/<sid>", methods=["POST"])
+@login_required("view_admin")
+def api_revoke_session(sid: str):
+    db().execute("UPDATE online_sessions SET revoked=1, active=0, revoke_reason=? WHERE session_id=?", (f"Revoked by {session.get('username')}", sid))
+    db().commit()
+    log_event("Admin", f"Revoked session {sid}")
+    return jsonify({"ok": True, "session_id": sid})
+
+
 @app.route("/api/health")
 def api_health():
     return jsonify({"app": APP_NAME, "version": APP_VERSION, "status": "ok", "time": now_iso(), "lan_ip": get_lan_ip(), "mode": "public" if PUBLIC_HOST_MODE else "local_lan", "session_timeout_minutes": SESSION_TIMEOUT_MINUTES})
 def main():
     init_db()
+    try:
+        from app.server_lifecycle import on_server_startup, register_shutdown_handlers
+        from app.host_process import write_host_pid
+        on_server_startup()
+        register_shutdown_handlers()
+        write_host_pid(os.getpid())
+    except Exception:
+        pass
     host = "0.0.0.0"
     preferred = int(os.environ.get("JRC_PORT", "8765"))
     try:
@@ -3575,21 +4488,77 @@ def customer_request_final_check_run():
     return layout("Customer Request Final Check Report", f"<div class='card'><h2>Customer Request Final Check Report</h2><pre style='white-space:pre-wrap'>{out}</pre></div>", "health")
 
 @app.route("/live-deployment-readiness")
-@login_required()
+@login_required("view_admin")
 def live_deployment_readiness_page():
-    require_permission("view_admin")
     body = """<div class='card'><h2>v6.3 Local Login + Host Repair</h2><p>This tool checks cloud deployment files, role dashboards, security markers, remembered-device policy, customer/external separation, Dropbox/file-source markers, and repair scripts. It writes reports into exports.</p><p><a class='btn' href='/live-deployment-readiness/run'>Run Live Deployment Readiness</a></p></div>"""
     return layout("Live Deployment Readiness", body, "admin")
 
 @app.route("/live-deployment-readiness/run")
-@login_required()
+@login_required("view_admin")
 def live_deployment_readiness_run():
-    require_permission("view_admin")
     import subprocess, sys
     script = BASE_DIR / "app" / "live_deployment_readiness.py"
     result = subprocess.run([sys.executable, str(script)], cwd=str(BASE_DIR), text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=120)
     body = "<div class='card'><h2>Live Deployment Readiness Result</h2><pre>" + html.escape(result.stdout[-8000:]) + "</pre><p>Full report saved in exports.</p></div>"
     return layout("Live Deployment Readiness", body, "admin")
+
+try:
+    from app.admin_db_editor import register_admin_db_routes
+    register_admin_db_routes(app, layout, login_required, log_event, db, now_iso)
+except Exception as _db_route_exc:
+    print(f"Warning: Admin database routes not loaded: {_db_route_exc}", file=sys.stderr)
+
+try:
+    from app.business_routes import register_business_routes
+    register_business_routes(app, layout, login_required, log_event, db, money, now_iso, parse_float)
+except Exception as _biz_route_exc:
+    print(f"Warning: Business routes not loaded: {_biz_route_exc}", file=sys.stderr)
+
+try:
+    from app.densus_routes import register_densus_routes
+    register_densus_routes(
+        app,
+        layout,
+        login_required,
+        log_event,
+        client_ip,
+        db,
+        now_iso,
+        install_dir=BASE_DIR,
+    )
+except Exception as _densus_route_exc:
+    print(f"Warning: Densus admin routes not loaded: {_densus_route_exc}", file=sys.stderr)
+
+try:
+    from app.payment_routes import register_payment_routes
+    register_payment_routes(app, db, layout, login_required, now_iso)
+except Exception as _payment_route_exc:
+    print(f"Warning: Payment routes not loaded: {_payment_route_exc}", file=sys.stderr)
+
+try:
+    from app.emergency_access import _load_local_secrets
+    _load_local_secrets()
+    from app.emergency_routes import register_emergency_routes
+    register_emergency_routes(app, db, layout, now_iso, client_ip, log_security_event, DEFAULT_ADMIN_USERNAME)
+except Exception as _emergency_route_exc:
+    print(f"Warning: Emergency routes not loaded: {_emergency_route_exc}", file=sys.stderr)
+
+try:
+    from app.live_chat import register_live_chat_routes
+
+    register_live_chat_routes(
+        app,
+        db_fn=db,
+        login_required=login_required,
+        layout=layout,
+        current_user=current_user,
+        is_admin_role=lambda r: normalize_role_for_session(r) == "admin",
+        log_event=log_event,
+        normalize_role=normalize_role_for_session,
+        is_customer_or_external=is_customer_or_external,
+    )
+except Exception as _live_chat_exc:
+    print(f"Warning: Live chat routes not loaded: {_live_chat_exc}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()

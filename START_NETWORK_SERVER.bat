@@ -10,5 +10,5 @@ echo.
 echo Starting J and R Construction Manager Network Server...
 echo Leave this window open while other users are connected.
 echo.
-".venv\Scripts\python.exe" app\network_server.py
+".venv\Scripts\python.exe" -m app.network_server
 pause

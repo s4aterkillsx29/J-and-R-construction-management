@@ -30,8 +30,42 @@ def safe_db_log(level, component, message):
         pass
 
 
+def check_platform(results):
+    try:
+        from app.win11_compat import enable_win_dpi_awareness, is_windows_11_or_newer, platform_summary
+        enable_win_dpi_awareness()
+        add(results, "OK", "Windows", platform_summary())
+        if is_windows_11_or_newer():
+            add(results, "OK", "Windows 11", "Windows 11 or newer detected — DPI-aware UI enabled.")
+        else:
+            add(results, "INFO", "Windows", "Running on Windows 10 or earlier — compatibility mode active.")
+    except Exception as exc:
+        add(results, "WARN", "Windows", f"Platform check skipped: {exc}")
+
+
+def check_runtime_env(results):
+    venv_py = BASE_DIR / ".venv" / "Scripts" / "python.exe"
+    if venv_py.exists():
+        add(results, "OK", "Runtime", f"Virtual environment ready: {venv_py}")
+    else:
+        add(results, "ERROR", "Runtime", "Python virtual environment missing. Run setup_runtime_env.bat or reinstall.")
+    try:
+        import flask  # noqa: F401
+        add(results, "OK", "Runtime", "Flask is installed for shared host and web dashboard.")
+    except Exception:
+        add(results, "ERROR", "Runtime", "Flask missing. Run setup_runtime_env.bat from the install folder.")
+
+
 def repair_schema(results):
     """Safe automatic repair for tables/columns used by shared sessions, account requests, payroll, invoices, and job costing."""
+    try:
+        from app.schema_migrations import ensure_all_shared_schemas
+        if DB.exists():
+            with sqlite3.connect(DB) as conn:
+                ensure_all_shared_schemas(conn)
+            add(results, "FIXED", "Schema Migration", "Unified file_sources and shared schema columns verified.")
+    except Exception as exc:
+        add(results, "WARN", "Schema Migration", f"Could not run unified schema migration: {exc}")
     if not DB.exists():
         return
     try:
@@ -90,7 +124,16 @@ def repair_schema(results):
 def run():
     results=[]
     add(results,"INFO","Version", VERSION_FILE.read_text(encoding='utf-8').strip() if VERSION_FILE.exists() else "Version file missing")
+    check_platform(results)
+    check_runtime_env(results)
     repair_schema(results)
+    try:
+        from app.data_pipeline import verify_pipelines, ensure_master_storage_layout
+        ensure_master_storage_layout()
+        for level, comp, msg in verify_pipelines():
+            add(results, level if level in ("OK", "ERROR", "WARN", "INFO", "FIXED") else "INFO", comp, msg)
+    except Exception as exc:
+        add(results, "WARN", "Data Pipeline", str(exc))
     for d in REQUIRED_DIRS:
         p=BASE_DIR/d
         if not p.exists():

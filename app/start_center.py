@@ -11,6 +11,12 @@ Design goals:
 """
 from __future__ import annotations
 
+try:
+    from app.win11_compat import enable_win_dpi_awareness
+    enable_win_dpi_awareness()
+except Exception:
+    pass
+
 import os
 import json
 import socket
@@ -39,7 +45,7 @@ except Exception:
     is_jrc_server = None
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.2 Unified Schema Reliable Business Edition"
+APP_VERSION = "7.12.0 Secure Access & Account Verification Edition"
 BUSINESS = "J & R Construction"
 OWNER = "Jacob Cosentino"
 DEFAULT_PORT = int(os.environ.get("JRC_PORT", "8765"))
@@ -74,7 +80,13 @@ def save_saved_port(port: int, note: str = "") -> None:
             "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             "note": note or "Local host port used by JRC Manager Start Center."
         }
-        LOCAL_HOST_SETTINGS_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        try:
+            from app.host_laptop_roles import load_host_settings, save_host_settings
+            merged = load_host_settings(BASE_DIR)
+            merged.update(payload)
+            save_host_settings(merged, BASE_DIR)
+        except Exception:
+            LOCAL_HOST_SETTINGS_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     except Exception:
         pass
 
@@ -87,19 +99,19 @@ if theme:
     ACCENT, INFO, WARN, DANGER = theme.ACCENT, theme.INFO, theme.WARN, theme.DANGER
     BUTTON, BUTTON_GREEN = theme.BUTTON, theme.ACCENT
 else:
-    BG = "#0a0f1c"
-    PANEL = "#111827"
-    CARD = "#151c2e"
-    BORDER = "#334155"
-    TEXT = "#f1f5f9"
-    MUTED = "#94a3b8"
-    DIM = "#64748b"
-    ACCENT = "#34d399"
-    INFO = "#60a5fa"
-    WARN = "#fbbf24"
-    DANGER = "#f87171"
-    BUTTON = "#1e293b"
-    BUTTON_GREEN = "#34d399"
+    BG = "#000000"
+    PANEL = "#0a0a0a"
+    CARD = "#111111"
+    BORDER = "#1f2937"
+    TEXT = "#f5f5f5"
+    MUTED = "#a3a3a3"
+    DIM = "#737373"
+    ACCENT = "#84cc16"
+    INFO = "#a3e635"
+    WARN = "#facc15"
+    DANGER = "#ef4444"
+    BUTTON = "#171717"
+    BUTTON_GREEN = "#84cc16"
 
 
 def stamp() -> str:
@@ -292,6 +304,12 @@ def launch_hidden(args: list[str], log_name: str, env: dict[str, str] | None = N
             creationflags=flags,
             env=merged_env,
         )
+        if any("network_server" in str(a) for a in args):
+            try:
+                from app.host_process import write_host_pid
+                write_host_pid(proc.pid)
+            except Exception:
+                pass
         return proc, log_path, ""
     except Exception as exc:
         with open(log_path, "a", encoding="utf-8", errors="replace") as f:
@@ -326,14 +344,18 @@ def get_cloud_base_url() -> str:
 
 
 def set_cloud_base_url(value: str) -> str:
-    value = normalize_base_url(value)
-    payload = {
-        "cloud_base_url": value,
-        "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "note": "Cloud URL is used by Start Center when local host is not running. Remote users can only connect when this cloud/tunnel/VPN URL points to a running hosted JRC server."
-    }
-    CLOUD_CONNECT_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    return value
+    try:
+        from app.cloud_url_sync import sync_cloud_url
+        return sync_cloud_url(value)
+    except Exception:
+        value = normalize_base_url(value)
+        payload = {
+            "cloud_base_url": value,
+            "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "note": "Cloud URL is used by Start Center when local host is not running. Remote users can only connect when this cloud/tunnel/VPN URL points to a running hosted JRC server."
+        }
+        CLOUD_CONNECT_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return value
 
 
 def link_set(base: str) -> dict[str, str]:
@@ -469,12 +491,215 @@ class HelpWindow(tk.Toplevel):
         txt.configure(state="disabled")
 
 
+def read_local_sessions() -> list[dict]:
+    db_path = BASE_DIR / "data" / "jr_business.db"
+    if not db_path.exists():
+        return []
+    try:
+        import sqlite3
+        cutoff = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 15 * 60))
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT session_id, username, role, ip_address, login_time, last_seen FROM online_sessions WHERE active=1 AND revoked=0 AND last_seen >= ? ORDER BY last_seen DESC",
+                (cutoff,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+    except Exception:
+        return []
+
+
+def revoke_local_session(session_id: str) -> bool:
+    db_path = BASE_DIR / "data" / "jr_business.db"
+    try:
+        import sqlite3
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "UPDATE online_sessions SET revoked=1, active=0, revoke_reason=? WHERE session_id=?",
+                ("Revoked from Start Center admin monitor", session_id),
+            )
+            conn.commit()
+        return True
+    except Exception:
+        return False
+
+
+class AdminServerPanel(tk.Frame):
+    """Docked admin strip at top of Start Center — does not cover action cards."""
+
+    def __init__(self, parent: tk.Misc, start_center: "StartCenter"):
+        super().__init__(parent, bg=PANEL, highlightthickness=1, highlightbackground=BORDER)
+        self.parent = start_center
+        self.expanded = False
+        self._sessions: list[dict] = []
+        self._wrap = 520
+        self.status_var = tk.StringVar(value="Server: checking...")
+
+        head = tk.Frame(self, bg=PANEL)
+        head.pack(fill="x", padx=10, pady=(8, 4))
+        tk.Label(head, text="Admin Panel", bg=PANEL, fg=ACCENT, font=("Segoe UI", 10, "bold")).pack(side="left")
+        self.toggle_btn = tk.Button(
+            head, text="+", relief="flat", bg=PANEL, fg=MUTED, command=self.toggle, padx=8, cursor="hand2"
+        )
+        self.toggle_btn.pack(side="right")
+        self.status_lbl = tk.Label(
+            head,
+            textvariable=self.status_var,
+            bg=PANEL,
+            fg=TEXT,
+            font=("Segoe UI", 9),
+            wraplength=self._wrap,
+            justify="left",
+            anchor="w",
+        )
+        self.status_lbl.pack(side="left", fill="x", expand=True, padx=(10, 8))
+
+        quick = tk.Frame(head, bg=PANEL)
+        quick.pack(side="right", padx=(0, 4))
+        for label, cmd in (
+            ("Start", self.parent.start_host),
+            ("Stop", self.parent.stop_host),
+            ("Admin", self.open_admin_web),
+            ("Accounts", self.open_admin_accounts),
+        ):
+            tk.Button(
+                quick,
+                text=label,
+                command=cmd,
+                bg=BUTTON,
+                fg=TEXT,
+                relief="flat",
+                padx=8,
+                pady=3,
+                font=("Segoe UI", 8, "bold"),
+                cursor="hand2",
+            ).pack(side="left", padx=2)
+
+        self.body = tk.Frame(self, bg=PANEL)
+        self.session_box = tk.Listbox(
+            self.body,
+            height=3,
+            bg="#0f172a",
+            fg=TEXT,
+            selectbackground=BUTTON,
+            font=("Segoe UI", 8),
+            relief="flat",
+            highlightthickness=0,
+        )
+        self.session_box.pack(fill="x", padx=10, pady=(0, 6))
+        btns = tk.Frame(self.body, bg=PANEL)
+        btns.pack(fill="x", padx=8, pady=(0, 8))
+        for label, cmd in (
+            ("Mobile Links", self.parent.mobile_links),
+            ("Account DB", self.open_admin_accounts),
+            ("Host Monitor", self.parent.show_host_monitor),
+            ("Admin Web", self.open_admin_web),
+            ("End Session", self.revoke_selected),
+        ):
+            tk.Button(
+                btns,
+                text=label,
+                command=cmd,
+                bg=BUTTON,
+                fg=TEXT,
+                relief="flat",
+                padx=8,
+                pady=4,
+                font=("Segoe UI", 8),
+                cursor="hand2",
+            ).pack(side="left", padx=2, pady=2)
+
+        self.after(900, self.refresh)
+        self.after(5000, self._loop)
+
+    def set_wraplength(self, width: int) -> None:
+        self._wrap = max(180, width)
+        self.status_lbl.configure(wraplength=self._wrap)
+
+    def toggle(self):
+        self.expanded = not self.expanded
+        if self.expanded:
+            self.body.pack(fill="x")
+            self.toggle_btn.configure(text="−")
+        else:
+            self.body.pack_forget()
+            self.toggle_btn.configure(text="+")
+
+    def _loop(self):
+        try:
+            if self.winfo_exists():
+                self.refresh()
+                self.after(5000, self._loop)
+        except Exception:
+            pass
+
+    def refresh(self):
+        running = is_host_running()
+        cloud = get_cloud_base_url()
+        sessions: list[dict] = []
+        if running:
+            try:
+                with urllib.request.urlopen(urls()["local"] + "/api/local-host-admin", timeout=1.0) as resp:
+                    data = json.loads(resp.read().decode("utf-8", "ignore"))
+                    sessions = data.get("sessions") or []
+            except Exception:
+                sessions = read_local_sessions()
+        else:
+            sessions = read_local_sessions()
+        self._sessions = sessions
+        mode = "CLOUD" if cloud and not running else ("RUNNING" if running else "STOPPED")
+        self.status_var.set(
+            f"Server: {mode} | Port {PORT} | Active users: {len(sessions)}\n"
+            f"LAN: {lan_ip()} | Cloud: {cloud or 'not set'}"
+        )
+        self.session_box.delete(0, "end")
+        for s in sessions[:12]:
+            self.session_box.insert("end", f"{s.get('username','?')} ({s.get('role','')}) — {s.get('ip_address','')}")
+
+    def open_admin_web(self):
+        if is_host_running():
+            webbrowser.open(urls()["local"] + "/admin")
+        else:
+            messagebox.showinfo("Start Host First", "Start the local host, then open the web admin panel.")
+
+    def open_admin_accounts(self):
+        self.parent.open_admin_accounts()
+
+    def revoke_selected(self):
+        sel = self.session_box.curselection()
+        if not sel:
+            messagebox.showinfo("Select Session", "Select a user session, then click End Session.")
+            return
+        idx = sel[0]
+        if idx >= len(self._sessions):
+            return
+        sid = self._sessions[idx].get("session_id", "")
+        if not sid:
+            return
+        if not messagebox.askyesno("End Session", f"End session for {self._sessions[idx].get('username', 'user')}?"):
+            return
+        if is_host_running():
+            try:
+                req = urllib.request.Request(urls()["local"] + f"/api/admin/revoke/{sid}", method="POST")
+                urllib.request.urlopen(req, timeout=2.0)
+            except Exception:
+                revoke_local_session(sid)
+        else:
+            revoke_local_session(sid)
+        self.refresh()
+        self.parent.set_status("Session ended by admin.")
+
+
 class StartCenter(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(APP_NAME)
         self.geometry("1080x780")
-        self.minsize(920, 680)
+        self.minsize(640, 480)
+        try:
+            self.state("zoomed")
+        except Exception:
+            pass
         self.configure(bg=BG)
         self.status_var = tk.StringVar(value="Ready — choose a section on the left, then Open an action.")
         self.host_monitor_window = None
@@ -491,35 +716,83 @@ class StartCenter(tk.Tk):
             except Exception:
                 pass
         self._sections = self._define_sections()
+        if not self._admin_developer_pc():
+            self._sections = {k: v for k, v in self._sections.items() if k != "developer"}
         self._build()
         self._show_section("daily")
         self.bind("<Configure>", self._on_resize)
+        self._wheel_bound = False
+        self._canvas.bind("<Enter>", self._bind_wheel)
+        self._canvas.bind("<Leave>", self._unbind_wheel)
+        try:
+            from app.data_pipeline import ensure_master_storage_layout, run_master_pipeline_maintenance
+            threading.Thread(target=lambda: run_master_pipeline_maintenance(BASE_DIR / "data" / "jr_business.db"), daemon=True, name="jrc-pipeline").start()
+            ensure_master_storage_layout()
+        except Exception:
+            pass
+        self.after(700, self._run_startup_setup_if_needed)
+        self.after(1200, self._show_dedicated_host_welcome)
 
     def _define_sections(self):
         return {
-            "daily": ("Daily work", [
-                ("Open Office", "Jobs, invoices, payroll, expenses, files — full desktop business app.", self.open_office, "primary"),
-                ("Web Dashboard", "Modern glass UI in your browser — dashboards, mobile view, and customer portal.", self.open_web_dashboard, "info"),
-                ("Secure Login", "Local setup login without starting the network host.", self.open_login_first, "secondary"),
-                ("Open Dashboard", "Browser dashboard after you sign in — local or cloud.", self.open_dashboard, "info"),
+            "daily": ("Home", [
+                ("Open Dashboard", "Your role-based home — all features in one place.", self.open_dashboard, "primary"),
+                ("Open Office", "Desktop jobs, invoices, payroll, files.", self.open_office, "info"),
+                ("Web Dashboard", "Browser UI — same login, unified dashboard.", self.open_web_dashboard, "info"),
             ]),
             "hosting": ("Hosting & mobile", [
-                ("Start Local Host", "Run the web server for phones and LAN users on trusted Wi-Fi or VPN.", self.start_host, "info"),
+                ("Start Host Server (Easy)", "Dedicated laptop: one window — keep open for 24/7 LAN host.", self.start_dedicated_host_easy, "primary"),
+                ("Start Local Host", "Run the web server on THIS laptop (office or dedicated host).", self.start_host, "info"),
+                ("Stop Local Host", "Safely stop the server — data is checkpointed and backed up.", self.stop_host, "warn"),
+                ("Connect to Remote Host", "Open browser to the other laptop's host (when it is running 24/7).", self.connect_remote_host, "primary"),
+                ("Host Laptop Setup", "Mark this PC as Office or Dedicated 24/7 host + set remote URL.", self.host_laptop_setup_wizard, "info"),
                 ("Host Monitor", "Live status for login readiness, health checks, and shareable links.", self.show_host_monitor, "secondary"),
                 ("Mobile Links", "Connection test, mobile app, worker signup, and job application URLs.", self.mobile_links, "secondary"),
                 ("Cloud Access", "Remote URL when this PC is off — Render, Railway, Fly.io, or tunnel.", self.cloud_options, "info"),
             ]),
             "setup": ("Setup & verify", [
+                ("Install / Update", "Full owner or worker install wizard — use after download or on a new PC.", self.run_install_or_update, "primary"),
+                ("First Setup / Login", "Secure local login + post-install wizard (same as after install).", self.first_setup_login, "info"),
+                ("Background Troubleshooter", "Automated system check, host repair, payments schema, shortcuts — full report.", self.run_background_troubleshooter, "warn"),
                 ("Self Setup + Verify", "Post-login checks; writes a report to exports and logs.", self.self_setup_verify, "warn"),
                 ("Primary Live Server", "24/7 cloud deployment checklist and readiness tools.", self.primary_live_server, "primary"),
                 ("Auto Repair Host", "Fix dependencies, ports, and common host issues automatically.", self.auto_host_repair, "warn"),
             ]),
+            "admin": ("Admin & security", [
+                ("Admin Web Panel", "Users, sessions, devices — requires host running.", self.open_admin_web_panel, "primary"),
+                ("Account Database Editor", "Users, roles, permission overrides.", self.open_admin_accounts, "primary"),
+                ("All Database Tables", "Browse/edit SQLite tables.", self.open_admin_database, "info"),
+                ("Owner Security Status", "Default password and owner setup.", self.pre_install_security_check, "warn"),
+            ]),
             "tools": ("Tools & files", [
+                ("Print File to A42", "Print a PDF or text file to the Phoswift label printer (USB).", self.print_local_file, "primary"),
+                ("Open Dropbox Business", "Open JRC business files in File Explorer — no app required.", self.open_dropbox_business, "secondary"),
                 ("Worker Forms", "Account signup, customer request, and job application links.", self.worker_forms, "secondary"),
                 ("Tools / Repair", "System check, host test, firewall rule, and final verify.", self.tools_window, "warn"),
                 ("Files / Logs", "Exports, backups, logs, program folder, and help documents.", self.files_window, "secondary"),
             ]),
+            "developer": ("Developer & admin", [
+                ("Full Live Update", "Sync files, verify packages, run all checks, log and save LIVE_UPDATE_REPORT.txt.", self.run_live_full_update, "primary"),
+                ("Office Records Sync", "Import JRC job register + payroll from dropbox-records; merge exports to office CSVs.", self.run_office_records_sync, "primary"),
+                ("Phase Verification", "Run all phase checks; saves PHASE_VERIFICATION_REPORT.txt.", self.run_phase_verification, "info"),
+                ("Developer Tools Console", "Every QA, repair, and admin script — full bells and whistles.", self.developer_tools_window, "info"),
+                ("Account Database Editor", "Users, roles, passwords, sessions — /admin/database/accounts.", self.open_admin_accounts, "primary"),
+                ("All Database Tables", "Browse/edit any business table in SQLite (/admin/database).", self.open_admin_database, "info"),
+                ("Developer Status Report", "File manifest, packages, installer source paths.", self.run_developer_status, "secondary"),
+                ("Run Verify Bundle", "Sync test, emergency, permissions, final verify, system + host checks.", self.run_verify_bundle, "warn"),
+                ("Initialize Install", "Register trusted admin device and install init log.", self.run_initialize_install, "secondary"),
+                ("Seed Emergency Key", "Re-seed owner mastery key (data\\local_secrets.env).", self.seed_emergency_key, "warn"),
+                ("Open Installer Source", "Open the package folder recorded at install time.", self.open_installer_source, "secondary"),
+            ]),
         }
+
+    def _admin_developer_pc(self) -> bool:
+        try:
+            from app.admin_developer_suite import is_admin_developer_pc
+
+            return is_admin_developer_pc(BASE_DIR)
+        except Exception:
+            return True
 
     def set_status(self, msg: str) -> None:
         self.status_var.set(msg)
@@ -535,21 +808,42 @@ class StartCenter(tk.Tk):
         accent.pack(fill="x")
         head_inner = tk.Frame(header, bg=PANEL, padx=22, pady=16)
         head_inner.pack(fill="x")
-        tk.Label(head_inner, text="J & R Construction Manager", fg=TEXT, bg=PANEL, font=("Segoe UI", 26, "bold")).pack(anchor="w")
-        tk.Label(head_inner, text=f"{OWNER}  •  {BUSINESS}", fg=MUTED, bg=PANEL, font=("Segoe UI", 10)).pack(anchor="w", pady=(2, 0))
+        self._head_title = tk.Label(head_inner, text="J & R Construction Manager", fg=TEXT, bg=PANEL, font=("Segoe UI", 26, "bold"))
+        self._head_title.pack(anchor="w")
+        self._head_owner = tk.Label(head_inner, text=f"{OWNER}  •  {BUSINESS}", fg=MUTED, bg=PANEL, font=("Segoe UI", 10))
+        self._head_owner.pack(anchor="w", pady=(2, 0))
         tk.Label(head_inner, text=f"v{APP_VERSION}", fg=DIM, bg=PANEL, font=("Segoe UI", 9)).pack(anchor="w")
-        tk.Label(
+        try:
+            from app.data_pipeline import mode_label as pipeline_mode_label
+            from app.host_laptop_roles import host_role_label
+            pipeline_txt = pipeline_mode_label() + " | " + host_role_label(BASE_DIR)
+        except Exception:
+            pipeline_txt = "Data pipeline: standard local"
+        self._head_pipeline = tk.Label(
+            head_inner, text=pipeline_txt, fg=ACCENT, bg=PANEL, font=("Segoe UI", 9, "bold"), wraplength=900, justify="left"
+        )
+        self._head_pipeline.pack(anchor="w", pady=(4, 0))
+        self._head_sub = tk.Label(
             head_inner,
-            text="Start Center — polished launcher for Office, browser dashboard, and hosting tools.",
+            text="Start Center — Office, browser dashboard, admin panel (top), and hosting tools.",
             fg=INFO,
             bg=PANEL,
             font=("Segoe UI", 10, "bold"),
-        ).pack(anchor="w", pady=(8, 0))
+            wraplength=900,
+            justify="left",
+        )
+        self._head_sub.pack(anchor="w", pady=(8, 0))
+
+        self._admin_dock = tk.Frame(shell, bg=BG)
+        self._admin_dock.pack(fill="x", padx=16, pady=(0, 8))
+        self.admin_panel = AdminServerPanel(self._admin_dock, self)
+        self.admin_panel.pack(fill="x")
 
         body = tk.Frame(shell, bg=BG)
         body.pack(fill="both", expand=True, padx=16, pady=(0, 10))
 
-        sidebar = tk.Frame(body, bg=PANEL, width=theme.SIDEBAR_W if theme else 210, highlightthickness=1, highlightbackground=BORDER)
+        sidebar = tk.Frame(body, bg=PANEL, width=theme.SIDEBAR_W if theme else 170, highlightthickness=1, highlightbackground=BORDER)
+        self._sidebar = sidebar
         sidebar.pack(side="left", fill="y", padx=(0, 12))
         sidebar.pack_propagate(False)
         tk.Label(sidebar, text="MENU", bg=PANEL, fg=DIM, font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=18, pady=(16, 8))
@@ -584,17 +878,33 @@ class StartCenter(tk.Tk):
         scroll.pack(side="right", fill="y", pady=8, padx=(0, 6))
 
         self._canvas.bind("<Configure>", self._sync_canvas_width)
-        self._canvas.bind("<Enter>", lambda e: self._canvas.bind_all("<MouseWheel>", self._on_wheel))
-        self._canvas.bind("<Leave>", lambda e: self._canvas.unbind_all("<MouseWheel>"))
 
         footer = tk.Frame(shell, bg=PANEL, highlightthickness=1, highlightbackground=BORDER, padx=16, pady=10)
         footer.pack(fill="x", padx=16, pady=(0, 14))
-        tk.Label(footer, textvariable=self.status_var, bg=PANEL, fg=MUTED, font=("Segoe UI", 9), wraplength=980, justify="left").pack(anchor="w")
+        self._footer_label = tk.Label(
+            footer, textvariable=self.status_var, bg=PANEL, fg=MUTED, font=("Segoe UI", 9), wraplength=980, justify="left"
+        )
+        self._footer_label.pack(anchor="w")
+
+    def _bind_wheel(self, _event=None):
+        if not self._wheel_bound:
+            self._canvas.bind_all("<MouseWheel>", self._on_wheel)
+            self._wheel_bound = True
+
+    def _unbind_wheel(self, _event=None):
+        if self._wheel_bound:
+            self._canvas.unbind_all("<MouseWheel>")
+            self._wheel_bound = False
 
     def _sync_canvas_width(self, event=None):
         try:
-            self._canvas.itemconfigure(self._canvas_window, width=max(400, event.width - 4))
-            self._content_wrap = max(420, event.width - 140)
+            w = self._canvas.winfo_width()
+            if w <= 1 and event is not None and hasattr(event, "width"):
+                w = event.width
+            if w <= 1:
+                w = max(400, self.winfo_width() - 240)
+            self._canvas.itemconfigure(self._canvas_window, width=max(280, w - 4))
+            self._content_wrap = max(280, w - 120)
         except Exception:
             pass
 
@@ -635,7 +945,26 @@ class StartCenter(tk.Tk):
     def _on_resize(self, event=None):
         if event and event.widget is not self:
             return
-        self._sync_canvas_width(event)
+        self._sync_canvas_width()
+        w = self.winfo_width()
+        h = self.winfo_height()
+        wrap = max(220, w - 320)
+        self._content_wrap = wrap
+        if hasattr(self, "_footer_label"):
+            self._footer_label.configure(wraplength=max(200, w - 48))
+        if hasattr(self, "admin_panel"):
+            self.admin_panel.set_wraplength(max(180, w - 380))
+        if hasattr(self, "_head_title"):
+            size = 18 if w < 820 else 22 if w < 980 else 26
+            self._head_title.configure(font=("Segoe UI", size, "bold"))
+        for attr, wl in (("_head_pipeline", w - 80), ("_head_sub", w - 80)):
+            lbl = getattr(self, attr, None)
+            if lbl:
+                lbl.configure(wraplength=max(240, wl))
+        if hasattr(self, "_sidebar") and w < 760:
+            self._sidebar.configure(width=150)
+        elif hasattr(self, "_sidebar"):
+            self._sidebar.configure(width=theme.SIDEBAR_W if theme else 170)
 
     def _watch_process(self, proc, log_path: Path, name: str, success_hint: str = ""):
         def check():
@@ -662,6 +991,124 @@ class StartCenter(tk.Tk):
             messagebox.showwarning("Could not start", err)
         self._watch_process(proc, log, "Extreme Final Verify", "Extreme Final Verify is running. Report will be saved in exports.")
 
+    def open_admin_web_panel(self):
+        """Start host if needed; admin status stays in the docked top panel (browser opens only for full web UI)."""
+        if not self._require_business_storage("open the admin web panel"):
+            return
+        if is_host_running():
+            webbrowser.open(urls()["local"] + "/admin")
+            self.set_status("Opened web admin in browser. Server status stays in the Admin Panel strip above.")
+            if hasattr(self, "admin_panel"):
+                self.admin_panel.refresh()
+            return
+        if messagebox.askyesno(
+            "Start Host for Admin",
+            "The admin panel runs in your browser after the local host starts.\n\nStart the host now and open Admin?",
+        ):
+            self.start_host()
+
+            def wait_admin():
+                for _ in range(40):
+                    if is_host_running():
+                        webbrowser.open(urls()["local"] + "/admin")
+                        self.set_status("Admin web panel opened.")
+                        if hasattr(self, "admin_panel"):
+                            self.admin_panel.refresh()
+                        return
+                    time.sleep(0.5)
+                messagebox.showwarning("Admin Not Ready", "Local host did not verify login. Run Auto Repair Host, then try again.")
+
+            threading.Thread(target=wait_admin, daemon=True).start()
+
+    def run_install_or_update(self):
+        from app.startup_setup import launch_installer
+
+        self.set_status("Opening Install / Update wizard...")
+        if launch_installer(BASE_DIR):
+            self.set_status("Install / Update wizard opened.")
+        else:
+            messagebox.showwarning(
+                "Installer not found",
+                "Could not find INSTALL_J_AND_R_MANAGER.vbs or install_jr_job_manager_ui.ps1 in the program folder.",
+            )
+
+    def _run_startup_setup_if_needed(self):
+        try:
+            from app.startup_setup import evaluate_setup_state, maybe_run_startup_setup
+
+            action, detail = evaluate_setup_state(BASE_DIR)
+            if action == "ok":
+                return
+            self.set_status(f"Setup needed: {detail}")
+            action, detail = maybe_run_startup_setup(BASE_DIR)
+            if action == "need_installer":
+                self.set_status("Install / Update wizard opened automatically (first-time or incomplete setup).")
+            elif action == "need_first_run":
+                self.set_status("Secure Login and setup wizard opened automatically.")
+            elif action != "ok":
+                self.set_status(f"Setup: {detail}")
+        except Exception as exc:
+            self.set_status(f"Setup check skipped: {exc}")
+
+    def _show_dedicated_host_welcome(self):
+        try:
+            from app.host_laptop_roles import is_dedicated_host_install, load_host_settings
+            if not is_dedicated_host_install(BASE_DIR):
+                return
+            settings = load_host_settings(BASE_DIR)
+            if settings.get("dedicated_host_welcome_shown"):
+                return
+            readme = BASE_DIR / "DEDICATED_HOST_README.txt"
+            if not readme.exists():
+                if messagebox.askyesno(
+                    "Dedicated Host Laptop — First Setup",
+                    "This PC is marked as the dedicated 24/7 host.\n\n"
+                    "Run ONE-TIME setup now?\n"
+                    "(Creates Desktop shortcut + copies office database)\n\n"
+                    "YES = Run SETUP_DEDICATED_HOST_LAPTOP.bat\n"
+                    "NO = I'll set up later",
+                ):
+                    bat = BASE_DIR / "SETUP_DEDICATED_HOST_LAPTOP.bat"
+                    if bat.exists():
+                        subprocess.Popen(["cmd", "/c", str(bat)], cwd=str(BASE_DIR))
+                return
+            if not settings.get("dedicated_host_setup_complete"):
+                return
+            lan = settings.get("dedicated_host_lan_url", urls().get("lan", ""))
+            messagebox.showinfo(
+                "Dedicated Host — Daily Start",
+                "This is your 24/7 host laptop.\n\n"
+                "EASY START:\n"
+                "  Double-click Desktop shortcut:\n"
+                "  START JRC Host Server (24-7)\n\n"
+                f"LAN URL for office/phones:\n  {lan}\n\n"
+                "Local login here: jrc_host\n"
+                "Jacob owner login: ivygrows (from office browser)\n\n"
+                "See DEDICATED_HOST_README.txt in the program folder.",
+            )
+            from app.host_laptop_roles import save_host_settings
+            save_host_settings({"dedicated_host_welcome_shown": True}, BASE_DIR)
+        except Exception:
+            pass
+
+    def start_dedicated_host_easy(self):
+        """Launch START_DEDICATED_HOST_SERVER.bat — simplest daily host start."""
+        bat = BASE_DIR / "START_DEDICATED_HOST_SERVER.bat"
+        setup_bat = BASE_DIR / "SETUP_DEDICATED_HOST_LAPTOP.bat"
+        if not bat.exists():
+            messagebox.showwarning("Missing File", f"Not found:\n{bat}\n\nRun Live Update from office PC first.")
+            return
+        profile = BASE_DIR / "data" / "install_profile.json"
+        if not profile.exists():
+            if messagebox.askyesno(
+                "First-Time Host Setup",
+                "Run one-time dedicated host setup first?\n\nYES = SETUP_DEDICATED_HOST_LAPTOP.bat",
+            ) and setup_bat.exists():
+                subprocess.Popen(["cmd", "/c", str(setup_bat)], cwd=str(BASE_DIR))
+            return
+        self.set_status("Opening dedicated host server window — keep it open for 24/7 service.")
+        subprocess.Popen(["cmd", "/c", "start", "JRC Host Server", str(bat)], cwd=str(BASE_DIR), shell=True)
+
     def pre_install_security_check(self):
         """Open login/security check from the running installed app. This is also callable after install."""
         if self.ensure_local_login_ready(open_monitor=True):
@@ -683,14 +1130,30 @@ class StartCenter(tk.Tk):
     def open_local_login_gate(self):
         """Open reliable local login/setup without requiring Flask/local host."""
         self.set_status("Opening Secure Local Login. This does not require local host verification.")
-        proc, log, err = launch_hidden([PYW_CMD, str(BASE_DIR / "app" / "local_login_gate.py")], "local_login_gate_last.log")
+        proc, log, err = launch_hidden([PYW_CMD, "-m", "app.local_login_gate"], "local_login_gate_last.log")
         if err:
             messagebox.showwarning("Local Login could not start", f"{err}\n\nLog: {log}")
             return False
         self._watch_process(proc, log, "Secure Local Login", "Secure Local Login opened. If nothing appears, open Logs and check local_login_gate_last.log.")
         return True
 
+    def _require_business_storage(self, action: str) -> bool:
+        try:
+            from app.data_pipeline import resolve_paths, mode_label
+            if resolve_paths().business_storage_enabled:
+                return True
+            messagebox.showinfo(
+                "Remote Client — No Local Business Storage",
+                f"This PC cannot {action}.\n\n{mode_label()}\n\n"
+                "Use Mobile Links or Cloud Access from Start Center instead.",
+            )
+            return False
+        except Exception:
+            return True
+
     def ensure_local_login_ready(self, open_monitor: bool = True) -> bool:
+        if not self._require_business_storage("run the local business server"):
+            return False
         """Start local server if needed and verify the login page first.
         Login is less fragile than the full mobile endpoint chain, so this is used
         for setup and default admin/admin access.
@@ -762,12 +1225,31 @@ class StartCenter(tk.Tk):
 
     def open_office(self):
         self.set_status("Opening Office app in the background...")
-        proc, log, err = launch_hidden([PYW_CMD, str(BASE_DIR / "app" / "jr_job_manager.py")], "desktop_app_last.log")
+        proc, log, err = launch_hidden([PYW_CMD, "-m", "app.jr_job_manager"], "desktop_app_last.log")
         if err:
             messagebox.showwarning("Office did not launch", f"{err}\n\nLog: {log}")
         self._watch_process(proc, log, "Office app", "Office app launched. If nothing appears, open Logs from Files / Logs.")
 
     def start_host(self):
+        if not self._require_business_storage("host business data on this PC"):
+            return
+        try:
+            from app.host_laptop_roles import pre_start_host_check
+            proceed, pre_msg = pre_start_host_check(BASE_DIR)
+            if not proceed:
+                choice = messagebox.askyesnocancel(
+                    "Remote Host Already Running",
+                    pre_msg + "\n\nYES = Start host on THIS laptop anyway (stop the other host first in practice).\n"
+                    "NO = Open Connect to Remote Host instead.\n"
+                    "CANCEL = Do nothing.",
+                )
+                if choice is None:
+                    return
+                if choice is False:
+                    self.connect_remote_host()
+                    return
+        except Exception:
+            pass
         if is_login_ready():
             ok, msg, checks = wait_for_host(timeout=6.0)
             self.show_host_monitor()
@@ -818,6 +1300,135 @@ class StartCenter(tk.Tk):
                     )
             self.after(0, finish)
         threading.Thread(target=verify_in_thread, daemon=True).start()
+
+    def stop_host(self):
+        """Gracefully stop the local network server process."""
+        from app.host_process import stop_host_process, read_host_pid
+        running = is_host_running() or (read_host_pid() is not None)
+        if running and not messagebox.askyesno(
+            "Stop Local Host?",
+            "Stop the shared host server?\n\nBusiness data is auto-saved on shutdown. Users can sign back in after restart until session timeout.",
+        ):
+            return
+        try:
+            ok, msg = stop_host_process()
+            self.set_status(msg)
+            if running:
+                messagebox.showinfo("Host Stopped" if ok else "Stop Host", msg)
+            if hasattr(self, "admin_panel"):
+                self.admin_panel.refresh()
+        except Exception as exc:
+            messagebox.showwarning("Stop Host", str(exc))
+
+    def connect_remote_host(self):
+        """Open browser to the dedicated/other laptop host URL."""
+        try:
+            from app.host_laptop_roles import (
+                get_remote_host_url,
+                probe_host_url,
+                remote_host_is_running,
+                set_remote_host_url,
+            )
+        except Exception as exc:
+            messagebox.showwarning("Remote Host", str(exc))
+            return
+        url = get_remote_host_url(BASE_DIR)
+        if not url:
+            url = simpledialog.askstring(
+                "Remote Host URL",
+                "Enter the other laptop's host address.\nExample: http://192.168.50.60:8765",
+                parent=self,
+            ) or ""
+            url = set_remote_host_url(url, BASE_DIR)
+        if not url:
+            return
+        ok, data = probe_host_url(url)
+        if not ok:
+            messagebox.showwarning(
+                "Remote Host Not Reachable",
+                f"Could not reach:\n{url}\n\n"
+                "• Is the dedicated laptop on and running Start Local Host?\n"
+                "• Same Wi-Fi network?\n"
+                "• Correct IP address?",
+            )
+            return
+        login = url.rstrip("/") + "/login"
+        self.set_status(f"Remote host OK — opening {login}")
+        webbrowser.open(login)
+        messagebox.showinfo(
+            "Remote Host Connected",
+            f"Host is running:\n{url}\n\nVersion: {data.get('version', '?')}\n\n"
+            "Sign in as ivygrows (owner) for full admin.\n"
+            "Dedicated laptop local operator uses jrc_host on that PC only.",
+        )
+
+    def host_laptop_setup_wizard(self):
+        """Configure this PC as office or dedicated host."""
+        try:
+            from app.host_laptop_roles import (
+                PROFILE_DEDICATED,
+                PROFILE_OWNER,
+                get_host_pc_role,
+                host_role_label,
+                setup_pc_profile,
+            )
+        except Exception as exc:
+            messagebox.showwarning("Host Setup", str(exc))
+            return
+        current = get_host_pc_role(BASE_DIR)
+        choice = messagebox.askyesnocancel(
+            "Host Laptop Setup",
+            f"Current: {host_role_label(BASE_DIR)}\n\n"
+            "YES = This is the OFFICE laptop (Cursor, Dropbox, can host OR use remote host)\n"
+            "NO = This is the DEDICATED 24/7 HOST laptop (runs server; local login jrc_host)\n"
+            "CANCEL = Do nothing",
+        )
+        if choice is None:
+            return
+        profile = PROFILE_OWNER if choice else PROFILE_DEDICATED
+        remote_url = ""
+        copy_db = ""
+        host_pwd = ""
+        if profile == PROFILE_OWNER:
+            remote_url = simpledialog.askstring(
+                "Remote Host URL (optional)",
+                "If the dedicated laptop runs the host, enter its LAN URL now.\n"
+                "Example: http://192.168.50.60:8765\n\nLeave blank if this PC hosts locally.",
+                parent=self,
+            ) or ""
+        else:
+            copy_db = simpledialog.askstring(
+                "Copy office database? (recommended once)",
+                "Paste full path to office jr_business.db to copy users/chat to host laptop.\n"
+                "Example: C:\\Users\\...\\Documents\\JRC\\...\\data\\jr_business.db\n\n"
+                "Leave blank for fresh host DB (jrc_host created on first start).",
+                parent=self,
+            ) or ""
+            host_pwd = simpledialog.askstring(
+                "jrc_host password (optional)",
+                "Dedicated host local admin login.\nDefault: jrc_host / jrc_host\n\nLeave blank for default.",
+                parent=self,
+                show="*",
+            ) or ""
+        try:
+            lines = setup_pc_profile(
+                BASE_DIR,
+                profile,
+                remote_host_url=remote_url,
+                copy_db_from=copy_db,
+                host_admin_password=host_pwd,
+            )
+            self.set_status("Host laptop role saved.")
+            if hasattr(self, "_head_pipeline"):
+                try:
+                    from app.data_pipeline import mode_label as pipeline_mode_label
+                    from app.host_laptop_roles import host_role_label as hrl
+                    self._head_pipeline.config(text=pipeline_mode_label() + " | " + hrl(BASE_DIR))
+                except Exception:
+                    pass
+            messagebox.showinfo("Host Laptop Setup Complete", "\n".join(lines))
+        except Exception as exc:
+            messagebox.showwarning("Host Setup Failed", str(exc))
 
     def mobile_links(self):
         cloud = get_cloud_base_url()
@@ -936,6 +1547,7 @@ class StartCenter(tk.Tk):
         tk.Label(win, text="Tools and Repair", bg=BG, fg=TEXT, font=("Segoe UI", 17, "bold")).pack(anchor="w", padx=18, pady=(16, 6))
         tk.Label(win, text="These are heavier tools. They run in the background and save reports/logs.", bg=BG, fg=MUTED, font=("Segoe UI", 10), wraplength=460, justify="left").pack(anchor="w", padx=18, pady=(0, 12))
         items = [
+            ("Background Troubleshooter (Full Auto)", self.run_background_troubleshooter),
             ("Run System Check", self.run_system_check),
             ("Run Full QA Test", self.run_full_qa),
             ("Permission View Check", self.run_permission_view_check),
@@ -956,13 +1568,201 @@ class StartCenter(tk.Tk):
             ("Auto Host Repair", self.auto_host_repair),
             ("Repair Features", self.repair_features),
             ("Allow Phone Access", self.allow_firewall),
+            ("Emergency Access Check", self.run_emergency_access_check),
+            ("Full Live Update", self.run_live_full_update),
+            ("Developer Tools Console", self.developer_tools_window),
             ("Open Logs", lambda: open_path(LOG_DIR)),
             ("Open Exports", lambda: open_path(EXPORT_DIR)),
         ]
         for label, cmd in items:
             tk.Button(win, text=label, command=cmd, bg=BUTTON, fg=TEXT, relief="flat", font=("Segoe UI", 11, "bold"), padx=10, pady=9).pack(fill="x", padx=18, pady=5)
 
+    def developer_tools_window(self):
+        if not self._admin_developer_pc():
+            messagebox.showwarning("Admin Only", "Developer tools are for Owner Master / admin PCs only.")
+            return
+        try:
+            from app.program_manifest import DEVELOPER_TOOLS
+        except Exception:
+            DEVELOPER_TOOLS = ()
+        win = tk.Toplevel(self)
+        win.title("Admin Developer Tools")
+        win.geometry("620x560")
+        win.minsize(480, 360)
+        win.configure(bg=BG)
+        tk.Label(win, text="Admin Developer Tools", bg=BG, fg=ACCENT, font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=18, pady=(14, 4))
+        tk.Label(
+            win,
+            text="Full bells and whistles for admin users. All tools run hidden (no CMD) and save logs under logs/ and exports/.",
+            bg=BG,
+            fg=MUTED,
+            font=("Segoe UI", 10),
+            wraplength=560,
+            justify="left",
+        ).pack(anchor="w", padx=18, pady=(0, 10))
+        outer = tk.Frame(win, bg=BG)
+        outer.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        canvas = tk.Canvas(outer, bg=BG, highlightthickness=0)
+        scroll = theme.dark_scrollbar(outer, command=canvas.yview) if theme else tk.Scrollbar(outer, command=canvas.yview)
+        inner = tk.Frame(canvas, bg=BG)
+        inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=inner, anchor="nw")
+        canvas.configure(yscrollcommand=scroll.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scroll.pack(side="right", fill="y")
 
+        def run_script(rel: str, log_stem: str):
+            script = BASE_DIR / rel
+            if not script.exists():
+                messagebox.showwarning("Missing", f"Not found:\n{script}")
+                return
+            self.set_status(f"Running {script.name}...")
+            proc, log, err = launch_hidden([PY_CMD, str(script)], f"{log_stem}_last.log")
+            if err:
+                messagebox.showwarning("Could not start", err)
+                return
+            self._watch_process(proc, log, script.stem, f"{script.stem} running. Log: {log}")
+
+        for title, rel, desc in DEVELOPER_TOOLS:
+            row = tk.Frame(inner, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+            row.pack(fill="x", padx=8, pady=5)
+            top = tk.Frame(row, bg=CARD)
+            top.pack(fill="x", padx=12, pady=(10, 0))
+            tk.Label(top, text=title, bg=CARD, fg=TEXT, font=("Segoe UI", 11, "bold")).pack(side="left")
+            tk.Button(
+                top,
+                text="Run",
+                command=lambda r=rel, s=Path(rel).stem: run_script(r, s),
+                bg=ACCENT,
+                fg="#000",
+                relief="flat",
+                padx=10,
+                pady=4,
+                font=("Segoe UI", 9, "bold"),
+            ).pack(side="right")
+            tk.Label(row, text=f"{desc}\n{rel}", bg=CARD, fg=MUTED, font=("Segoe UI", 9), wraplength=520, justify="left").pack(
+                anchor="w", padx=12, pady=(4, 10)
+            )
+
+        extra = [
+            ("Tools / Repair (all)", self.tools_window),
+            ("Open LIVE_UPDATE_REPORT.txt", lambda: open_path(BASE_DIR / "LIVE_UPDATE_REPORT.txt")),
+            ("Open INSTALL_SETUP_REPORT.txt", lambda: open_path(BASE_DIR / "INSTALL_SETUP_REPORT.txt")),
+        ]
+        for label, cmd in extra:
+            tk.Button(inner, text=label, command=cmd, bg=BUTTON, fg=TEXT, relief="flat", padx=10, pady=8).pack(fill="x", padx=8, pady=3)
+
+    def run_live_full_update(self):
+        if not self._admin_developer_pc():
+            messagebox.showwarning("Admin Only", "Full live update is for Owner Master / admin PCs.")
+            return
+        self.set_status("Full live update running — sync, verify, log, save (see LIVE_UPDATE_REPORT.txt)...")
+        proc, log, err = launch_hidden([PY_CMD, str(BASE_DIR / "app" / "live_full_update.py")], "live_full_update_last.log")
+        if err:
+            messagebox.showwarning("Live update could not start", err)
+            return
+        self._watch_process(proc, log, "Full Live Update", "Live update running. Report: LIVE_UPDATE_REPORT.txt")
+
+    def run_office_records_sync(self):
+        if not self._admin_developer_pc():
+            messagebox.showwarning("Admin Only", "Office sync is for Owner Master / admin PCs.")
+            return
+        self.set_status("Office records sync — job register, payroll import/export, office CSV merge...")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.office_records_sync"], "office_sync_last.log")
+        if err:
+            messagebox.showwarning("Office sync could not start", err)
+            return
+        self._watch_process(proc, log, "Office Records Sync", "See logs/office_sync_last.log and exports/office_sync/")
+
+    def run_phase_verification(self):
+        if not self._admin_developer_pc():
+            messagebox.showwarning("Admin Only", "Phase verification is for Owner Master / admin PCs.")
+            return
+        self.set_status("Running phase verification...")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.run_phase_verification"], "phase_verify_last.log")
+        if err:
+            messagebox.showwarning("Phase verify could not start", err)
+            return
+        self._watch_process(proc, log, "Phase Verification", "Report: PHASE_VERIFICATION_REPORT.txt")
+
+    def run_developer_status(self):
+        self.set_status("Writing admin developer status report...")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.admin_developer_suite", "--status"], "developer_status_last.log")
+        if err:
+            messagebox.showwarning("Could not start", err)
+            return
+        self._watch_process(proc, log, "Developer Status", "Report saved in exports/")
+
+    def run_verify_bundle(self):
+        self.set_status("Running developer verify bundle...")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.admin_developer_suite", "--verify-bundle"], "verify_bundle_last.log")
+        if err:
+            messagebox.showwarning("Could not start", err)
+            return
+        self._watch_process(proc, log, "Verify Bundle", "Bundle report in exports/")
+
+    def open_admin_database(self):
+        if not self._require_business_storage("open the admin database editor"):
+            return
+        self._open_admin_url("/admin/database", "Admin Database Editor")
+
+    def open_admin_accounts(self):
+        if not self._require_business_storage("open the account database editor"):
+            return
+        self._open_admin_url("/admin/database/accounts", "Account Database Editor")
+
+    def _open_admin_url(self, path: str, label: str):
+        url = urls()["local"] + path
+        if is_host_running():
+            webbrowser.open(url)
+            self.set_status(f"Opened {label}.")
+            return
+        if messagebox.askyesno("Start Host", f"Start local host to open {label}?"):
+            self.start_host()
+
+            def wait_open():
+                for _ in range(40):
+                    if is_host_running():
+                        webbrowser.open(url)
+                        self.set_status(f"{label} opened.")
+                        return
+                    time.sleep(0.5)
+                messagebox.showwarning("Not Ready", f"Start host failed. Try Admin & security → Start Local Host, then open {label} again.")
+
+            threading.Thread(target=wait_open, daemon=True).start()
+
+    def run_initialize_install(self):
+        proc, log, err = launch_hidden([PY_CMD, str(BASE_DIR / "app" / "initialize_install.py")], "initialize_install_last.log")
+        if err:
+            messagebox.showwarning("Could not start", err)
+            return
+        self._watch_process(proc, log, "Initialize Install", f"Install initializer log: {log}")
+
+    def seed_emergency_key(self):
+        ps1 = BASE_DIR / "scripts" / "Seed-OwnerEmergencyKey.ps1"
+        if not ps1.exists():
+            messagebox.showwarning("Missing", f"Not found:\n{ps1}")
+            return
+        proc, log, err = launch_hidden(
+            ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", str(ps1), "-InstallDir", str(BASE_DIR)],
+            "seed_emergency_key_last.log",
+        )
+        if err:
+            messagebox.showwarning("Could not start", err)
+            return
+        self.set_status("Emergency mastery key seed running...")
+        self._watch_process(proc, log, "Seed Emergency Key", f"Log: {log}")
+
+    def open_installer_source(self):
+        src = BASE_DIR / "INSTALLER_SOURCE.txt"
+        if src.exists():
+            path = Path(src.read_text(encoding="utf-8").strip())
+            if path.exists():
+                open_path(path)
+                self.set_status(f"Opened installer source: {path}")
+                return
+        open_path(BASE_DIR)
+        self.set_status("Opened program folder (INSTALLER_SOURCE.txt not set).")
 
     def open_web_dashboard(self):
         """Start web server if needed and open the glass browser UI."""
@@ -1043,9 +1843,25 @@ class StartCenter(tk.Tk):
             return
         self._watch_process(proc, log, "Customer Request Final Check", f"Customer Request Final Check is running. Log: {log}")
 
+    def run_background_troubleshooter(self):
+        self.set_status("Running background troubleshooter...")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.background_troubleshooter"], "background_troubleshooter_last.log")
+        if err:
+            messagebox.showwarning("Troubleshooter could not start", err)
+            return
+        self._watch_process(proc, log, "Background Troubleshooter", "Report saved to exports folder. Open Files / Logs if needed.")
+
+    def run_emergency_access_check(self):
+        self.set_status("Emergency access check started...")
+        proc, log, err = launch_hidden([PY_CMD, str(BASE_DIR / "app" / "emergency_access_check.py"), str(BASE_DIR)], "emergency_access_check_last.log")
+        if err:
+            messagebox.showwarning("Could not start", err)
+            return
+        self._watch_process(proc, log, "Emergency Access Check", f"Log: {log}")
+
     def run_system_check(self):
         self.set_status("System Check started in background. Report will save to exports/logs.")
-        proc, log, err = launch_hidden([PY_CMD, str(BASE_DIR / "app" / "system_check.py")], "system_check_last.log")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.system_check"], "system_check_last.log")
         if err:
             messagebox.showwarning("System Check could not start", err)
             return
@@ -1145,7 +1961,7 @@ class StartCenter(tk.Tk):
 
     def auto_host_repair(self):
         self.set_status("Auto Host Repair started. It will read logs, check the port, and write a report.")
-        proc, log, err = launch_hidden([PY_CMD, str(BASE_DIR / "app" / "auto_host_repair.py")], "auto_host_repair_last.log")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.auto_host_repair"], "auto_host_repair_last.log")
         if err:
             messagebox.showwarning("Auto Host Repair could not start", err)
             return
@@ -1180,6 +1996,52 @@ class StartCenter(tk.Tk):
         messagebox.showinfo("Allow Phone Access", "Windows may ask for Administrator approval. This allows trusted Wi-Fi/VPN devices to reach port 8765.")
         open_path(helper)
 
+    def open_dropbox_business(self):
+        path = Path(r"C:\Users\enrag\Dropbox\All Files\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22")
+        guide = Path(r"C:\Users\enrag\Dropbox\All Files\OPEN_JRC_BUSINESS_HERE.txt")
+        if guide.exists():
+            open_path(guide)
+        if path.exists():
+            open_path(path)
+            self.set_status("Opened Dropbox business folder.")
+        else:
+            messagebox.showwarning("Not found", f"Business folder not found:\n{path}")
+
+    def print_local_file(self):
+        from tkinter import filedialog
+
+        path = filedialog.askopenfilename(
+            title="Print to Phoswift A42",
+            filetypes=[
+                ("Printable", "*.pdf;*.txt"),
+                ("PDF", "*.pdf"),
+                ("Text", "*.txt"),
+                ("All files", "*.*"),
+            ],
+        )
+        if not path:
+            return
+        self.set_status(f"Printing: {Path(path).name}")
+        try:
+            from app.local_print import print_file, list_printers
+
+            ok, msg = print_file(path)
+            if ok:
+                messagebox.showinfo("Print sent", msg)
+                self.set_status("Print job sent.")
+            else:
+                printers = ", ".join(list_printers()) or "none"
+                messagebox.showerror(
+                    "Print failed",
+                    f"{msg}\n\nPrinters seen: {printers}\n\n"
+                    "If USB is unplugged: plug in A42, turn phone Bluetooth off, then run:\n"
+                    "tools\\Bind-Phoswift-A42.ps1 as Administrator",
+                )
+                self.set_status("Print failed — see message.")
+        except Exception as exc:
+            messagebox.showerror("Print error", str(exc))
+            self.set_status("Print error.")
+
     def files_window(self):
         win = tk.Toplevel(self)
         win.title("Files, Logs, and Help")
@@ -1188,6 +2050,8 @@ class StartCenter(tk.Tk):
         tk.Label(win, text="Files, Logs, and Help", bg=BG, fg=TEXT, font=("Segoe UI", 17, "bold")).pack(anchor="w", padx=18, pady=(16, 6))
         tk.Label(win, text="If a button appears to do nothing, open Logs and check the newest *_last.log file.", bg=BG, fg=MUTED, font=("Segoe UI", 10), wraplength=440, justify="left").pack(anchor="w", padx=18, pady=(0, 12))
         items = [
+            ("Print File to A42", self.print_local_file),
+            ("Open Dropbox Business", self.open_dropbox_business),
             ("Open Program Folder", lambda: open_path(BASE_DIR)),
             ("Open Logs Folder", lambda: open_path(LOG_DIR)),
             ("Open Exports Folder", lambda: open_path(EXPORT_DIR)),
@@ -1202,6 +2066,28 @@ class StartCenter(tk.Tk):
 
 
 def main() -> None:
+    try:
+        from app.desktop_shortcuts import ensure_desktop_shortcuts_async, read_installer_source
+
+        ensure_desktop_shortcuts_async(BASE_DIR, read_installer_source(BASE_DIR))
+    except Exception:
+        pass
+    try:
+        from app.startup_setup import launch_ensure_venv_hidden, evaluate_setup_state
+
+        action, _ = evaluate_setup_state(BASE_DIR)
+        if action == "need_venv":
+            launch_ensure_venv_hidden(BASE_DIR)
+    except Exception:
+        pass
+    try:
+        from app.local_login_gate import require_blocking_login
+
+        if not require_blocking_login("Start Center"):
+            return
+    except Exception as exc:
+        messagebox.showerror(APP_NAME, f"Login required but gate failed: {exc}")
+        return
     StartCenter().mainloop()
 
 

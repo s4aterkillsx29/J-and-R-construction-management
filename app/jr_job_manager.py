@@ -18,6 +18,28 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
 try:
+    from app.role_utils import (
+        DEFAULT_OWNER_USERNAME,
+        UI_ROLE_CHOICES,
+        ensure_role_normalization,
+        is_admin_role,
+        normalize_role,
+    )
+except Exception:
+    DEFAULT_OWNER_USERNAME = "ivygrows"
+    UI_ROLE_CHOICES = ("admin", "manager", "worker", "viewer", "customer")
+
+    def normalize_role(value):
+        v = (str(value or "")).strip().lower()
+        return v if v in {"admin", "manager", "worker", "viewer", "customer", "non_company"} else "viewer"
+
+    def is_admin_role(value):
+        return normalize_role(value) == "admin"
+
+    def ensure_role_normalization(conn):
+        return 0
+
+try:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -28,7 +50,7 @@ except Exception:
     REPORTLAB_OK = False
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.2 Unified Schema Reliable Business Edition"
+APP_VERSION = "7.12.0 Secure Access & Account Verification Edition"
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -306,16 +328,21 @@ class Database:
             )
         cur.execute("SELECT COUNT(*) FROM users")
         if cur.fetchone()[0] == 0:
-            salt, pw_hash = hash_password("admin")
+            from app.role_utils import DEFAULT_OWNER_PASSWORD
+            salt, pw_hash = hash_password(DEFAULT_OWNER_PASSWORD)
             cur.execute(
                 "INSERT INTO users(username, full_name, role, salt, password_hash, active, must_change_password, created_at, notes) VALUES(?,?,?,?,?,?,?,?,?)",
-                ("admin", "Jacob Cosentino", "Admin", salt, pw_hash, 1, 1, iso_now(), "Default owner/admin account. Change password after first install."),
+                (DEFAULT_OWNER_USERNAME, "Jacob Cosentino", "admin", salt, pw_hash, 1, 1, iso_now(), "Default owner/admin account. Change password after first install."),
             )
         device_id = get_device_id()
         cur.execute("INSERT OR IGNORE INTO app_settings(key, value) VALUES(?,?)", ("owner", "Jacob Cosentino"))
         cur.execute("INSERT OR IGNORE INTO app_settings(key, value) VALUES(?,?)", ("trusted_admin_device_id", device_id))
         cur.execute("INSERT OR IGNORE INTO app_settings(key, value) VALUES(?,?)", ("dropbox_folder", ""))
         self.conn.commit()
+        try:
+            ensure_role_normalization(self.conn)
+        except Exception:
+            pass
 
     def q(self, sql, params=()):
         cur = self.conn.cursor()
@@ -372,7 +399,14 @@ class LoginDialog(tk.Toplevel):
         btns.grid(row=5, column=0, columnspan=2, sticky="e", pady=(8,0))
         ttk.Button(btns, text="Login", style="Accent.TButton", command=self.login).pack(side="right", padx=4)
         ttk.Button(btns, text="Cancel", command=self.cancel).pack(side="right", padx=4)
-        self.username.insert(0, "admin")
+        self.username.insert(0, DEFAULT_OWNER_USERNAME)
+        try:
+            row = db.one("SELECT username FROM users WHERE active=1 AND LOWER(role)='admin' ORDER BY id LIMIT 1")
+            if row and row["username"]:
+                self.username.delete(0, "end")
+                self.username.insert(0, row["username"])
+        except Exception:
+            pass
         self.password.focus_set()
         self.bind("<Return>", lambda e: self.login())
         self.update_idletasks()
@@ -399,6 +433,13 @@ class LoginDialog(tk.Toplevel):
 class DarkApp(tk.Tk):
     def __init__(self):
         super().__init__()
+        try:
+            from app.data_pipeline import require_master_local_storage
+            require_master_local_storage()
+        except SystemExit:
+            raise
+        except Exception:
+            pass
         self.title(APP_NAME)
         self.geometry("1320x820")
         self.minsize(1120, 700)
@@ -502,7 +543,7 @@ class DarkApp(tk.Tk):
         self.build_evidence()
         self.build_log()
         self.build_cloud()
-        if self.current_user.get("role") == "Admin":
+        if is_admin_role(self.current_user.get("role")):
             self.nb.add(self.admin_tab, text="Admin")
             self.build_admin()
 
@@ -528,7 +569,7 @@ class DarkApp(tk.Tk):
         lower.pack(fill="both", expand=True, pady=6)
         left = self.card(lower, "Active / Pending Jobs")
         left.pack(side="left", fill="both", expand=True, padx=6)
-        self.dashboard_jobs = self.make_tree(left, ["ID", "Job", "Customer", "Status", "Price", "Balance"], height=15)
+        self.dashboard_jobs = self.make_tree(left, ["ID", "Code", "Job", "Customer", "Status", "Price", "Balance"], height=15)
         right = self.card(lower, "Alerts & Next Actions")
         right.pack(side="left", fill="both", expand=True, padx=6)
         self.alert_text = tk.Text(right, height=18, bg="#0b1220", fg=TEXT, insertbackground=TEXT, wrap="word", relief="flat")
@@ -572,7 +613,8 @@ class DarkApp(tk.Tk):
         ttk.Button(btns, text="Edit Selected", command=self.edit_selected_job).pack(side="left", padx=3)
         ttk.Button(btns, text="Close Paid", command=lambda: self.set_job_status("Closed Paid")).pack(side="left", padx=3)
         ttk.Button(btns, text="Closeout Checklist", command=self.show_closeout).pack(side="left", padx=3)
-        self.jobs_tree = self.make_tree(jobs_card, ["ID", "Job", "Customer", "Status", "Price", "Paid", "Balance"], height=22)
+        ttk.Button(btns, text="Sync Office Register", command=self.run_office_records_sync).pack(side="left", padx=3)
+        self.jobs_tree = self.make_tree(jobs_card, ["ID", "Code", "Job", "Customer", "Status", "Price", "Paid", "Balance"], height=22)
         self.jobs_tree.bind("<<TreeviewSelect>>", self.on_job_select)
 
         customers_card = self.card(right, "Customers")
@@ -743,6 +785,28 @@ class DarkApp(tk.Tk):
         self.db.log("Dropbox", f"Created Dropbox backup {target.name}")
         messagebox.showinfo("Backup Synced", f"Backup copied to Dropbox folder:\n{target}")
 
+    def run_office_records_sync(self):
+        try:
+            from app.office_records_sync import run_office_sync
+
+            rep = run_office_sync(BASE_DIR)
+        except Exception as exc:
+            messagebox.showerror("Office Sync Failed", str(exc))
+            return
+        if rep.get("errors"):
+            messagebox.showerror("Office Sync", "\n".join(rep["errors"]))
+            return
+        summary = (
+            f"Jobs updated: {rep.get('jobs_updated', 0)}\n"
+            f"Payroll imported: {rep.get('payroll_rows_imported', 0)}\n"
+            f"Payroll exported: {rep.get('payroll_rows_exported', 0)}\n"
+            f"Merged to office payroll: {rep.get('payroll_rows_merged', 0)}\n"
+            f"Merged to office income: {rep.get('income_rows_merged', 0)}"
+        )
+        self.db.log("Office Sync", summary.replace("\n", " | "))
+        self.refresh_all()
+        messagebox.showinfo("Office Records Sync", summary)
+
     def build_admin(self):
         wrap = ttk.Frame(self.admin_tab)
         wrap.pack(fill="both", expand=True, padx=8, pady=8)
@@ -785,8 +849,8 @@ class DarkApp(tk.Tk):
             e.grid(row=i, column=1, sticky="ew", padx=4, pady=4)
             vals[label] = e
         ttk.Label(f, text="Role", background=CARD_BG).grid(row=3, column=0, sticky="w", padx=4, pady=4)
-        role = ttk.Combobox(f, values=["Admin", "User"], state="readonly")
-        role.set("User")
+        role = ttk.Combobox(f, values=list(UI_ROLE_CHOICES), state="readonly")
+        role.set("viewer")
         role.grid(row=3, column=1, sticky="ew", padx=4, pady=4)
         def save():
             username = vals["Username"].get().strip()
@@ -796,7 +860,7 @@ class DarkApp(tk.Tk):
                 return
             salt, ph = hash_password(pw)
             try:
-                self.db.execute("INSERT INTO users(username, full_name, role, salt, password_hash, active, created_at) VALUES(?,?,?,?,?,?,?)", (username, vals["Full Name"].get().strip(), role.get(), salt, ph, 1, iso_now()))
+                self.db.execute("INSERT INTO users(username, full_name, role, salt, password_hash, active, created_at) VALUES(?,?,?,?,?,?,?)", (username, vals["Full Name"].get().strip(), normalize_role(role.get()), salt, ph, 1, iso_now()))
                 self.db.log("Admin", f"User account added: {username} ({role.get()}).")
                 win.destroy(); self.refresh_users()
             except sqlite3.IntegrityError:
@@ -828,8 +892,8 @@ class DarkApp(tk.Tk):
         uid = self.selected_user_id()
         if not uid: return
         row = self.db.one("SELECT username, active FROM users WHERE id=?", (uid,))
-        if row and row["username"] == "admin" and row["active"]:
-            messagebox.showwarning("Protected", "The default admin account cannot be disabled from here.")
+        if row and row["username"] in {DEFAULT_OWNER_USERNAME, "admin"} and row["active"]:
+            messagebox.showwarning("Protected", "The owner admin account cannot be disabled from here.")
             return
         self.db.execute("UPDATE users SET active=CASE WHEN active=1 THEN 0 ELSE 1 END WHERE id=?", (uid,))
         self.db.log("Admin", f"Toggled active status for user ID {uid}.")
@@ -888,7 +952,8 @@ class DarkApp(tk.Tk):
         ORDER BY j.updated_at DESC
         """
         for r in self.db.q(sql):
-            self.jobs_tree.insert("", "end", values=(r["id"], r["job_name"], r["customer"], r["status"], money(r["contract_price"]), money(r["paid"]), money(r["balance"])))
+            code = r["job_code"] if "job_code" in r.keys() else ""
+            self.jobs_tree.insert("", "end", values=(r["id"], code, r["job_name"], r["customer"], r["status"], money(r["contract_price"]), money(r["paid"]), money(r["balance"])))
 
     def refresh_documents(self):
         self.clear_tree(self.docs_tree)
@@ -968,14 +1033,14 @@ class DarkApp(tk.Tk):
             self.metric_labels[k].config(text=v)
         self.clear_tree(self.dashboard_jobs)
         sql = """
-        SELECT j.id, j.job_name, COALESCE(c.name,'') customer, j.status, j.contract_price,
+        SELECT j.id, j.job_code, j.job_name, COALESCE(c.name,'') customer, j.status, j.contract_price,
                (j.contract_price-j.deposit_paid-j.balance_paid) AS balance
         FROM jobs j LEFT JOIN customers c ON c.id=j.customer_id
         WHERE j.status NOT LIKE 'Closed Paid'
         ORDER BY j.updated_at DESC LIMIT 20
         """
         for r in self.db.q(sql):
-            self.dashboard_jobs.insert("", "end", values=(r["id"], r["job_name"], r["customer"], r["status"], money(r["contract_price"]), money(r["balance"])))
+            self.dashboard_jobs.insert("", "end", values=(r["id"], r["job_code"] if "job_code" in r.keys() else "", r["job_name"], r["customer"], r["status"], money(r["contract_price"]), money(r["balance"])))
         alerts = []
         for r in self.db.q("SELECT job_name, status, contract_price, deposit_paid, balance_paid, callback_flag FROM jobs ORDER BY updated_at DESC LIMIT 50"):
             if r["callback_flag"]:
@@ -1061,8 +1126,21 @@ class DarkApp(tk.Tk):
                     cust.set(label)
         self.form_row(frm, "Customer", cust, 0)
         fields = {"customer": cust}
-        names = ["job_name", "job_address", "status", "contract_price", "deposit_required", "deposit_paid", "balance_paid", "payment_method", "start_date", "completion_date"]
         row = 1
+        if data.get("job_code") or data.get("office_folder_path"):
+            code_lbl = ttk.Label(frm, text=(data.get("job_code") or "—"), background=CARD_BG, foreground=ACCENT)
+            self.form_row(frm, "Job Code (office)", code_lbl, row)
+            row += 1
+            if data.get("office_folder_path"):
+                folder_lbl = ttk.Label(
+                    frm,
+                    text=(data.get("office_folder_path") or "")[:80],
+                    background=CARD_BG,
+                    wraplength=520,
+                )
+                self.form_row(frm, "Office Folder", folder_lbl, row)
+                row += 1
+        names = ["job_name", "job_address", "status", "contract_price", "deposit_required", "deposit_paid", "balance_paid", "payment_method", "start_date", "completion_date"]
         for key in names:
             if key == "status":
                 w = self.combo(frm, JOB_STATUSES); w.set(data.get(key, "Lead") or "Lead")
@@ -1425,7 +1503,7 @@ class DarkApp(tk.Tk):
         self.export_query_csv("JRC_Evidence_Index.csv", "SELECT * FROM evidence ORDER BY date DESC")
         self.export_query_csv("JRC_Business_Log.csv", "SELECT * FROM business_log ORDER BY id DESC")
         self.export_tax_files()
-        if hasattr(self, "current_user") and self.current_user.get("role") == "Admin":
+        if hasattr(self, "current_user") and is_admin_role(self.current_user.get("role")):
             self.export_user_index()
         messagebox.showinfo("Exported", f"Reports exported to:\n{EXPORT_DIR}")
 
@@ -1972,6 +2050,13 @@ BUSINESS_STANDARD_DEFINITIONS = [
     ('receipt_rule', 'Receipt/evidence rule', 'Keep receipt photos, PDFs, screenshots, invoices, payment notes, and final balance notes with the job record.'),
     ('closeout_rule', 'Closeout checklist standard', 'Each job should have estimate or invoice PDF, internal job cost sheet, receipt evidence, helper payment notes, final paid/unpaid balance note, and final photos where applicable.'),
     ('file_naming_rule', 'File naming standard', 'Use JRC_ prefix or clear customer/job/date names. Avoid unclear temp names for final records.'),
+    ('owner_hourly_rate', 'Owner labor rate ($/hr)', '30'),
+    ('owner_daily_rate', 'Owner labor rate ($/8-hr day)', '240'),
+    ('helper_daily_rate', 'Helper default ($/8-hr day)', '140'),
+    ('helper_overhead_per_work', 'Helper overhead per work instance ($)', '50'),
+    ('dump_trip_fee_rule', 'Dump/disposal rule', 'Actual dump fee plus $50 J&R trip fee'),
+    ('office_records_path', 'Office records (dropbox-records) path', r'c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records'),
+    ('job_code_register', 'Job codes source file', '08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv'),
 ]
 
 STANDARDS_DIR = BASE_DIR / 'business_standards'
@@ -2232,7 +2317,7 @@ DarkApp.export_all_reports = _v25_export_all_reports
 
 # ---------------- JRC_MANAGER_V26_OWNER_ACCOUNT_RECOVERY_SOURCES_UI ----------------
 OWNER_DEFAULT_EMAIL = 'enragementwow@hotmail.com'
-OWNER_ADMIN_USERNAME = 'admin'
+OWNER_ADMIN_USERNAME = DEFAULT_OWNER_USERNAME
 
 
 def _v26_add_column_if_missing(db, table, col_def):
@@ -2453,13 +2538,13 @@ def _v26_edit_user_window(self):
         if col=='username' and row['username']==OWNER_ADMIN_USERNAME: e.configure(state='disabled')
         vars[col]=v
     ttk.Label(f,text='Role',background=CARD_BG).grid(row=8,column=0,sticky='w',padx=4,pady=5)
-    role=ttk.Combobox(f,values=['Admin','Manager','Worker','Viewer','User'],state='readonly'); role.set(row['role']); role.grid(row=8,column=1,sticky='w',padx=4,pady=5)
+    role=ttk.Combobox(f,values=list(UI_ROLE_CHOICES),state='readonly'); role.set(normalize_role(row['role'])); role.grid(row=8,column=1,sticky='w',padx=4,pady=5)
     active_var=tk.IntVar(value=1 if row['active'] else 0); ttk.Checkbutton(f,text='Active account',variable=active_var).grid(row=9,column=1,sticky='w',pady=5)
     ttk.Label(f,text='New Password',background=CARD_BG).grid(row=10,column=0,sticky='w',padx=4,pady=5); newpw=ttk.Entry(f,show='*',width=48); newpw.grid(row=10,column=1,sticky='ew',padx=4,pady=5)
     def save():
         username=vars['username'].get().strip()
         if not username: messagebox.showerror('Missing','Username is required.'); return
-        active=1 if row['username']==OWNER_ADMIN_USERNAME else active_var.get(); selected_role='Admin' if row['username']==OWNER_ADMIN_USERNAME else role.get(); username=OWNER_ADMIN_USERNAME if row['username']==OWNER_ADMIN_USERNAME else username
+        active=1 if row['username']==OWNER_ADMIN_USERNAME else active_var.get(); selected_role='admin' if row['username']==OWNER_ADMIN_USERNAME else normalize_role(role.get()); username=OWNER_ADMIN_USERNAME if row['username']==OWNER_ADMIN_USERNAME else username
         try:
             self.db.execute('UPDATE users SET username=?, full_name=?, title=?, email=?, recovery_email=?, phone=?, role=?, active=?, account_notes=?, updated_at=? WHERE id=?', (username, vars['full_name'].get().strip(), vars['title'].get().strip(), vars['email'].get().strip(), vars['recovery_email'].get().strip(), vars['phone'].get().strip(), selected_role, active, vars['account_notes'].get().strip(), iso_now(), uid))
             if newpw.get().strip():
@@ -2503,13 +2588,13 @@ def _v26_add_user_window(self):
     fields=['Username','Full Name','Title','Email','Recovery Email','Phone','Password']; vars={}
     for i,label in enumerate(fields,start=1):
         ttk.Label(f,text=label,background=CARD_BG).grid(row=i,column=0,sticky='w',padx=4,pady=4); v=tk.StringVar(); ttk.Entry(f,textvariable=v,width=42,show='*' if label=='Password' else '').grid(row=i,column=1,sticky='ew',padx=4,pady=4); vars[label]=v
-    ttk.Label(f,text='Role',background=CARD_BG).grid(row=8,column=0,sticky='w',padx=4,pady=4); role=ttk.Combobox(f,values=['Admin','Manager','Worker','Viewer','User'],state='readonly'); role.set('Viewer'); role.grid(row=8,column=1,sticky='w',padx=4,pady=4)
+    ttk.Label(f,text='Role',background=CARD_BG).grid(row=8,column=0,sticky='w',padx=4,pady=4); role=ttk.Combobox(f,values=list(UI_ROLE_CHOICES),state='readonly'); role.set('viewer'); role.grid(row=8,column=1,sticky='w',padx=4,pady=4)
     def save():
         username=vars['Username'].get().strip(); pw=vars['Password'].get()
         if not username or not pw: messagebox.showerror('Missing','Username and password are required.'); return
         salt,ph=hash_password(pw)
         try:
-            self.db.execute('INSERT INTO users(username, full_name, title, email, recovery_email, phone, role, salt, password_hash, active, must_change_password, created_at, account_notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', (username, vars['Full Name'].get().strip(), vars['Title'].get().strip(), vars['Email'].get().strip(), vars['Recovery Email'].get().strip(), vars['Phone'].get().strip(), role.get(), salt, ph, 1, 1, iso_now(), 'Added by admin'))
+            self.db.execute('INSERT INTO users(username, full_name, title, email, recovery_email, phone, role, salt, password_hash, active, must_change_password, created_at, account_notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)', (username, vars['Full Name'].get().strip(), vars['Title'].get().strip(), vars['Email'].get().strip(), vars['Recovery Email'].get().strip(), vars['Phone'].get().strip(), normalize_role(role.get()), salt, ph, 1, 1, iso_now(), 'Added by admin'))
             self.db.log('Admin', f'User account added: {username} ({role.get()}).'); win.destroy(); self.refresh_users()
         except sqlite3.IntegrityError: messagebox.showerror('Exists','That username already exists.')
     ttk.Button(f,text='Save User',style='Accent.TButton',command=save).grid(row=9,column=1,sticky='e',pady=10); f.columnconfigure(1,weight=1)

@@ -1,6 +1,6 @@
 @echo off
-setlocal
-set "APPDIR=%~dp0"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$W=New-Object -ComObject WScript.Shell; $D=[Environment]::GetFolderPath('Desktop'); $S=$W.CreateShortcut((Join-Path $D 'J and R Construction Manager - Network Server.lnk')); $S.TargetPath=(Join-Path '%APPDIR%' 'START_NETWORK_SERVER.bat'); $S.WorkingDirectory='%APPDIR%'; $S.Save(); $S2=$W.CreateShortcut((Join-Path $D 'J and R Construction Manager - Open Browser.lnk')); $S2.TargetPath=(Join-Path '%APPDIR%' 'OPEN_NETWORK_MANAGER.bat'); $S2.WorkingDirectory='%APPDIR%'; $S2.Save();"
-echo Desktop shortcuts created.
+echo Legacy network shortcuts are retired.
+echo Use Admin Dashboard in the web app for Shared Host, Mobile Links, and Troubleshooting.
+echo Desktop shortcuts: "J and R Construction Manager" and "JRC Install or Update" only.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Ensure-DesktopShortcuts.ps1" -InstallDir "%~dp0"
 pause

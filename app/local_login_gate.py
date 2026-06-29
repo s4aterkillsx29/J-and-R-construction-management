@@ -3,6 +3,11 @@ JRC Local Login Gate - v6.6
 A no-host, no-Flask quick setup/login gate for the installed PC.
 """
 from __future__ import annotations
+try:
+    from app.win11_compat import enable_win_dpi_awareness
+    enable_win_dpi_awareness()
+except Exception:
+    pass
 import hashlib, os, secrets, sqlite3, subprocess, sys, time, webbrowser
 from pathlib import Path
 try:
@@ -21,9 +26,14 @@ PYTHON = BASE_DIR / '.venv' / 'Scripts' / 'python.exe'
 PY_CMD = str(PYTHONW if PYTHONW.exists() else PYTHON if PYTHON.exists() else sys.executable)
 for d in (DATA_DIR, LOG_DIR, EXPORT_DIR):
     d.mkdir(parents=True, exist_ok=True)
+try:
+    from app.emergency_access import _load_local_secrets
+    _load_local_secrets()
+except Exception:
+    pass
 LOG_PATH = LOG_DIR / 'local_login_gate_last.log'
-DEFAULT_ADMIN_USERNAME = 'admin'
-DEFAULT_ADMIN_PASSWORD = 'admin'
+DEFAULT_ADMIN_USERNAME = 'ivygrows'
+DEFAULT_ADMIN_PASSWORD = 'ivygrows'
 HASH_ITERATIONS_CURRENT = 250000
 HASH_ITERATIONS_LEGACY = (200000,)
 OWNER = 'Jacob Cosentino'
@@ -32,7 +42,7 @@ try:
     from app.runtime_utils import open_web_dashboard as launch_web_dashboard
 except Exception:
     BG = '#0a0f1c'; PANEL = '#111827'; CARD = '#151c2e'; BORDER = '#334155'
-    TEXT = '#f1f5f9'; MUTED = '#94a3b8'; ACCENT = '#34d399'; INFO = '#60a5fa'; BUTTON = '#1e293b'
+    TEXT = '#f5f5f5'; MUTED = '#a3a3a3'; ACCENT = '#84cc16'; INFO = '#a3e635'; BUTTON = '#171717'
     launch_web_dashboard = None
     def styled_entry(parent, **kwargs):
         return tk.Entry(parent, bg='#0f172a', fg=TEXT, insertbackground=TEXT, relief='flat', font=('Segoe UI', 12), **kwargs)
@@ -64,15 +74,9 @@ def password_uses_current_hash(password: str, salt: str, password_hash: str) -> 
     _, digest = hash_password(password, salt)
     return secrets.compare_digest(digest, password_hash)
 
-def role_key(value) -> str:
-    v = (value or '').strip().lower()
-    if v == 'admin': return 'admin'
-    if v == 'manager': return 'manager'
-    if v == 'worker': return 'worker'
-    if v == 'viewer' or v == 'user': return 'viewer'
-    if v in {'non_company','external','non-company'}: return 'non_company'
-    if v == 'customer': return 'customer'
-    return v or 'viewer'
+def role_key(value):
+    from app.role_utils import normalize_role
+    return normalize_role(value)
 
 def db():
     conn = sqlite3.connect(DB_PATH)
@@ -146,7 +150,7 @@ def ensure_min_schema():
                          (DEFAULT_ADMIN_USERNAME, OWNER, salt, ph, now_iso(), 'Default local first-setup admin. Change before sharing access.', 'enragementwow@hotmail.com', 'enragementwow@hotmail.com', '(910) 712-0936', 'Owner / Administrator'))
             conn.execute('INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)', ('owner_setup_complete','0'))
             conn.execute('INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)', ('admin_default_password_changed','0'))
-            log('Created default local first-setup admin/admin because database had no users.')
+            log('Created default local first-setup ivygrows/ivygrows because database had no users.')
         elif admin:
             conn.execute("UPDATE users SET role='admin', owner_account=1, active=1 WHERE username=?", (DEFAULT_ADMIN_USERNAME,))
         conn.execute('INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)', ('app_version','6.6 Quick Setup Stable Live Edition'))
@@ -171,9 +175,11 @@ def is_default_admin_active(conn=None):
         if not own: conn.close()
 
 def password_quality(pw, admin=True):
-    if len(pw or '') < 8:
-        return False, 'Use at least 8 characters.'
-    if (pw or '').strip().lower() in {'admin','admin123','password','jandr','j&rconstruction','jrconstruction'}:
+    from app.densus_policy import MIN_PASSWORD_LENGTH
+
+    if len(pw or "") < MIN_PASSWORD_LENGTH:
+        return False, f"Use at least {MIN_PASSWORD_LENGTH} characters."
+    if (pw or '').strip().lower() in {'admin','admin123','password','jandr','j&rconstruction','jrconstruction','ivygrows'}:
         return False, 'Choose a stronger password that is not a default/common password.'
     return True, 'OK'
 
@@ -185,9 +191,19 @@ def change_password_dialog(parent, user):
         messagebox.showerror('Wrong password', 'Current password did not match.', parent=parent); return False
     new = simpledialog.askstring('Change Password', 'New password (at least 8 characters):', show='*', parent=parent)
     if new is None: return False
-    ok, msg = password_quality(new, admin=user['role']=='admin')
-    if not ok:
-        messagebox.showerror('Password too weak', msg, parent=parent); return False
+    try:
+        from app.first_setup_security import check_password_change_allowed, password_quality_owner
+        mastery = simpledialog.askstring('Mastery key', 'Required only if restoring ivygrows default (leave blank otherwise):', show='*', parent=parent) or ''
+        ok, msg = check_password_change_allowed(new, mastery)
+        if not ok:
+            messagebox.showerror('Password blocked', msg, parent=parent); return False
+        ok, msg = password_quality_owner(new)
+        if not ok:
+            messagebox.showerror('Password too weak', msg, parent=parent); return False
+    except Exception:
+        ok, msg = password_quality(new, admin=user['role']=='admin')
+        if not ok:
+            messagebox.showerror('Password too weak', msg, parent=parent); return False
     confirm = simpledialog.askstring('Change Password', 'Confirm new password:', show='*', parent=parent)
     if confirm != new:
         messagebox.showerror('Mismatch', 'New passwords did not match.', parent=parent); return False
@@ -226,6 +242,11 @@ def open_path(path: Path):
         log('open_path failed: '+str(e))
 
 def main():
+    try:
+        from app.desktop_shortcuts import ensure_desktop_shortcuts_async, read_installer_source
+        ensure_desktop_shortcuts_async(BASE_DIR, read_installer_source(BASE_DIR))
+    except Exception:
+        pass
     ensure_min_schema()
     if tk is None:
         print('Tkinter unavailable. Local Login Gate cannot show UI.')
@@ -240,13 +261,13 @@ def main():
     frm = tk.Frame(root, bg=CARD, padx=18, pady=16, highlightthickness=1, highlightbackground=BORDER)
     frm.pack(fill='x', padx=20, pady=16)
     tk.Label(frm, text='Username', bg=CARD, fg=MUTED, font=('Segoe UI', 10, 'bold')).grid(row=0,column=0,sticky='w')
-    uvar = tk.StringVar(value='admin')
+    uvar = tk.StringVar(value=get_suggested_admin_username(BASE_DIR))
     euser = styled_entry(frm, textvariable=uvar); euser.grid(row=1,column=0,sticky='ew', ipady=4, pady=(0,10))
     tk.Label(frm, text='Password', bg=CARD, fg=MUTED, font=('Segoe UI', 10, 'bold')).grid(row=2,column=0,sticky='w')
     pvar = tk.StringVar()
     epass = styled_entry(frm, textvariable=pvar, show='*'); epass.grid(row=3,column=0,sticky='ew', ipady=4)
     frm.columnconfigure(0, weight=1)
-    status = tk.StringVar(value='First setup: use admin / admin. Then change the admin password once. Updates will preserve it.')
+    status = tk.StringVar(value='Step 1: Log in. Step 2: Change default password if prompted. Customers use web link only — not this screen.')
     tk.Label(root, textvariable=status, bg=BG, fg=MUTED, wraplength=560, justify='left').pack(anchor='w', padx=20, pady=(0,12))
     btns = tk.Frame(root, bg=BG); btns.pack(fill='x', padx=20)
     logged_user = {'row': None}
@@ -286,6 +307,39 @@ def main():
             logged_user['row']=dict(fresh)
     def cloud_note():
         messagebox.showinfo('Remote / Cloud Users', 'Customers, workers, and outside users should use the hosted cloud/tunnel URL, not your local installer. Local Login Gate is for this installed PC only.', parent=root)
+    def emergency_mastery():
+        key = simpledialog.askstring('Emergency Owner Access', 'Enter owner mastery key:', show='*', parent=root)
+        if not key:
+            return
+        try:
+            from app.emergency_access import verify_mastery_key, grant_emergency_admin_access
+            if not verify_mastery_key(key):
+                record_event('admin', '', 'FAILED', 'Invalid mastery key at local login gate')
+                status.set('Invalid mastery key.')
+                messagebox.showerror('Denied', 'Invalid mastery key.', parent=root)
+                return
+            with db() as conn:
+                ok, msg = grant_emergency_admin_access(conn, 'local_pc', 'JRC Local Login Gate emergency')
+                admin = conn.execute(
+                    "SELECT * FROM users WHERE LOWER(role)='admin' AND active=1 ORDER BY owner_account DESC, id LIMIT 1"
+                ).fetchone()
+            try:
+                from app.install_setup_log import log_event
+                log_event(BASE_DIR, 'EmergencyAccess', msg, level='INFO' if ok else 'ERROR', step='emergency_access')
+            except Exception:
+                pass
+            if not ok or not admin:
+                status.set(msg)
+                messagebox.showerror('Emergency access', msg, parent=root)
+                return
+            logged_user['row'] = dict(admin)
+            record_event('admin', 'admin', 'OK', 'Emergency mastery key used — admin unlocked locally')
+            status.set('Emergency admin access granted. Admin account unlocked.')
+            messagebox.showwarning('Emergency access', 'Admin unlocked. Use your admin password or open Web Dashboard.', parent=root)
+            refresh_after_login()
+        except Exception as e:
+            log('Emergency mastery error: ' + str(e))
+            status.set('Emergency access error. Check logs.')
     def refresh_after_login():
         for child in action_frame.winfo_children(): child.destroy()
         row=logged_user.get('row')
@@ -293,7 +347,7 @@ def main():
         role=role_key(row['role'])
         common=[('Change Password',change_pw),('Open Start Center',open_start_center),('Open Logs',lambda: open_path(LOG_DIR)),('Open Exports',lambda: open_path(EXPORT_DIR))]
         if role=='admin':
-            actions=[('Open Web Dashboard',open_web_dashboard),('Open Office',open_office),('Self Setup + Verify',run_self_setup),('Admin Security Check',admin_security)] + common
+            actions=[('Open Web Dashboard',open_web_dashboard),('Open Office',open_office),('Self Setup + Verify',run_self_setup),('Admin Security Check',admin_security),('Emergency Owner Access',emergency_mastery)] + common
         elif role=='manager':
             actions=[('Open Office',open_office),('Open Start Center',open_start_center),('Open Exports',lambda: open_path(EXPORT_DIR))]
         else:
@@ -321,11 +375,23 @@ def main():
                 conn.execute('UPDATE users SET role=? WHERE id=?', (role, user['id']))
                 user = conn.execute('SELECT * FROM users WHERE id=?', (user['id'],)).fetchone()
             conn.execute('UPDATE users SET last_login=? WHERE id=?', (now_iso(), user['id'])); conn.commit()
+            try:
+                from app.master_owner import register_master_owner_device
+                register_master_owner_device(username, conn)
+            except Exception:
+                pass
         logged_user['row']=dict(user)
         record_event(username, role, 'OK', 'Verified local login')
+        try:
+            from app.install_setup_log import log_event, mark_step, write_setup_report
+            log_event(BASE_DIR, 'LoginGate', f'User {username} logged in role={role}')
+            mark_step(BASE_DIR, 'post_login', 'ok', f'Logged in as {username}')
+            write_setup_report(BASE_DIR)
+        except Exception:
+            pass
         if username==DEFAULT_ADMIN_USERNAME and password==DEFAULT_ADMIN_PASSWORD and is_default_admin_active():
-            status.set('First login worked with admin/admin. Change this password now; it will be saved for future installs.')
-            messagebox.showwarning('Change default password', 'First login verified. Change admin/admin now before customer, mobile, or cloud access.', parent=root)
+            status.set('First login worked with ivygrows/ivygrows. Change this password now; it will be saved for future installs.')
+            messagebox.showwarning('Change default password', 'First login verified. Change ivygrows/ivygrows now before customer, mobile, or cloud access.', parent=root)
             change_password_dialog(root, user)
         else:
             status.set(f"Setup verified: {username} ({role}). Choose the next action below.")
@@ -333,8 +399,73 @@ def main():
     tk.Button(btns, text='Open Web UI (Glass Dashboard)', command=open_web_dashboard, bg=INFO, fg='#0c1222', relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
     tk.Button(btns, text='Login / Continue Setup', command=do_login, bg=ACCENT, fg='#04130a', relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
     tk.Button(btns, text='Start Center', command=open_start_center, bg=BUTTON, fg=TEXT, relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(6,0))
+    tk.Button(btns, text='Emergency Owner', command=emergency_mastery, bg='#3f1d1d', fg='#fca5a5', relief='flat', padx=8, pady=10, font=('Segoe UI',10,'bold')).pack(side='left', fill='x', expand=True, padx=(6,0))
     epass.bind('<Return>', lambda e: do_login())
     tk.Label(action_frame, text='Log in to show role-based local actions. Customer and external users should use cloud/mobile links provided by J&R.', bg=BG, fg=MUTED, wraplength=560, justify='left').grid(row=0,column=0,sticky='w')
     root.mainloop(); return 0
+
+
+def require_blocking_login(context: str = "JRC Manager") -> bool:
+    """Require sign-in before desktop tools run. Returns False if user cancels."""
+    if tk is None:
+        print(f"{context}: Tkinter unavailable — login gate skipped.")
+        return True
+    ensure_min_schema()
+    result = {"ok": False}
+
+    root = tk.Tk()
+    root.withdraw()
+    win = tk.Toplevel(root)
+    win.title(f"Sign In Required — {context}")
+    win.geometry("480x320")
+    win.minsize(420, 280)
+    win.configure(bg=BG)
+    win.grab_set()
+    apply_window_icon(win, BASE_DIR / "assets" / "j_and_r_manager_icon.ico")
+    tk.Label(win, text="J & R Construction Manager", bg=BG, fg=TEXT, font=("Segoe UI", 16, "bold")).pack(pady=(16, 4))
+    tk.Label(win, text=f"Sign in to open {context}. Every user including admin must verify on this PC.", bg=BG, fg=MUTED, wraplength=420).pack(pady=(0, 12))
+    frm = tk.Frame(win, bg=CARD, padx=16, pady=12)
+    frm.pack(fill="x", padx=20)
+    uvar = tk.StringVar(value=get_suggested_admin_username(BASE_DIR))
+    pvar = tk.StringVar()
+    tk.Label(frm, text="Username", bg=CARD, fg=MUTED).pack(anchor="w")
+    styled_entry(frm, textvariable=uvar).pack(fill="x", pady=(0, 8))
+    tk.Label(frm, text="Password", bg=CARD, fg=MUTED).pack(anchor="w")
+    epass = styled_entry(frm, show="*", textvariable=pvar)
+    epass.pack(fill="x")
+    status = tk.StringVar(value="PC-rooted security: login required before program use.")
+
+    def do_login(_event=None):
+        username = uvar.get().strip()
+        password = pvar.get()
+        with db() as conn:
+            user = conn.execute("SELECT * FROM users WHERE username=? AND active=1", (username,)).fetchone()
+        if not user or not verify_password(password, user["salt"], user["password_hash"]):
+            record_event(username, "", "FAILED", f"Blocking login denied for {context}")
+            status.set("Login failed. Check username and password.")
+            return
+        record_event(username, role_key(user["role"]), "OK", f"Blocking login OK for {context}")
+        result["ok"] = True
+        win.destroy()
+
+    def cancel():
+        result["ok"] = False
+        win.destroy()
+
+    tk.Label(win, textvariable=status, bg=BG, fg=MUTED, wraplength=420).pack(pady=8)
+    btns = tk.Frame(win, bg=BG)
+    btns.pack(fill="x", padx=20, pady=8)
+    tk.Button(btns, text="Sign In", command=do_login, bg=ACCENT, fg="#04130a", relief="flat", padx=12, pady=8).pack(side="left", expand=True, fill="x", padx=(0, 6))
+    tk.Button(btns, text="Cancel", command=cancel, bg=BUTTON, fg=TEXT, relief="flat", padx=12, pady=8).pack(side="left", expand=True, fill="x")
+    epass.bind("<Return>", do_login)
+    win.protocol("WM_DELETE_WINDOW", cancel)
+    root.wait_window(win)
+    try:
+        root.destroy()
+    except Exception:
+        pass
+    return bool(result["ok"])
+
+
 if __name__ == '__main__':
     log('Local Login Gate opened.'); raise SystemExit(main())

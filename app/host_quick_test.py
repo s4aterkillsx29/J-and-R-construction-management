@@ -41,6 +41,8 @@ def main() -> int:
         local + "/api/connection",
         local + "/connect",
         local + "/mobile",
+        local + "/chat",
+        local + "/api/chat/sessions",
     ]
     results = [check(u) for u in endpoints]
     passed = sum(1 for r in results if r["ok"])

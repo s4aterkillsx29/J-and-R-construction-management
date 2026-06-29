@@ -8,21 +8,45 @@ __pycache__/
 venv/
 env/
 
-# Runtime data and local-only files
+# Runtime data and local-only files (never commit business DB or install state)
+data/*
+!data/README_KEEP.txt
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 logs/
 backups/*.zip
-exports/*.pdf
-exports/*.xlsx
+
+# Business admin inbox copies (runtime sync from Dropbox — not source code)
+03_BUSINESS_ADMIN/
+
+# Local verification reports and install logs (runtime)
+*_REPORT.txt
+PROJECT_LOG.txt
+INSTALL_SETUP_REPORT.txt
+PHASE_VERIFICATION_REPORT.txt
+PROGRAM_UPDATE_REPORT.txt
+LIVE_RELEASE_VERIFY_REPORT.txt
+
+# Runtime exports (may contain LAN IPs, session metadata, local paths)
+exports/
+
+# Dropbox business records — not part of app source
+dropbox-records/
+
+# Business standards runtime manifest (local paths synced from Dropbox)
+business_standards/OFFICE_STANDARDS_MANIFEST.json
 
 # Secrets/environment
 .env
 .env.*
+data/local_secrets.env
 !.env.example
 !cloud_templates/.env.example
 !cloud_hosting/env.example
+.venv_old*/
 
 # OS/editor
 .DS_Store

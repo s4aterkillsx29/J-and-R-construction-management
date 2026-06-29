@@ -1,14 +1,24 @@
 Set WshShell = CreateObject("WScript.Shell")
 Set FSO = CreateObject("Scripting.FileSystemObject")
 Base = FSO.GetParentFolderName(WScript.ScriptFullName)
-Script = Base & "\app\start_center.py"
+EnsurePs1 = Base & "\scripts\Ensure-DesktopShortcuts.ps1"
+EnsureBat = Base & "\ensure_venv.bat"
+If FSO.FileExists(EnsureBat) Then
+  WshShell.CurrentDirectory = Base
+  WshShell.Run "cmd.exe /c """ & EnsureBat & """ >nul 2>&1", 0, True
+End If
+If FSO.FileExists(EnsurePs1) Then
+  WshShell.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File " & Chr(34) & EnsurePs1 & Chr(34) & " -InstallDir " & Chr(34) & Base & Chr(34) & " -Quiet", 0, False
+End If
 Pyw = Base & "\.venv\Scripts\pythonw.exe"
 Py = Base & "\.venv\Scripts\python.exe"
+ModuleArgs = "-m app.start_center"
 If FSO.FileExists(Pyw) Then
-  WshShell.Run Chr(34) & Pyw & Chr(34) & " " & Chr(34) & Script & Chr(34), 0, False
+  WshShell.CurrentDirectory = Base
+  WshShell.Run Chr(34) & Pyw & Chr(34) & " " & ModuleArgs, 0, False
 ElseIf FSO.FileExists(Py) Then
-  WshShell.Run Chr(34) & Py & Chr(34) & " " & Chr(34) & Script & Chr(34), 0, False
+  WshShell.CurrentDirectory = Base
+  WshShell.Run Chr(34) & Py & Chr(34) & " " & ModuleArgs, 0, False
 Else
-  ' Prefer pyw/py launcher when Python is installed normally. Hidden window style avoids command popup.
-  WshShell.Run "pyw -3 " & Chr(34) & Script & Chr(34), 0, False
+  WshShell.Run "pyw -3 " & ModuleArgs, 0, False
 End If

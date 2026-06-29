@@ -14,7 +14,7 @@ DB_PATH = DATA_DIR / "jr_business.db"
 EXPORT_DIR.mkdir(exist_ok=True)
 
 REQUIRED_FILES = [
-    "app/network_server.py", "app/start_center.py", "app/system_check.py", "app/permission_view_check.py",
+    "app/network_server.py", "app/start_center.py", "app/admin_db_editor.py", "app/system_check.py", "app/permission_view_check.py",
     "app/security_perspective_audit.py", "app/dashboard_role_check.py", "app/access_mode_check.py",
     "app/auto_host_repair.py", "app/host_quick_test.py", "app/cloud_deploy_check.py",
     "app/final_program_verify.py", "cloud_hosting/Dockerfile", "cloud_hosting/docker-compose.yml",
@@ -23,7 +23,8 @@ REQUIRED_FILES = [
 REQUIRED_ROUTES = [
     "/login", "/register", "/", "/mobile", "/connect", "/api/health", "/api/connection",
     "/api/cloud/status", "/cloud-status", "/customer", "/customer/request", "/customer/requests",
-    "/customers/requests", "/apply", "/applications", "/admin", "/admin/devices", "/owner-recovery",
+    "/customers/requests", "/apply", "/applications", "/admin", "/admin/devices", "/admin/database", "/admin/database/accounts", "/owner-recovery",
+    "/emergency-access",
 ]
 ROLE_MARKERS = ["admin", "manager", "worker", "viewer", "non_company", "customer"]
 FORBIDDEN_CUSTOMER_EXPOSURE = ["manage_payroll", "view_money", "manage_bookkeeping", "manage_files", "manage_devices", "configure_hosting"]
@@ -109,7 +110,7 @@ def check_database():
     if not DB_PATH.exists():
         warn("Installed database not found in this clean/package environment. System Check will create/repair it on the user's PC.")
         return
-    required_tables = ["users", "customers", "jobs", "customer_user_profiles", "customer_job_requests", "account_requests", "online_sessions", "known_devices", "worker_payroll", "bookkeeping_records"]
+    required_tables = ["users", "customers", "jobs", "customer_user_profiles", "customer_job_requests", "account_requests", "online_sessions", "known_devices", "worker_payments", "bookkeeping_ledgers"]
     try:
         conn = sqlite3.connect(DB_PATH)
         names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}

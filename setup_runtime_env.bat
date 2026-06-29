@@ -30,4 +30,9 @@ if errorlevel 1 (
 )
 
 echo Runtime environment ready.
+
+if exist "scripts\Ensure-DesktopShortcuts.ps1" (
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "scripts\Ensure-DesktopShortcuts.ps1" -InstallDir "%~dp0" -Quiet
+)
+
 exit /b 0

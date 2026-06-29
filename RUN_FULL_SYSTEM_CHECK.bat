@@ -7,7 +7,7 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-.venv\Scripts\python.exe app\system_check.py
+.venv\Scripts\python.exe -m app.system_check
 if errorlevel 1 (
   echo.
   echo System check found errors. Review the report saved in the exports folder.

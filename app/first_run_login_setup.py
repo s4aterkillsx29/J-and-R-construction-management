@@ -1,56 +1,113 @@
 """
-JRC First Setup / Login Bridge v6.5
-Opens a secure local login gate first. The web host is optional and no longer blocks setup.
+JRC First Setup / Login Bridge — opens Secure Local Login + post-install wizard.
 """
 from __future__ import annotations
-import subprocess, sys, urllib.request, json, os
+
+import os
+import subprocess
+import sys
 from pathlib import Path
-import tkinter as tk
-from tkinter import messagebox
-BASE_DIR=Path(__file__).resolve().parents[1]
-APP_DIR=BASE_DIR/'app'; DATA_DIR=BASE_DIR/'data'; LOG_DIR=BASE_DIR/'logs'
-for d in [DATA_DIR,LOG_DIR,BASE_DIR/'exports']: d.mkdir(exist_ok=True)
-LOCAL_SETTINGS=DATA_DIR/'local_host_settings.json'; DEFAULT_PORT=8765
-PYTHONW=BASE_DIR/'.venv'/'Scripts'/'pythonw.exe'; PYTHON=BASE_DIR/'.venv'/'Scripts'/'python.exe'
-PY_CMD=str(PYTHONW if PYTHONW.exists() else PYTHON if PYTHON.exists() else sys.executable)
-def get_port():
-    try:
-        if LOCAL_SETTINGS.exists(): return int(json.loads(LOCAL_SETTINGS.read_text(encoding='utf-8')).get('port', DEFAULT_PORT))
-    except Exception: pass
-    return DEFAULT_PORT
-def url_ok(url, timeout=1.0):
-    try:
-        with urllib.request.urlopen(url, timeout=timeout) as r: return True, r.status
-    except Exception as e: return False, str(e)
-def launch_py(module_file, log_name):
-    log=LOG_DIR/log_name
-    with log.open('a',encoding='utf-8',errors='replace') as f:
-        f.write('\n--- First Setup Launch ---\n')
-        try: return subprocess.Popen([PY_CMD, str(module_file)], cwd=str(BASE_DIR), stdout=f, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL), log
+
+try:
+    import tkinter as tk
+    from tkinter import messagebox
+except Exception:
+    tk = None
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+APP_DIR = BASE_DIR / "app"
+LOG_DIR = BASE_DIR / "logs"
+for d in (BASE_DIR / "data", LOG_DIR, BASE_DIR / "exports"):
+    d.mkdir(exist_ok=True)
+
+PYTHONW = BASE_DIR / ".venv" / "Scripts" / "pythonw.exe"
+PYTHON = BASE_DIR / ".venv" / "Scripts" / "python.exe"
+PY_CMD = str(PYTHONW if PYTHONW.exists() else PYTHON if PYTHON.exists() else sys.executable)
+
+
+def launch_module(module: str, log_name: str):
+    log = LOG_DIR / log_name
+    startupinfo = None
+    flags = 0
+    if os.name == "nt":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    with log.open("a", encoding="utf-8", errors="replace") as f:
+        f.write("\n--- First Setup Launch ---\n")
+        try:
+            return subprocess.Popen(
+                [PY_CMD, "-m", module],
+                cwd=str(BASE_DIR),
+                stdout=f,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
+                startupinfo=startupinfo,
+                creationflags=flags,
+            ), log
         except Exception as e:
-            f.write('LAUNCH ERROR: '+str(e)+'\n'); return None, log
-def launch_host(port):
-    log=LOG_DIR/'first_setup_host.log'
-    env=os.environ.copy(); env['JRC_PORT']=str(port)
-    with log.open('a', encoding='utf-8', errors='replace') as f:
-        f.write('\n--- Optional host launch from First Setup ---\n')
-        try: return subprocess.Popen([PY_CMD, str(APP_DIR/'network_server.py')],cwd=str(BASE_DIR),stdout=f,stderr=subprocess.STDOUT,stdin=subprocess.DEVNULL,env=env), log
-        except Exception as e:
-            f.write('HOST LAUNCH ERROR: '+str(e)+'\n'); return None, log
-def main():
-    root=tk.Tk(); root.withdraw()
-    msg=("J & R Construction Manager will open Secure Local Login first.\n\n"
-         "This does NOT require the local web host to verify. The web host is optional for same-Wi-Fi/mobile testing.\n\n"
-         "The installer does not collect or store passwords. Login happens in the local secure login gate or inside the running app.\n\n"
-         "Open Secure Local Login now?")
-    if messagebox.askyesno('JRC First Setup / Login', msg):
-        proc, log = launch_py(APP_DIR/'local_login_gate.py','local_login_gate_from_setup.log')
+            f.write("LAUNCH ERROR: " + str(e) + "\n")
+            return None, log
+
+
+def main() -> int:
+    auto = "--auto" in sys.argv
+    try:
+        from app.install_setup_log import log_event, write_setup_report
+
+        log_event(BASE_DIR, "FirstSetup", "First setup / login bridge opened")
+    except Exception:
+        pass
+
+    if tk is None or auto:
+        proc, log = launch_module("app.local_login_gate", "local_login_gate_from_setup.log")
         if proc is None:
-            messagebox.showwarning('Could not open local login', f'Local Login Gate could not open. Log: {log}')
             return 1
-    port=get_port(); ok,_=url_ok(f'http://127.0.0.1:{port}/login',.6)
-    if not ok:
-        launch_host(port)
-    messagebox.showinfo('Setup/Login Started', 'Secure Local Login has been opened.\n\nIf you need browser login later, use Start Center > Start Local Host. Local host is optional and should not block your normal setup.')
+        launch_module("app.install_post_setup_wizard", "post_setup_from_first_run.log")
+        try:
+            from app.install_setup_log import write_setup_report
+
+            write_setup_report(BASE_DIR)
+        except Exception:
+            pass
+        return 0
+
+    root = tk.Tk()
+    root.withdraw()
+    msg = (
+        "J & R Construction Manager — foolproof setup order:\n\n"
+        "1) Secure Local Login opens now (sign in on THIS PC only)\n"
+        "2) Setup wizard shows next steps\n"
+        "3) Start Center → Open Office for daily business\n\n"
+        "Customers / remote users: do NOT use this tool.\n"
+        "They use Jacob's browser link only (/register or /mobile).\n\n"
+        "Open setup now?"
+    )
+    if not messagebox.askyesno("JRC First Setup / Login", msg):
+        return 0
+
+    proc, log = launch_module("app.local_login_gate", "local_login_gate_from_setup.log")
+    if proc is None:
+        messagebox.showwarning("Could not open local login", f"Local Login Gate could not open.\n\nLog: {log}")
+        return 1
+
+    launch_module("app.install_post_setup_wizard", "post_setup_from_first_run.log")
+    try:
+        from app.install_setup_log import write_setup_report
+
+        write_setup_report(BASE_DIR)
+    except Exception:
+        pass
+
+    messagebox.showinfo(
+        "Setup Started",
+        "Secure Local Login and the setup wizard are opening.\n\n"
+        "Log file: logs/install_setup_journal.log\n"
+        "Summary: INSTALL_SETUP_REPORT.txt",
+    )
     return 0
-if __name__=='__main__': raise SystemExit(main())
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

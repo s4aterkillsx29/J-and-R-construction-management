@@ -1,30 +1,29 @@
 """
-Shared desktop UI theme for J & R Construction Manager.
-Matches the web glass design in network_server.py.
+Shared desktop UI theme — black + lime green (J & R Construction Manager).
 """
 from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
 
-# Design tokens
-BG = "#0a0f1c"
-PANEL = "#111827"
-CARD = "#151c2e"
-BORDER = "#334155"
-BORDER_LIGHT = "#475569"
-TEXT = "#f1f5f9"
-MUTED = "#94a3b8"
-DIM = "#64748b"
-ACCENT = "#34d399"
-ACCENT_FG = "#052e16"
-INFO = "#60a5fa"
-INFO_FG = "#0c1222"
-WARN = "#fbbf24"
+BG = "#000000"
+PANEL = "#0a0a0a"
+CARD = "#111111"
+BORDER = "#1f2937"
+BORDER_LIGHT = "#374151"
+TEXT = "#f5f5f5"
+MUTED = "#a3a3a3"
+DIM = "#737373"
+ACCENT = "#84cc16"
+ACCENT_BRIGHT = "#a3e635"
+ACCENT_FG = "#000000"
+INFO = "#a3e635"
+INFO_FG = "#000000"
+WARN = "#facc15"
 WARN_FG = "#1c1917"
-DANGER = "#f87171"
-BUTTON = "#1e293b"
-ENTRY_BG = "#0f172a"
+DANGER = "#ef4444"
+BUTTON = "#171717"
+ENTRY_BG = "#0a0a0a"
 
 FONT = "Segoe UI"
 FONT_TITLE = (FONT, 22, "bold")
@@ -36,7 +35,7 @@ FONT_HERO = (FONT, 16, "bold")
 
 CARD_PADX = 16
 CARD_PADY = 14
-SIDEBAR_W = 210
+SIDEBAR_W = 170
 
 
 def dark_scrollbar(parent: tk.Misc, orient: str = "vertical", **kwargs) -> tk.Scrollbar:
@@ -55,7 +54,7 @@ def dark_scrollbar(parent: tk.Misc, orient: str = "vertical", **kwargs) -> tk.Sc
 
 def nav_button(parent: tk.Misc, text: str, command, *, active: bool = False) -> tk.Button:
     bg = CARD if active else PANEL
-    fg = TEXT if active else MUTED
+    fg = ACCENT if active else MUTED
     border = ACCENT if active else BORDER
     btn = tk.Button(
         parent,
@@ -64,7 +63,7 @@ def nav_button(parent: tk.Misc, text: str, command, *, active: bool = False) -> 
         bg=bg,
         fg=fg,
         activebackground=CARD,
-        activeforeground=TEXT,
+        activeforeground=ACCENT_BRIGHT,
         relief="flat",
         bd=0,
         font=(FONT, 10, "bold"),
@@ -89,10 +88,9 @@ def action_card(
     variant: str = "secondary",
     wraplength: int = 520,
 ) -> tk.Frame:
-    """Full-width glass-style action row."""
     accent = {
         "primary": ACCENT,
-        "info": INFO,
+        "info": ACCENT_BRIGHT,
         "warn": WARN,
         "secondary": BORDER_LIGHT,
     }.get(variant, BORDER_LIGHT)
@@ -131,7 +129,7 @@ def glass_frame(parent: tk.Misc, *, bg: str = CARD, border: bool = True, **pack)
         bg=bg,
         highlightthickness=1 if border else 0,
         highlightbackground=BORDER,
-        highlightcolor=BORDER_LIGHT,
+        highlightcolor=ACCENT,
     )
     if pack:
         frame.pack(**pack)
@@ -143,7 +141,7 @@ def section_label(parent: tk.Misc, text: str, **grid) -> tk.Label:
         parent,
         text=text.upper(),
         bg=BG,
-        fg=DIM,
+        fg=ACCENT,
         font=(FONT, 10, "bold"),
         anchor="w",
     )
@@ -165,10 +163,10 @@ def action_button(
 ) -> tk.Button:
     styles = {
         "primary": (ACCENT, ACCENT_FG),
-        "info": (INFO, INFO_FG),
+        "info": (ACCENT_BRIGHT, ACCENT_FG),
         "warn": (WARN, WARN_FG),
         "danger": (DANGER, "#fff"),
-        "secondary": (BUTTON, TEXT),
+        "secondary": (ACCENT, ACCENT_FG),
     }
     bg, fg = styles.get(variant, styles["secondary"])
     btn = tk.Button(
@@ -177,8 +175,8 @@ def action_button(
         command=command,
         bg=bg,
         fg=fg,
-        activebackground=bg,
-        activeforeground=fg,
+        activebackground=ACCENT_BRIGHT,
+        activeforeground=ACCENT_FG,
         relief="flat",
         bd=0,
         font=FONT_BUTTON,
@@ -197,7 +195,7 @@ def styled_entry(parent: tk.Misc, **kwargs) -> tk.Entry:
     opts = dict(
         bg=ENTRY_BG,
         fg=TEXT,
-        insertbackground=TEXT,
+        insertbackground=ACCENT,
         relief="flat",
         font=(FONT, 11),
         highlightthickness=1,
@@ -210,7 +208,7 @@ def styled_entry(parent: tk.Misc, **kwargs) -> tk.Entry:
 
 def hero_button(parent: tk.Misc, title: str, subtitle: str, command, *, variant: str = "primary") -> tk.Frame:
     card = glass_frame(parent, bg=CARD, padx=CARD_PADX, pady=CARD_PADY)
-    color = ACCENT if variant == "primary" else INFO if variant == "info" else TEXT
+    color = ACCENT if variant == "primary" else ACCENT_BRIGHT
     tk.Label(card, text=title, bg=CARD, fg=color, font=FONT_HERO, anchor="w").pack(fill="x")
     tk.Label(card, text=subtitle, bg=CARD, fg=MUTED, font=FONT_SMALL, anchor="w", wraplength=280, justify="left").pack(
         fill="x", pady=(4, 12)
@@ -227,14 +225,13 @@ def configure_ttk(style: ttk.Style) -> None:
     style.configure("TLabel", background=BG, foreground=TEXT, font=FONT_BODY)
     style.configure("Muted.TLabel", background=BG, foreground=MUTED, font=FONT_BODY)
     style.configure("Title.TLabel", background=PANEL, foreground=TEXT, font=FONT_TITLE)
-    style.configure("Header.TLabel", background=PANEL, foreground=TEXT, font=(FONT, 14, "bold"))
-    style.configure("CardHeader.TLabel", background=CARD, foreground=TEXT, font=(FONT, 12, "bold"))
+    style.configure("Header.TLabel", background=PANEL, foreground=ACCENT, font=(FONT, 14, "bold"))
+    style.configure("CardHeader.TLabel", background=CARD, foreground=ACCENT, font=(FONT, 12, "bold"))
     style.configure("TButton", background=BUTTON, foreground=TEXT, borderwidth=0, focusthickness=3, focuscolor=ACCENT, font=FONT_BODY, padding=(10, 6))
     style.map("TButton", background=[("active", BORDER_LIGHT)])
     style.configure("Accent.TButton", background=ACCENT, foreground=ACCENT_FG, font=FONT_BUTTON)
-    style.map("Accent.TButton", background=[("active", "#2dd4bf")])
-    style.configure("Info.TButton", background=INFO, foreground=INFO_FG, font=FONT_BUTTON)
-    style.map("Info.TButton", background=[("active", "#93c5fd")])
+    style.map("Accent.TButton", background=[("active", ACCENT_BRIGHT)])
+    style.configure("Info.TButton", background=ACCENT_BRIGHT, foreground=ACCENT_FG, font=FONT_BUTTON)
     style.configure("Danger.TButton", background=DANGER, foreground="#fff")
     style.map("Danger.TButton", background=[("active", "#fca5a5")])
     style.configure(
@@ -245,12 +242,12 @@ def configure_ttk(style: ttk.Style) -> None:
         rowheight=30,
         borderwidth=0,
     )
-    style.map("Treeview", background=[("selected", "#1e3a5f")])
-    style.configure("Treeview.Heading", background=PANEL, foreground=TEXT, font=(FONT, 10, "bold"))
+    style.map("Treeview", background=[("selected", "#1a2e05")])
+    style.configure("Treeview.Heading", background=PANEL, foreground=ACCENT, font=(FONT, 10, "bold"))
     style.configure("TNotebook", background=BG, borderwidth=0, tabmargins=(4, 4, 4, 0))
     style.configure("TNotebook.Tab", background=PANEL, foreground=MUTED, padding=(16, 10), font=(FONT, 10, "bold"))
-    style.map("TNotebook.Tab", background=[("selected", CARD)], foreground=[("selected", TEXT)])
-    style.configure("TEntry", fieldbackground=ENTRY_BG, foreground=TEXT, insertcolor=TEXT, bordercolor=BORDER)
+    style.map("TNotebook.Tab", background=[("selected", CARD)], foreground=[("selected", ACCENT)])
+    style.configure("TEntry", fieldbackground=ENTRY_BG, foreground=TEXT, insertcolor=ACCENT, bordercolor=BORDER)
     style.configure("TCombobox", fieldbackground=ENTRY_BG, background=ENTRY_BG, foreground=TEXT)
 
 

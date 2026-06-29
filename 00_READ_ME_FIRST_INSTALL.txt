@@ -1,16 +1,19 @@
-J & R Construction Manager v7.1.0 - Primary Live Reliable Business Edition
+J & R Construction Manager v7.6.1 - Admin Dashboard, Host Repair, and Densus Integration
 
 Best install/update order:
 1. Extract the ZIP or update the local clone.
 2. Run !!! START INSTALL HERE.vbs.
-3. Optional but recommended if an older copy is installed: click Pre-Install Local Login Check. This opens the existing secure app login/status without the installer storing any passwords.
-4. Click Install / Update.
-5. The installer preserves business data and opens Quick Setup/Login after install.
-6. Log in inside the app, not the installer.
-7. Change default admin/admin immediately if it is still active.
-8. Run Self Setup + Verify from Start Center after login.
-9. Use the desktop shortcut named J and R Construction Manager for daily use.
+3. Choose **Owner Master PC** — installs to your **Desktop** folder: `J and R Construction Manager`
+4. Click Install / Update (migrates old AppData copy to Desktop if needed).
+5. Quick Setup Login opens — first-time owner login: ivygrows / ivygrows (this PC only).
+6. Change the ivygrows password immediately after first login.
+7. Admin → Dropbox Business → Run Dropbox Live Check → Push Sensitive Backup.
+8. Run Self Setup + Verify from Start Center.
 
-Security rule: admin/admin is local first setup only and is blocked for customer/remote/cloud use once setup is complete or when access is not local.
+Security rules:
+- ivygrows/ivygrows works only on localhost during first setup — not from phones, LAN, or cloud.
+- Restoring ivygrows or other default passwords requires your emergency mastery key.
+- Customers and workers cannot access admin controls — role permissions are enforced.
+- Dropbox is your sensitive business backup source; the database is backed up into Dropbox, not live-shared.
 
-Data safety rule: do not commit .env files, database files, private customer exports, or password/recovery information. Business data folders are preserved during install/update.
+Data safety: do not commit .env files, database files, local_secrets.env, or customer exports.

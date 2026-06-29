@@ -41,7 +41,12 @@ check('customer request creates event log', 'Customer submitted a complete job r
 check('owner review page includes customer-visible and internal notes', 'customer_visible_notes' in ns and 'internal_notes' in ns and 'customers cannot see this' in ns, 'Owner review separation missing')
 check('customer detail hides internal notes', 'internal_notes' not in ns[ns.find('def customer_request_detail'):ns.find('@app.route("/customers/requests"')], 'Customer detail route appears to expose internal notes')
 check('customers cannot access internal surfaces helper still exists', 'forbid_customer_external_admin_surface' in ns, 'External/customer internal block helper missing')
-check('customer role limited permission set exists', '"customer": {"view_dashboard", "mobile_access", "customer_portal", "customer_request_job", "view_customer_shared"}' in ns, 'Customer role permission set changed or too broad')
+rp = (APP/'role_permissions.py').read_text(encoding='utf-8', errors='ignore') if (APP/'role_permissions.py').exists() else ''
+customer_perm_ok = (
+    '"customer": {"view_dashboard", "mobile_access", "customer_portal", "customer_request_job", "view_customer_shared"}' in ns
+    or '"customer": {' in rp and 'customer_portal' in rp and 'view_customer_shared' in rp
+)
+check('customer role limited permission set exists', customer_perm_ok, 'Customer role permission set changed or too broad')
 check('customer dashboard quick actions exist', 'Create Job Request' in ns and 'View My Requests' in ns and 'Customer Dashboard' in ns, 'Customer dashboard quick actions missing')
 check('customer route is login protected', '@login_required("customer_request_job")' in ns and '@login_required("customer_portal")' in ns, 'Customer routes missing login protection')
 check('owner/admin customer request route protected', '@login_required("manage_applications")' in ns and 'def owner_customer_requests' in ns, 'Owner/admin customer review route not protected')

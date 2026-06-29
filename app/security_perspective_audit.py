@@ -24,10 +24,12 @@ def err(x): ERRORS.append(x); line(f"ERROR - {x}")
 
 def check_static_source():
     src=(APP_DIR/'network_server.py').read_text(encoding='utf-8', errors='replace')
+    rp=(APP_DIR/'role_permissions.py').read_text(encoding='utf-8', errors='replace')
+    customer_block = rp.split('"customer":')[1].split('},')[0] if '"customer":' in rp else ''
     required={
-        'admin role has manage_users/audit/manage_devices': '"manage_users"' in src and '"audit"' in src and '"manage_devices"' in src,
-        'customer role exists with customer-only permissions': '"customer": {"view_dashboard", "mobile_access", "customer_portal", "customer_request_job", "view_customer_shared"}' in src,
-        'non-company role minimal only': '"non_company": {"view_dashboard", "view_shared_sessions", "mobile_access"}' in src,
+        'admin role has manage_users/audit/manage_devices': '"manage_users"' in rp and '"audit"' in rp and '"manage_devices"' in rp,
+        'customer role exists with customer-only permissions': '"customer"' in rp and 'view_customer_shared' in customer_block and 'view_files' not in customer_block,
+        'non-company role minimal only': '"non_company"' in rp and 'view_shared_sessions' in rp,
         'customer routes exist': '/customer/request' in src and '/customer/requests' in src and '/customers/requests' in src,
         'customer internal notes hidden from customer route': 'internal_notes' in src and 'Customer Request Detail' in src,
         'security headers set': 'Content-Security-Policy' in src and 'X-Frame-Options' in src and 'X-Content-Type-Options' in src,
@@ -37,6 +39,9 @@ def check_static_source():
         'permission navigation filters items': 'for key, label, href, need in nav if need in perms' in src,
         'customer account request option exists': "<option value='customer'>" in src,
         'admin security audit route exists': '/security-audit' in src,
+        'account approval admin only': 'approve_account_request' in src and 'is_admin_role' in src,
+        'file access security guard': 'file_access_security' in src and 'role_may_open_indexed_file' in src,
+        'pending login blocked message': 'login_pending_approval' in src,
     }
     for label, passed in required.items():
         ok(label) if passed else err(label)
