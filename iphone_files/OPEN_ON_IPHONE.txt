@@ -4,7 +4,8 @@ J & R Construction - iPhone Files
 Find invoices on your iPhone:
 1. Open the Files app.
 2. Tap Browse.
-3. If you use Dropbox with J&R: Dropbox > your J&R folder > iphone_files > Invoices.
+3. If you use Dropbox with J&R: Dropbox > your J&R folder > START_HERE_NAVIGATION.txt
+   Then open numbered folders (02_Documents... for Lily invoices).
 4. If you use iCloud Drive: iCloud Drive > J&R Construction > iphone_files > Invoices.
 5. If you use the J&R mobile host: open Mobile > Files on your phone browser.
 

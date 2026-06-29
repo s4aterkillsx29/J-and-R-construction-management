@@ -38,3 +38,11 @@ Single selected Dropbox business root organization
 - 07_Backups
 - 08_Admin_Standards
 - 09_Archive
+- 10_Logs
+- 11_Exports
+- 12_Imports_ChatGPT
+
+Navigation
+- START_HERE_NAVIGATION.txt at the Dropbox root is the phone-friendly map.
+- JRC_ROOT_INDEX.json lists standard folders and customer subfolders.
+- Before any reorganization, a full snapshot is saved under 09_Archive/_PreReorg_Snapshot_*.

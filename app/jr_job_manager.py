@@ -773,6 +773,8 @@ class DarkApp(tk.Tk):
         actions = ttk.Frame(c, style="Card.TFrame")
         actions.pack(fill="x", pady=10)
         ttk.Button(actions, text="Sync Backup to Dropbox Folder", style="Accent.TButton", command=self.sync_backup_to_dropbox).pack(side="left", padx=4)
+        ttk.Button(actions, text="Recreate Dropbox Folders", command=self.recreate_dropbox_folders).pack(side="left", padx=4)
+        ttk.Button(actions, text="Reorganize Dropbox Business", style="Accent.TButton", command=self.reorganize_dropbox_business).pack(side="left", padx=4)
         ttk.Button(actions, text="Export Account Index", command=self.export_user_index).pack(side="left", padx=4)
         ttk.Button(actions, text="Open Dropbox Folder", command=self.open_dropbox_folder).pack(side="left", padx=4)
         warn = self.card(wrap, "Security Notes")
@@ -797,6 +799,50 @@ class DarkApp(tk.Tk):
         if folder:
             ensure_dropbox_organization(folder)
         messagebox.showinfo("Saved", "Dropbox folder setting saved.")
+
+    def recreate_dropbox_folders(self):
+        folder = self.db.get_setting("dropbox_folder", "").strip() or self.dropbox_path_var.get().strip()
+        if not folder:
+            messagebox.showwarning("Missing folder", "Set the Dropbox folder first.")
+            return
+        ensure_dropbox_organization(folder)
+        self.db.set_setting("dropbox_folder", folder)
+        self.db.log("Dropbox", f"Recreated/verified J&R Dropbox organization folders at {folder}")
+        messagebox.showinfo("Dropbox Folders Ready", f"J&R Dropbox organization folders are ready at:\n{folder}")
+
+    def reorganize_dropbox_business(self):
+        folder = self.db.get_setting("dropbox_folder", "").strip() or self.dropbox_path_var.get().strip()
+        if not folder:
+            messagebox.showwarning("Missing folder", "Set the Dropbox folder first.")
+            return
+        if not messagebox.askyesno(
+            "Reorganize Dropbox",
+            "This will inventory your Dropbox root, save a full snapshot to 09_Archive, "
+            "and place files into the standard J&R folders without deleting originals.\n\nContinue?",
+        ):
+            return
+        try:
+            import sys
+            tools_dir = BASE_DIR / "tools"
+            if str(BASE_DIR) not in sys.path:
+                sys.path.insert(0, str(BASE_DIR))
+            from tools.jrc_dropbox_organization import reorganize_dropbox_business
+
+            report = reorganize_dropbox_business(Path(folder))
+            self.db.log(
+                "Dropbox",
+                f"Reorganized Dropbox business root at {folder}. "
+                f"Placed {len(report.copied)} files. Snapshot: {report.snapshot_dir}",
+            )
+            messagebox.showinfo(
+                "Dropbox Reorganized",
+                f"Dropbox reorganized at:\n{folder}\n\n"
+                f"Files placed: {len(report.copied)}\n"
+                f"Snapshot backup: {report.snapshot_dir}\n\n"
+                f"Open START_HERE_NAVIGATION.txt at the Dropbox root on your phone.",
+            )
+        except Exception as exc:
+            messagebox.showerror("Reorganize Failed", str(exc))
 
     def open_dropbox_folder(self):
         folder = self.db.get_setting("dropbox_folder", "")
