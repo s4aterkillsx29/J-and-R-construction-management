@@ -1,0 +1,37 @@
+J and R Construction Manager — iPhone Owner Setup (matches PC)
+
+Use this when Jacob wants the phone to work like the PC Office setup.
+
+QUICK PATH
+1. PC: Start Center → Start Local Host → wait for verify.
+2. iPhone Safari: open /connect on the same Wi-Fi.
+3. iPhone: /login with owner account.
+4. iPhone Safari: Share → Add to Home Screen → "J&R Manager".
+5. iPhone: open /mobile/setup for the full checklist.
+
+WHAT YOU GET ON PHONE (owner/admin)
+- Mobile dashboard, jobs, pipeline board
+- Job details with expenses and worker pay (when allowed)
+- Mobile files / receipt search
+- Full admin pages: payroll, bookkeeping, expenses (same login)
+- Live chat and shared sessions
+
+DOCUMENTS ON PHONE (Files app)
+- Sync Dropbox business folder on iPhone
+- PC mirrors exports to iphone_files/Invoices/
+- Run Office Records Sync on PC to refresh phone PDFs
+
+AWAY FROM SHOP
+- Deploy cloud_hosting (Render/Railway/Fly/tunnel)
+- Save Cloud Access URL in PC Start Center
+- Phone uses cloud URL instead of LAN IP
+
+DO NOT
+- Share admin password
+- Use default admin/admin on a shared host
+- Expect phone to work if PC host is off and no cloud URL is saved
+
+See also:
+- mobile_companion/README_MOBILE_COMPANION.txt
+- docs/guides/CLOUD_ACCESS_AND_USER_CONNECTIONS_V5_1.txt
+- iphone_files/OPEN_ON_IPHONE.txt

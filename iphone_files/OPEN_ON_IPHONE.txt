@@ -1,0 +1,24 @@
+J & R Construction — Open on iPhone
+
+=== MOBILE APP (same as PC Office) ===
+1. On PC: Start Center → Start Local Host (or set Cloud Access URL for remote use).
+2. On iPhone Safari: open your connection test link first (/connect).
+3. Sign in with your owner account (/login).
+4. Safari → Share → Add to Home Screen → name it "J&R Manager".
+5. Open J&R Manager from home screen for jobs, pipeline, files, payroll, and bookkeeping.
+
+Setup walkthrough on phone:
+  <your-host-url>/mobile/setup
+
+=== FILES / INVOICES ===
+1. Install Dropbox and sign into the same J&R business account as your PC.
+2. iPhone Files app → Browse → Dropbox → your J and R Construction folder.
+3. Invoices mirrored for phone:
+   iphone_files / Invoices /
+
+=== PC MUST BE RUNNING (unless Cloud Access is set) ===
+- Same Wi-Fi: http://<pc-lan-ip>:8765/mobile
+- Remote: use the Cloud Access URL saved in Start Center on the PC.
+
+Phone: (910) 712-0936
+Business: J & R Construction

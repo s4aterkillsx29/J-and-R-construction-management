@@ -340,14 +340,30 @@ def admin():
     table = "".join(f"<tr><td>{esc(r['username'])}</td><td>{esc(r['display_name'])}</td><td>{esc(r['role'])}</td><td>{'Yes' if r['must_change_password'] else 'No'}</td></tr>" for r in rows)
     return page("Admin", f"<div class='card hero'><h1>Admin / Security</h1><p>Change default admin password before live use.</p><form method='post'><p><label>New Password</label><input type='password' name='new_password'></p><button>Change Password</button></form></div><div class='card'><table><tr><th>User</th><th>Name</th><th>Role</th><th>Must Change</th></tr>{table}</table></div>")
 
+@app.route("/mobile/setup")
+def mobile_setup_page():
+    from app.mobile_phone_setup import render_mobile_setup_page
+
+    port = int(os.environ.get("JRC_PORT", "8765"))
+    user = current_user()
+    body = render_mobile_setup_page(
+        lan_ip="127.0.0.1",
+        port=port,
+        logged_in=bool(user),
+        username=user["username"] if user else "",
+        role=user["role"] if user else "",
+        esc=esc,
+    )
+    return page("Phone Setup", f"<div class='card hero'><h1>Phone Setup</h1></div>{body}")
+
 @app.route("/mobile")
 @login_required("mobile")
 def mobile():
-    return page("Mobile", "<div class='card hero'><h1>Mobile Access</h1><p>Phone-friendly view for same Wi-Fi/VPN or secured cloud host.</p></div><div class='card'><a class='btn primary' href='/dashboard'>Dashboard</a><a class='btn' href='/jobs'>Jobs</a><a class='btn' href='/files'>Files</a></div>")
+    return page("Mobile", "<div class='card hero'><h1>Mobile Access</h1><p>Phone-friendly view for same Wi-Fi/VPN or secured cloud host.</p></div><div class='card'><a class='btn primary' href='/mobile/setup'>Phone Setup Guide</a><a class='btn' href='/dashboard'>Dashboard</a><a class='btn' href='/jobs'>Jobs</a><a class='btn' href='/files'>Files</a></div>")
 
 @app.route("/connect")
 def connect_page():
-    return page("Connection OK", "<div class='card hero'><h1>Connection OK</h1><p>The J&R Construction Manager server answered correctly.</p><a class='btn primary' href='/login'>Login</a><a class='btn' href='/api/health'>API Health</a></div>")
+    return page("Connection OK", "<div class='card hero'><h1>Connection OK</h1><p>The J&R Construction Manager server answered correctly.</p><a class='btn primary' href='/mobile/setup'>Phone Setup Guide</a><a class='btn' href='/login'>Login</a><a class='btn' href='/api/health'>API Health</a></div>")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
