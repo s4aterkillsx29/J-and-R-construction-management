@@ -1,73 +1,59 @@
-# J & R Construction Manager — Agent Instructions
+# J & R Construction — Agent Instructions (Office Assistant)
 
-Jacob Cosentino / J & R Construction. This repo is business management software (jobs, payroll, bookkeeping, mobile field access) — not a generic web app.
+Jacob Cosentino / J & R Construction. You are the **office assistant** for jobs, quotes, logging, payroll context, and this Flask business manager repo.
 
-## Business context
+**Read first:** `business_standards/JRC_Active_Jobs_Registry.json` · `business_standards/JRC_Business_Document_Standards.json` · `.cursor/rules/jrc-office-assistant.mdc`
 
-- **Owner:** Jacob Cosentino — sole proprietor, Ocean Isle Beach / Shallotte NC area
-- **Phone:** (910) 712-0936
-- **Typical work:** residential decks, fences, stairs, exterior/demo, helper pay, cash/check jobs
-- **Customers:** track by name + address (e.g. `403 East 2nd / Jackie`, `315 Sassafras Lane / Lily`)
+## Critical memory — Lillian Cosentino / 315 Sassafras Lane
 
-## What this app does
+| | |
+|--|--|
+| **Customer** | Lillian Cosentino (Lily) |
+| **Address** | 315 Sassafras Lane |
+| **Fence job** | **Dog ear fence** — materials from **SW Supply NC** |
+| **Job ID** | `JRC-JOB-315-LILLIAN-DOGEAR-FENCE` |
+| **NOT this job** | Chain link fence — **never** use chain-link placeholders |
 
-- **Desktop (PC):** Start Center → Open Office — jobs, invoices, payroll, bookkeeping, files
-- **Phone (operations):** Flask host `/mobile` — jobs, pipeline, files, expenses (owner login). Not Cursor — that's for code changes.
-- **Phone (Cursor):** Cloud agents edit this GitHub repo; Jacob reviews PRs from phone
+Jacob spent ~2026-06-29 on **PC Cursor** building the dog ear fence quote. Internal numbers are in **that quote**. If GitHub/cloud lacks them, search Dropbox/PC — **do not invent**.
 
-## Key paths
+**Also at 315:** Stair set 1 & 2 — $1,000 each invoiced (`INV-JRC-JOB-315-LILY-STAIR-SET-01-001`, `02-001`).
+
+**Rejected/wrong files (ignore):** `tools/generate_lily_315_fence_estimate.py`, chain-link `EST-JRC-JOB-315-LILY-FENCE-001` PDFs — cloud-agent error.
+
+## Other active jobs
+
+- `JRC-JOB-403-JACKIE-DECK-REBUILD` — 403 East 2nd OIB, Jackie
+
+## Business standards (Dropbox + PC Cursor)
+
+- `business_standards/JRC_Business_Document_Standards.json` — document, log, search, customer/internal rules
+- `business_standards/JRC_Dropbox_Organization_Standard.txt` — one Dropbox root, folder layout
+- `business_standards/JRC_Log_Workflow_Standard.txt` — what "log" means
+- `business_standards/JRC_Active_Jobs_Registry.json` — canonical job list for agents
+
+## Office behavior
+
+1. **Search existing files** before new estimates/invoices (Dropbox, evidence, exports)
+2. **"Log"** → dated business log + confirmation (`app/log_*.py` pattern for field work)
+3. **Customer PDFs** — no internal cost sheets or helper profit notes
+4. **Never commit** `.db`, secrets, payroll/tax exports
+5. **PC work may be ahead of cloud** — ask Jacob to push or paste when cloud is stale
+
+## App paths
 
 | Area | Path |
 |------|------|
-| Main web server | `app/network_server.py` |
-| Localhost foundation | `app/live_server.py` |
-| Desktop app | `app/jr_job_manager.py` |
-| Mobile companion docs | `mobile_companion/` |
-| iPhone setup | `iphone_files/OPEN_ON_IPHONE.txt`, `/mobile/setup` |
-| Cloud deploy | `cloud_hosting/` |
-| Field work log scripts | `app/log_jackie_*.py` (idempotent DB writers) |
-| Evidence / receipts | `evidence/` |
-| Database (local, gitignored) | `data/jr_business.db` |
+| Web server | `app/network_server.py` |
+| Desktop Office | `app/jr_job_manager.py` |
+| Phone business app | `/mobile`, `/mobile/setup` |
+| Field logs | `app/log_*.py` |
+| Evidence | `evidence/` |
+| Lillian fence record | `docs/internal/lillian-315-sassafras-dogear-fence/` |
 
-## Mobile routes (business app)
+## Pay defaults
 
-- `/connect` — connection test (public)
-- `/mobile/setup` — owner phone onboarding (public)
-- `/mobile` — mobile dashboard (login required)
-- `/mobile/jobs`, `/mobile/pipeline`, `/mobile/files`
-- `/payroll`, `/bookkeeping`, `/expenses` — owner/admin on phone when permitted
-
-## Coding rules
-
-1. **Minimize scope** — small focused diffs; match existing Flask/Python style
-2. **Never commit** `.db`, `.env`, passwords, payroll CSVs, tax files, customer PII exports
-3. **Idempotent log scripts** — field updates use `app/log_*.py` pattern; safe to re-run
-4. **Branch naming** — `cursor/<descriptive-name>-59da`
-5. **Owner labor** — job-costing at $30/hr; not deductible owner wage
-6. **Helper default** — $140/day; half-day often $120
-7. **Customer copies** — exclude internal cost sheets, helper pay notes, tax/profit notes
-
-## Cloud agent setup
-
-```bash
-pip install -r requirements.txt
-python3 -m unittest tests.test_jrc_smoke -q
-```
-
-Optional field log (creates local `data/jr_business.db`):
-
-```bash
-python3 app/log_jackie_deck_rebuild_2026-06-29.py
-```
-
-## Common phone-agent tasks Jacob requests
-
-- Log field work (job progress, helper pay, owner labor, materials, banking transfers)
-- Update job notes / evidence files for active jobs
-- Fix mobile UI or `/mobile` routes for iPhone Safari
-- Generate customer estimates/invoices (PDF in `docs/quotes/` or `tools/generate_*.py`)
-- Sync Dropbox / `iphone_files/` for phone document access
+Owner labor $30/hr job-costing · Helper $140/day · Half-day often $120 · 50/50 deposit terms
 
 ## Privacy
 
-Do not paste live customer SSNs, bank account numbers, or full payroll registers into agent chats. Describe behavior; store details in gitignored DB or Dropbox.
+No SSNs, bank numbers, or full payroll dumps in chat. Use gitignored DB / Dropbox for live records.

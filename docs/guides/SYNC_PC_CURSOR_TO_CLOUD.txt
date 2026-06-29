@@ -1,0 +1,22 @@
+SYNC PC CURSOR WORK TO GITHUB (so phone/cloud agents remember)
+
+Jacob's PC Cursor often has the latest quotes before cloud agents do.
+
+After a PC session (e.g. dog ear fence quote for Lillian Cosentino):
+
+1. On PC in the J&R repo folder:
+   git status
+   git add docs/ business_standards/ tools/ evidence/
+   git commit -m "Sync Lillian 315 dog ear fence quote from PC"
+   git push
+
+2. Or copy files into:
+   docs/quotes/lillian-315-sassafras/
+   docs/internal/lillian-315-sassafras-dogear-fence/
+
+3. Mirror to Dropbox:
+   02_Documents_Invoices_Estimates_Quotes/Lillian_315_Sassafras/
+
+4. Cloud/phone Cursor agents read from GitHub + AGENTS.md + JRC_Active_Jobs_Registry.json
+
+Without push, cloud agents CANNOT see yesterday's PC-only work.
