@@ -45,19 +45,41 @@ WHAT LIVES IN THIS ONE FOLDER
   JRC_WORKSPACE.txt        confirms this is the right folder
 
 ================================================================================
+DAILY HABIT — phone + PC stay aligned
+================================================================================
+
+FIELD (phone):
+  Log work in THIS Dropbox workspace (not GitHub). Dropbox pushes to PC.
+
+EVENING (PC):
+  Start Center → Log / Sync (Phone + PC)
+  OR desktop Cursor: "log" or "sync my files"
+  OR tools\Log-WorkspaceSync.ps1
+
+VERIFY (both devices):
+  00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt — same "Last PC sync" = aligned.
+  00_START_HERE/READABLE/SYNC_LOG.txt — history.
+
+AVOID:
+  Phone GitHub workspace (stale branches)
+  Chat-only logs without saving to Dropbox
+  Assuming phone auto-updates CSVs without PC sync
+  Second business folder — ONE root only
+
+================================================================================
 DESKTOP (Construction Manager)
 ================================================================================
 
 Start Center:
+  Log / Sync (Phone + PC)   — full pipeline after phone field work
   Sync Business Workspace   — unify paths + deploy phone files
-  Office Records Sync       — same folder, imports CSVs to database
   Open Business Workspace   — open in File Explorer
 
 Or PowerShell:
-  scripts\Sync-JRCBusinessFolders.ps1
-  scripts\Refresh-ReadableBusinessReports.ps1
+  tools\Log-WorkspaceSync.ps1
+  tools\Sync-JRCBusinessFolders.ps1
 
-After phone work: run both scripts, Office Records Sync, then tell desktop Cursor: log
+After phone work: Log / Sync, then check BUSINESS_DASHBOARD.txt on both devices
 
 ================================================================================
 RULE

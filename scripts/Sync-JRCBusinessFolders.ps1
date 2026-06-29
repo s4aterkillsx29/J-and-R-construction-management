@@ -75,8 +75,9 @@ Write-Host "ONE workspace ready." -ForegroundColor Green
 Write-Host "Phone: open $WorkspaceName inner folder in Cursor"
 Write-Host "Desktop: Office Records Sync uses the same folder"
 
-$refresh = Join-Path $RepoRoot "scripts\Refresh-ReadableBusinessReports.ps1"
+$refresh = Join-Path $RepoRoot "scripts\Log-WorkspaceSync.ps1"
 if ((Test-Path $refresh) -and -not $WhatIf) {
     Write-Host ""
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $refresh -WorkspaceRoot $root
+    Write-Host "Running full workspace log/sync..." -ForegroundColor Cyan
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $refresh
 }

@@ -767,8 +767,9 @@ class StartCenter(tk.Tk):
             ]),
             "tools": ("Tools & files", [
                 ("Print File to A42", "Print a PDF or text file to the Phoswift label printer (USB).", self.print_local_file, "primary"),
+                ("Log / Sync (Phone + PC)", "Full sync: standards, CSVs, dashboard, sync log — run after phone work.", self.run_log_workspace_sync, "primary"),
                 ("Open Business Workspace", "One Dropbox folder — quotes, logs, office CSVs (phone + desktop).", self.open_business_workspace, "primary"),
-                ("Sync Business Workspace", "Unify Dropbox paths, deploy 00_START_HERE, refresh readable reports.", self.run_sync_business_workspace, "primary"),
+                ("Sync Business Workspace", "Unify Dropbox paths, deploy 00_START_HERE, full log/sync.", self.run_sync_business_workspace, "primary"),
                 ("Worker Forms", "Account signup, customer request, and job application links.", self.worker_forms, "secondary"),
                 ("Tools / Repair", "System check, host test, firewall rule, and final verify.", self.tools_window, "warn"),
                 ("Files / Logs", "Exports, backups, logs, program folder, and help documents.", self.files_window, "secondary"),
@@ -1703,35 +1704,41 @@ class StartCenter(tk.Tk):
             return
         self._watch_process(proc, log, "Office Records Sync", "See logs/office_sync_last.log and exports/office_sync/")
 
+    def run_log_workspace_sync(self):
+        if not self._admin_developer_pc():
+            messagebox.showwarning("Admin Only", "Log/sync is for Owner Master / admin PCs.")
+            return
+        self.set_status("Full workspace log/sync — standards, CSVs, dashboard...")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.workspace_sync"], "workspace_sync_last.log")
+        if err:
+            messagebox.showwarning("Log/sync could not start", err)
+            return
+        self._watch_process(
+            proc,
+            log,
+            "Log / Sync",
+            "Phone + PC alignment:\n"
+            "Check 00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt\n"
+            "Same Last PC sync on phone and PC = aligned.\n"
+            "Report: exports/workspace_sync/WORKSPACE_SYNC_LAST.txt",
+        )
+
     def run_sync_business_workspace(self):
         if not self._admin_developer_pc():
             messagebox.showwarning("Admin Only", "Workspace sync is for Owner Master / admin PCs.")
             return
         self.set_status("Syncing ONE business workspace (Dropbox)...")
-        sync_ps1 = BASE_DIR / "scripts" / "Sync-JRCBusinessFolders.ps1"
-        refresh_ps1 = BASE_DIR / "scripts" / "Refresh-ReadableBusinessReports.ps1"
-        if sync_ps1.is_file():
-            proc, log, err = launch_hidden(
-                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(sync_ps1)],
-                "workspace_sync_last.log",
-            )
-            if err:
-                messagebox.showwarning("Workspace sync could not start", err)
-                return
-            self._watch_process(
-                proc,
-                log,
-                "Business Workspace Sync",
-                "ONE workspace: phone Cursor + Manager + office CSVs.\n"
-                "Includes Refresh-ReadableBusinessReports.\n"
-                "Phone verify: 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt",
-            )
-            return
-        proc, log, err = launch_hidden([PY_CMD, "-m", "app.phone_cursor_workspace", "--deploy"], "workspace_sync_last.log")
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.workspace_sync"], "workspace_sync_last.log")
         if err:
             messagebox.showwarning("Workspace sync could not start", err)
             return
-        self._watch_process(proc, log, "Business Workspace Sync", "See logs/workspace_sync_last.log")
+        self._watch_process(
+            proc,
+            log,
+            "Business Workspace Sync",
+            "ONE workspace: phone Cursor + Manager + office CSVs.\n"
+            "Check 00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt and SYNC_LOG.txt",
+        )
 
     def run_phone_cursor_dropbox_setup(self):
         """Legacy name — same as run_sync_business_workspace."""

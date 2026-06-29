@@ -105,7 +105,7 @@ if (Test-Path (Join-Path $Src "scripts\Ensure-DesktopShortcuts.ps1")) {
 }
 
 # Phone Cursor + Dropbox workspace (00_START_HERE files)
-foreach ($script in @("Sync-JRCBusinessFolders.ps1", "Refresh-ReadableBusinessReports.ps1")) {
+foreach ($script in @("Sync-JRCBusinessFolders.ps1", "Log-WorkspaceSync.ps1")) {
     $sp = Join-Path $Src "scripts\$script"
     if (Test-Path $sp) {
         Write-Host "Running $script ..."
