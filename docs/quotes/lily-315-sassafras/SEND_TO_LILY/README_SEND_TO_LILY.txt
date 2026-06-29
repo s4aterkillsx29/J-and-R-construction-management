@@ -1,13 +1,16 @@
-Lily — 315 Sassafras Lane — customer invoices to send
+Lily — 315 Sassafras Lane — SEND THESE FILES
+============================================
 
-Ready now (stairs):
-- Lily_315_Sassafras_Stair_Set_1_CUSTOMER_INVOICE.pdf ($1,000)
-- Lily_315_Sassafras_Stair_Set_2_CUSTOMER_INVOICE.pdf ($1,000)
+Stair invoices (4 ft sets) — $1,000.00 each:
+- Lily_315_Sassafras_Stair_Set_1_CUSTOMER_INVOICE.pdf
+- Lily_315_Sassafras_Stair_Set_2_CUSTOMER_INVOICE.pdf
 
-Fence:
-- Lily_315_Sassafras_Fence_CUSTOMER_ESTIMATE.pdf (chain-link fence, two 4 ft gates)
-- Regenerate with: python tools/generate_lily_315_fence_estimate.py
-- Customer copy shows two (2) four-foot (4 ft) gates only — no 8 ft gate.
+Each invoice total: $1,000.00
+Deposit before work: $500.00
+Balance on completion: $500.00
 
-Dropbox customer folder target:
-02_Documents_Invoices_Estimates_Quotes/Lily_315_Sassafras/
+Fence estimate (separate):
+- Lily_315_Sassafras_Fence_CUSTOMER_ESTIMATE.pdf
+
+Regenerate stair invoices:
+  python tools/generate_lily_315_stair_estimates.py

@@ -117,10 +117,17 @@ def find_fence_quote(roots: list[Path]) -> tuple[Path | None, list[str]]:
 
 
 def latest_stair_pdf(doc_no: str) -> Path | None:
-    matches = sorted(DOCS_DIR.glob(f"{doc_no}_*.pdf"))
-    if matches:
-        return matches[-1]
-    matches = sorted((EXPORT_DIR).glob(f"{doc_no}_*.pdf"))
+    send_map = {
+        "INV-JRC-JOB-315-LILY-STAIR-SET-01-001": SEND_DIR / "Lily_315_Sassafras_Stair_Set_1_CUSTOMER_INVOICE.pdf",
+        "INV-JRC-JOB-315-LILY-STAIR-SET-02-001": SEND_DIR / "Lily_315_Sassafras_Stair_Set_2_CUSTOMER_INVOICE.pdf",
+    }
+    send_path = send_map.get(doc_no)
+    if send_path and send_path.exists():
+        return send_path
+    archive = sorted((DOCS_DIR / "_archive").glob(f"{doc_no}_*.pdf"))
+    if archive:
+        return archive[-1]
+    matches = sorted(EXPORT_DIR.glob(f"{doc_no}_*.pdf"))
     return matches[-1] if matches else None
 
 
