@@ -139,13 +139,16 @@ def copy_invoice(source: Path, dest: Path) -> Path:
 
 
 def distribute_stair_invoices(dropbox_root: Path) -> list[Path]:
-    """Copy both stair invoices to the standard Dropbox documents folder."""
+    """Copy both stair invoices to Dropbox All Files and the standard documents folder."""
     saved: list[Path] = []
     lily_dir = dropbox_root / "02_Documents_Invoices_Estimates_Quotes" / "Lily_315_Sassafras"
+    all_files_dir = dropbox_root / "All Files"
     lily_dir.mkdir(parents=True, exist_ok=True)
+    all_files_dir.mkdir(parents=True, exist_ok=True)
 
     for invoice in STAIR_INVOICES:
         source = source_invoice(invoice["send_name"])
+        saved.append(copy_invoice(source, all_files_dir / invoice["send_name"]))
         saved.append(copy_invoice(source, lily_dir / invoice["send_name"]))
         saved.append(copy_invoice(source, EXPORT_DIR / invoice["send_name"]))
     return saved
@@ -227,7 +230,7 @@ def main() -> None:
         log_entry(
             conn,
             "Document",
-            "Copied Lily / 315 Sassafras stair customer invoices to Dropbox "
+            "Copied Lily / 315 Sassafras stair customer invoices to Dropbox All Files and "
             "02_Documents_Invoices_Estimates_Quotes/Lily_315_Sassafras.",
         )
         log_entry(conn, "Business Standards", new_standards_summary())

@@ -23,6 +23,7 @@ DOCS_DIR = BASE_DIR / "docs" / "quotes" / "lily-315-sassafras"
 SEND_DIR = DOCS_DIR / "SEND_TO_LILY"
 ARCHIVE_DIR = DOCS_DIR / "_archive"
 IPHONE_DIR = BASE_DIR / "iphone_files" / "Invoices" / "Lily - 315 Sassafras Lane"
+DROPBOX_ALL_FILES = BASE_DIR / "dropbox_business" / "All Files"
 
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
@@ -108,7 +109,7 @@ INVOICES = [
 ]
 
 
-def write_invoice(invoice: dict) -> tuple[Path, Path, Path, Path]:
+def write_invoice(invoice: dict) -> tuple[Path, Path, Path, Path, Path]:
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     archive_name = f"{invoice['doc_no']}_{stamp}.pdf"
     export_path = EXPORT_DIR / archive_name
@@ -202,7 +203,16 @@ def write_invoice(invoice: dict) -> tuple[Path, Path, Path, Path]:
     archive_path.write_bytes(pdf_bytes)
     send_path.write_bytes(pdf_bytes)
     iphone_path.write_bytes(pdf_bytes)
-    return export_path, archive_path, send_path, iphone_path
+    dropbox_path = save_to_dropbox_all_files(send_path, invoice["send_name"])
+    return export_path, archive_path, send_path, iphone_path, dropbox_path
+
+
+def save_to_dropbox_all_files(send_path: Path, filename: str) -> Path:
+    """Copy send-ready invoice into Dropbox All Files for quick phone access."""
+    DROPBOX_ALL_FILES.mkdir(parents=True, exist_ok=True)
+    dest = DROPBOX_ALL_FILES / filename
+    shutil.copy2(send_path, dest)
+    return dest
 
 
 def cleanup_old_copies() -> list[str]:
@@ -239,8 +249,9 @@ def write_send_readme() -> Path:
 def main() -> None:
     archived = cleanup_old_copies()
     for invoice in INVOICES:
-        export_path, archive_path, send_path, iphone_path = write_invoice(invoice)
+        export_path, archive_path, send_path, iphone_path, dropbox_path = write_invoice(invoice)
         print("SEND TO LILY:", send_path)
+        print("Dropbox All Files:", dropbox_path)
         print("iPhone copy:", iphone_path)
         print("Archive:", archive_path)
         print("Export:", export_path)
