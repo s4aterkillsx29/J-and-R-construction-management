@@ -1,0 +1,14 @@
+J & R Construction log workflow standard
+
+When the owner says "log" or asks to log an update:
+- Create a dated business log entry summarizing the update.
+- Include enough job, customer, address, document, payment, or source context to find the entry later.
+- Confirm back what was logged.
+- Refresh the latest business log mirror file: JRC_Business_Log_Latest.txt.
+- Copy the latest business log mirror into the configured local Dropbox business folder when Dropbox is set.
+- If Dropbox is not configured or unavailable, say so clearly and keep the export mirror updated.
+
+App behavior:
+- Database.log writes to the business_log table.
+- Database.log also refreshes exports/JRC_Business_Log_Latest.txt.
+- If app setting dropbox_folder is configured, Database.log copies that mirror file into the Dropbox folder.

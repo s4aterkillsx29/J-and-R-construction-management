@@ -1,0 +1,61 @@
+INTERNAL USE ONLY - NOT CUSTOMER COPY
+J & R Construction - Internal Job Cost Sheet
+Generated: 2026-06-29 12:35 AM
+
+Customer: Lily
+Address: 315 Sassafras Lane
+Work: Two separate 4 ft wide exterior stair sets (4 steps each)
+Customer price: $1,000.00 per stair set (friends & family rate)
+Standard listed price: $1,650.00 per stair set
+Helper plan: Solo owner/operator (no helper pay on these sets)
+
+=== PER SET MATERIAL TAKEOFF (conservative retail) ===
+- 2x12x8 pressure-treated stringer stock: 3 x $24.00 = $72.00
+- 2x6x8 pressure-treated tread boards: 8 x $10.50 = $84.00
+- 1x8x8 pressure-treated kickplate/riser boards: 4 x $12.50 = $50.00
+- 2x4x8 pressure-treated handrail stock: 2 x $9.00 = $18.00
+- Structural screws, lags, and anchors: 1 x $38.00 = $38.00
+- Joist hangers / stringer ties / hardware: 1 x $32.00 = $32.00
+- Consumables and 10% waste buffer: 1 x $35.00 = $35.00
+Materials subtotal per set: $329.00
+
+=== PER SET OWNER LABOR PLAN ===
+- Layout, pocket stringer cutting, and fitting: 3.5 hr x $30.00/hr = $105.00
+- Stringer install, leveling, and attachment: 2 hr x $30.00/hr = $60.00
+- Double-tread and kickplate install: 2 hr x $30.00/hr = $60.00
+- Handrail install and final secure: 1.5 hr x $30.00/hr = $45.00
+- Cleanup and final walk-through: 1 hr x $30.00/hr = $30.00
+Owner labor subtotal per set: $300.00 (10.0 hours)
+
+=== PER SET OVERHEAD ===
+- Truck wear, fuel, and mobilization share: $45.00
+- Blade wear, bits, phone, scheduling, quote time: $25.00
+Overhead subtotal per set: $70.00
+
+=== SINGLE SET AFFORDABILITY @ $1,000 ===
+Revenue: $1,000.00
+Cash-out costs (materials + overhead, no helper): $399.00
+Cash margin before owner time: $601.00
+Owner labor value (job-costing only): $300.00
+Estimated net after owner time: $301.00
+Effective owner hourly after all counted costs: $30.10/hr
+
+=== BOTH SETS SAME TRIP ===
+Revenue (2 sets): $2,000.00
+Materials (2 sets): $658.00
+Overhead (shared mobilization): $95.00
+Cash margin before owner time: $1,247.00
+Owner labor value (20.0 hrs planned): $600.00
+Estimated net after owner time: $647.00
+Effective owner hourly: $32.35/hr
+
+=== VERDICT ===
+YES - AFFORDABLE
+
+Notes:
+- Customer invoices are updated to $1,000.00 per set with $500 deposit / $500 balance.
+- This is a friends & family rate, not full market price. Standard price remains $1,650.00 on the invoice.
+- Pocket-cut stringers and solo labor keep helper cost at $0.
+- Unknown rot, extra landing work, or step-count changes are excluded by the customer invoice clause.
+- Large fence work at this property remains a separate future quote.
+- Keep receipt photos and actual hours against this sheet when the job is done.
