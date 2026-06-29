@@ -1,0 +1,31 @@
+JRC-JOB-315-LILLIAN-DOGEAR-FENCE
+INTERNAL JOB RECORD — NOT CUSTOMER COPY
+
+Customer: Lillian Cosentino
+Address: 315 Sassafras Lane
+Fence type: Dog ear fence (wood) — NOT chain link
+Materials supplier: SW Supply NC
+
+STATUS
+- Dog ear fence quote assembled by Jacob on PC Cursor (~2026-06-29).
+- Internal quote numbers live in that PC session / Dropbox / local quote files.
+- This cloud repo does NOT yet have the synced quote unless Jacob pushed it.
+
+AGENT RULES — READ BEFORE ANSWERING ABOUT THIS JOB
+1. NEVER describe this job as chain link fence.
+2. NEVER use generate_lily_315_fence_estimate.py or EST-JRC-JOB-315-LILY-FENCE-001 chain-link PDFs — those were a wrong cloud-agent placeholder.
+3. Search Dropbox and PC file_sources first (business_standards preexisting_file_search_rule).
+4. Customer legal name: Lillian Cosentino (Lily is fine conversationally).
+5. When Jacob asks for internal numbers, pull from HIS dog ear quote document — do not invent.
+
+DROPBOX TARGET FOLDER
+02_Documents_Invoices_Estimates_Quotes/Lillian_315_Sassafras/
+
+RELATED JOBS AT SAME ADDRESS (separate scope)
+- Stair set 1 — $1,000 — INV-JRC-JOB-315-LILY-STAIR-SET-01-001
+- Stair set 2 — $1,000 — INV-JRC-JOB-315-LILY-STAIR-SET-02-001
+
+SYNC FROM PC
+If quote is only on office PC, Jacob should commit/push from PC Cursor or copy PDF + internal cost sheet into:
+  docs/internal/lillian-315-sassafras-dogear-fence/
+  docs/quotes/lillian-315-sassafras/
