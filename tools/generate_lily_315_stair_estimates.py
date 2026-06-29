@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import shutil
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -15,6 +16,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 BASE_DIR = Path(__file__).resolve().parents[1]
 EXPORT_DIR = BASE_DIR / "exports"
 DOCS_DIR = BASE_DIR / "docs" / "quotes" / "lily-315-sassafras"
+IPHONE_DIR = BASE_DIR / "iphone_files" / "Invoices" / "Lily - 315 Sassafras Lane"
 
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
@@ -193,16 +195,42 @@ def write_invoice(invoice: dict) -> tuple[Path, Path]:
         ]
     )
     doc.build(story)
-    shutil_copy = docs_path
-    shutil_copy.write_bytes(export_path.read_bytes())
-    return export_path, docs_path
+    docs_path.write_bytes(export_path.read_bytes())
+    iphone_path = save_to_iphone_files(export_path, invoice)
+    return export_path, docs_path, iphone_path
+
+
+def save_to_iphone_files(source_pdf: Path, invoice: dict) -> Path:
+    """Copy invoice PDF to the iPhone Files-friendly exports folder."""
+    IPHONE_DIR.mkdir(parents=True, exist_ok=True)
+    stair_no = "1" if "SET-01" in invoice["job_id"] else "2"
+    friendly_name = f"Lily - Stair Set {stair_no} Invoice - 1000.pdf"
+    dest = IPHONE_DIR / friendly_name
+    shutil.copy2(source_pdf, dest)
+    readme = IPHONE_DIR.parents[1] / "OPEN_ON_IPHONE.txt"
+    if not readme.exists():
+        readme.write_text(
+            "J & R Construction - iPhone Files\n"
+            "================================\n\n"
+            "Find invoices on your iPhone:\n"
+            "1. Open the Files app.\n"
+            "2. Tap Browse.\n"
+            "3. If you use Dropbox with J&R: Dropbox > your J&R folder > iphone_files > Invoices.\n"
+            "4. If you use iCloud Drive: iCloud Drive > J&R Construction > iphone_files > Invoices.\n"
+            "5. If you use the J&R mobile host: open Mobile > Files on your phone browser.\n\n"
+            "Lily stair invoices folder:\n"
+            "iphone_files / Invoices / Lily - 315 Sassafras Lane\n",
+            encoding="utf-8",
+        )
+    return dest
 
 
 def main() -> None:
     for invoice in INVOICES:
-        export_path, docs_path = write_invoice(invoice)
+        export_path, docs_path, iphone_path = write_invoice(invoice)
         print(export_path)
         print(docs_path)
+        print(iphone_path)
 
 
 if __name__ == "__main__":
