@@ -35,7 +35,7 @@ STAIR_SEND_FILES = [
         "Lily_315_Sassafras_Stair_Set_2_CUSTOMER_INVOICE.pdf",
     ),
 ]
-FENCE_SEND_NAME = "Lily_315_Sassafras_Fence_CUSTOMER_INVOICE.pdf"
+FENCE_SEND_NAME = "Lily_315_Sassafras_Fence_CUSTOMER_ESTIMATE.pdf"
 
 
 def now_stamp() -> str:
@@ -187,12 +187,20 @@ def bundle_stair_invoices(dropbox_root: Path) -> list[Path]:
     return saved
 
 
-def bundle_fence_quote(source: Path, dropbox_root: Path) -> list[Path]:
+def latest_generated_fence_estimate() -> Path | None:
+    matches = sorted(DOCS_DIR.glob("EST-JRC-JOB-315-LILY-FENCE-001_*.pdf"))
+    return matches[-1] if matches else None
+
+
+def bundle_generated_fence_quote(dropbox_root: Path) -> list[Path] | None:
+    source = latest_generated_fence_estimate()
+    if source is None:
+        return None
     SEND_DIR.mkdir(parents=True, exist_ok=True)
     dropbox_target = dropbox_root / DROPBOX_DOCS_ROOT / LILY_DROPBOX_DIRNAME
     dropbox_target.mkdir(parents=True, exist_ok=True)
-    send_path = SEND_DIR / FENCE_SEND_NAME
-    dropbox_path = dropbox_target / FENCE_SEND_NAME
+    send_path = SEND_DIR / "Lily_315_Sassafras_Fence_CUSTOMER_ESTIMATE.pdf"
+    dropbox_path = dropbox_target / "Lily_315_Sassafras_Fence_CUSTOMER_ESTIMATE.pdf"
     shutil.copy2(source, send_path)
     shutil.copy2(source, dropbox_path)
     return [send_path, dropbox_path]
@@ -212,8 +220,9 @@ def main() -> int:
             conn.commit()
 
         stair_paths = bundle_stair_invoices(dropbox_root)
-        fence_source, searched = find_fence_quote(roots)
         fence_paths: list[Path] = []
+        fence_source: Path | None = None
+        searched: list[str] = []
 
         log_entry(
             conn,
@@ -223,23 +232,41 @@ def main() -> int:
             f"into {SEND_DIR} and Dropbox {DROPBOX_DOCS_ROOT}/{LILY_DROPBOX_DIRNAME}.",
         )
 
-        if fence_source:
-            fence_paths = bundle_fence_quote(fence_source, dropbox_root)
+        generated_fence = bundle_generated_fence_quote(dropbox_root)
+        if generated_fence:
+            fence_paths = generated_fence
             log_entry(
                 conn,
                 "Document",
-                "Found existing Lily fence quote/invoice in Dropbox and copied customer send copy: "
-                f"{fence_source} -> {SEND_DIR / FENCE_SEND_NAME}",
+                "Bundled generated Lily fence customer estimate with two 4 ft gates: "
+                f"{SEND_DIR / FENCE_SEND_NAME}",
             )
         else:
-            log_entry(
-                conn,
-                "Document",
-                "Lily fence quote not found in searchable Dropbox paths from this environment. "
-                "Searched: "
-                + "; ".join(searched)
-                + ". Run this on the PC with Dropbox synced or set JRC_DROPBOX_FOLDER to the real Dropbox business root.",
-            )
+            fence_source, searched = find_fence_quote(roots)
+            if fence_source:
+                SEND_DIR.mkdir(parents=True, exist_ok=True)
+                dropbox_target = dropbox_root / DROPBOX_DOCS_ROOT / LILY_DROPBOX_DIRNAME
+                dropbox_target.mkdir(parents=True, exist_ok=True)
+                send_path = SEND_DIR / FENCE_SEND_NAME
+                dropbox_path = dropbox_target / FENCE_SEND_NAME
+                shutil.copy2(fence_source, send_path)
+                shutil.copy2(fence_source, dropbox_path)
+                fence_paths = [send_path, dropbox_path]
+                log_entry(
+                    conn,
+                    "Document",
+                    "Found existing Lily fence quote/invoice in Dropbox and copied customer send copy: "
+                    f"{fence_source} -> {SEND_DIR / FENCE_SEND_NAME}",
+                )
+            else:
+                log_entry(
+                    conn,
+                    "Document",
+                    "Lily fence quote not found in searchable Dropbox paths from this environment. "
+                    "Run tools/generate_lily_315_fence_estimate.py to create the customer estimate. "
+                    "Searched: "
+                    + "; ".join(searched),
+                )
 
         mirror_business_log(conn, dropbox_root, [])
 
@@ -247,17 +274,22 @@ def main() -> int:
         for path in sorted(SEND_DIR.glob("*")):
             print(f"  {path}")
         print("\nDropbox customer folder:")
-        for path in sorted((dropbox_root / DROPBOX_DOCS_ROOT / LILY_DROPBOX_DIRNAME).glob("*")):
-            print(f"  {path}")
+        target = dropbox_root / DROPBOX_DOCS_ROOT / LILY_DROPBOX_DIRNAME
+        if target.exists():
+            for path in sorted(target.glob("*")):
+                print(f"  {path}")
+        if fence_paths:
+            print(f"\nFence customer copy ready: {fence_paths[0]}")
+            return 0
         if fence_source:
             print(f"\nFence source used: {fence_source}")
-        else:
-            print("\nFence quote: NOT FOUND in Dropbox from this environment.")
+            return 0
+        print("\nFence quote: NOT FOUND. Run tools/generate_lily_315_fence_estimate.py")
+        if searched:
             print("Searched roots:")
             for root in searched:
                 print(f"  - {root}")
-            return 2
-        return 0
+        return 2
     finally:
         conn.close()
 
