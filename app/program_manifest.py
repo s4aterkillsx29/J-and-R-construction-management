@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-APP_VERSION = "7.12.1 Densus Owner-Approval Edition"
+APP_VERSION = "7.13.0 Densus Owner-Approval Edition"
 
 REQUIRED_PACKAGES = ("flask", "waitress", "reportlab", "gunicorn")
 

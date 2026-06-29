@@ -50,7 +50,7 @@ except Exception:
     REPORTLAB_OK = False
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.12.1 Densus Owner-Approval Edition"
+APP_VERSION = "7.13.0 Densus Owner-Approval Edition"
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
 BASE_DIR = Path(__file__).resolve().parents[1]

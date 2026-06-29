@@ -30,7 +30,7 @@ except Exception as exc:
     print("Flask is required. Run INSTALL_JR_JOB_MANAGER.bat first.")
     raise
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.12.1 Densus Owner-Approval Edition"
+APP_VERSION = "7.13.0 Densus Owner-Approval Edition"
 BUSINESS_NAME = "J & R Construction"
 OWNER = "Jacob Cosentino"
 PHONE = "(910) 712-0936"

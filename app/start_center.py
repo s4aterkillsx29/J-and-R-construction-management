@@ -45,7 +45,7 @@ except Exception:
     is_jrc_server = None
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.12.1 Densus Owner-Approval Edition"
+APP_VERSION = "7.13.0 Densus Owner-Approval Edition"
 BUSINESS = "J & R Construction"
 OWNER = "Jacob Cosentino"
 DEFAULT_PORT = int(os.environ.get("JRC_PORT", "8765"))
