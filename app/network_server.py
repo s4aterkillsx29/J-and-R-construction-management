@@ -1336,7 +1336,7 @@ def enforce_global_login_required():
 def protect_admin_and_sensitive_surfaces():
     """Block customers/external users and non-admins from admin-only URLs."""
     path = request.path or ""
-    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/ping", "/register", "/apply", "/emergency-access"}:
+    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/setup", "/mobile/ping", "/register", "/apply", "/emergency-access"}:
         return
     role = session.get("role", "")
     if session.get("user_id") and is_customer_or_external(role):
@@ -3061,6 +3061,27 @@ def upload_file():
     log_event("File Upload", f"Uploaded {dest.name}")
     flash(f"Uploaded {dest.name} to evidence folder.", "success")
     return redirect(url_for("files"))
+@app.route("/mobile/setup")
+def mobile_setup():
+    """Public owner phone onboarding — mirrors PC setup on mobile."""
+    from app.mobile_phone_setup import render_mobile_setup_page
+
+    port = int(os.environ.get("JRC_PORT", "8765"))
+    remote = get_app_setting("remote_public_base_url", "").strip()
+    cloud = os.environ.get("JRC_CLOUD_BASE_URL", "").strip()
+    user = current_user()
+    body = render_mobile_setup_page(
+        lan_ip=get_lan_ip(),
+        port=port,
+        remote_base=remote,
+        cloud_base=cloud,
+        logged_in=bool(user),
+        username=user["username"] if user else "",
+        role=user["role"] if user else "",
+    )
+    return layout("Phone Setup", body, "mobile", public=True)
+
+
 @app.route("/mobile")
 @login_required("mobile_access")
 def mobile_home():
@@ -3118,7 +3139,7 @@ def mobile_home():
     <p><b>Phone URL on this network:</b> <code>http://{lan_ip}:{port}/mobile</code></p>
     <p class='muted'>This screen only shows actions your account is allowed to use.</p></div>
     <div class='grid'>{money_card}<div class='stat'>Active Jobs<b>{active_jobs}</b></div><div class='stat'>Total Jobs<b>{jobs_count}</b></div><div class='stat'>Indexed Files<b>{files_count if 'view_files' in perms else 'Limited'}</b></div></div>
-    <div class='card mobile-actions'><h2>Quick Actions</h2>{('<a class=\'btn\' href=\'/mobile/pipeline\'>Job Pipeline Board</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn\' href=\'/mobile/jobs\'>Mobile Jobs</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/files\'>Mobile Files</a>') if 'view_files' in perms else ''} {('<a class=\'btn btn2\' href=\'/chat\'>Live Chat</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''} {('<a class=\'btn btn2\' href=\'/sharing\'>Shared Items</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''}</div>
+    <div class='card mobile-actions'><h2>Quick Actions</h2><a class='btn' href='/mobile/setup'>Phone Setup</a> {('<a class=\'btn\' href=\'/mobile/pipeline\'>Job Pipeline Board</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn\' href=\'/mobile/jobs\'>Mobile Jobs</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/files\'>Mobile Files</a>') if 'view_files' in perms else ''} {('<a class=\'btn btn2\' href=\'/chat\'>Live Chat</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''} {('<a class=\'btn btn2\' href=\'/sharing\'>Shared Items</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''}</div>
     {pipeline_snippet}
     <div class='card'><h2>Recent Jobs</h2><table><tr><th>Job</th><th>Status</th>{paid_col}</tr>{jr}</table></div>
     <div class='card'><h2>Mobile Rules</h2><ul><li>Admins and managers can update records based on permissions.</li><li>Workers and viewers are read-only unless an owner/admin grants more access.</li><li>Non-company users only see intentionally shared items.</li></ul></div>
@@ -4362,7 +4383,7 @@ def connect_links():
       <p><b>Server time:</b> {html.escape(now_display())}<br>
       <b>Detected server LAN IP:</b> <code>{html.escape(lan)}</code><br>
       <b>Your IP:</b> <code>{html.escape(client_ip())}</code></p>
-      <p><a class='btn' href='/login'>Login</a> <a class='btn btn2' href='/mobile'>Mobile App</a> <a class='btn btn2' href='/register'>Request Account</a> <a class='btn btn2' href='/apply'>Job Application</a></p>
+      <p><a class='btn' href='/mobile/setup'>Phone Setup Guide</a> <a class='btn btn2' href='/login'>Login</a> <a class='btn btn2' href='/mobile'>Mobile App</a> <a class='btn btn2' href='/register'>Request Account</a> <a class='btn btn2' href='/apply'>Job Application</a></p>
     </div>
     <div class='card'><h2>Share These Links</h2>
       <p><b>Phone/mobile:</b><br><code>{html.escape(base)}/mobile</code></p>
