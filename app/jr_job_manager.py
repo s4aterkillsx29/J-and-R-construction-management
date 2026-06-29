@@ -2055,7 +2055,7 @@ BUSINESS_STANDARD_DEFINITIONS = [
     ('helper_daily_rate', 'Helper default ($/8-hr day)', '140'),
     ('helper_overhead_per_work', 'Helper overhead per work instance ($)', '50'),
     ('dump_trip_fee_rule', 'Dump/disposal rule', 'Actual dump fee plus $50 J&R trip fee'),
-    ('office_records_path', 'Office records (dropbox-records) path', r'c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records'),
+    ('office_records_path', 'Unified business workspace (Dropbox)', ''),
     ('job_code_register', 'Job codes source file', '08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv'),
 ]
 

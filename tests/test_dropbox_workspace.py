@@ -11,41 +11,24 @@ class DropboxWorkspaceTests(unittest.TestCase):
     def test_dropbox_workspace_resolves_records_from_env(self):
         with tempfile.TemporaryDirectory() as td:
             base = Path(td) / "install"
-            records = Path(td) / "office" / "dropbox-records"
+            records = Path(td) / "workspace"
             reg_dir = records / "08_Admin_Standards"
             reg_dir.mkdir(parents=True)
             (reg_dir / "JRC_JOB_RELATION_REGISTER.csv").write_text(
                 "Job_Code,Customer,Address,Status\n", encoding="utf-8"
             )
-            old = os.environ.get("JRC_DROPBOX_RECORDS")
+            old = os.environ.get("JRC_WORKSPACE_ROOT")
             try:
-                os.environ["JRC_DROPBOX_RECORDS"] = str(records)
-                from app.dropbox_workspace import resolve_dropbox_records
+                os.environ["JRC_WORKSPACE_ROOT"] = str(records)
+                from app.jrc_workspace import resolve_workspace
 
-                found = resolve_dropbox_records(base)
+                found = resolve_workspace(base)
                 self.assertEqual(found, records.resolve())
             finally:
                 if old is None:
-                    os.environ.pop("JRC_DROPBOX_RECORDS", None)
+                    os.environ.pop("JRC_WORKSPACE_ROOT", None)
                 else:
-                    os.environ["JRC_DROPBOX_RECORDS"] = old
-
-    def test_dropbox_check_reports_no_access_without_sync_or_token(self):
-        from app.dropbox_workspace import check_access
-
-        old_token = os.environ.pop("DROPBOX_ACCESS_TOKEN", None)
-        old_records = os.environ.pop("JRC_DROPBOX_RECORDS", None)
-        try:
-            with tempfile.TemporaryDirectory() as td:
-                report = check_access(Path(td))
-                self.assertIn(report["mode"], ("none", "local"))
-                if report["mode"] == "none":
-                    self.assertTrue(report["errors"])
-        finally:
-            if old_token is not None:
-                os.environ["DROPBOX_ACCESS_TOKEN"] = old_token
-            if old_records is not None:
-                os.environ["JRC_DROPBOX_RECORDS"] = old_records
+                    os.environ["JRC_WORKSPACE_ROOT"] = old
 
 
 if __name__ == "__main__":

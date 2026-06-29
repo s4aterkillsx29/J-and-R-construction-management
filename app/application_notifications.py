@@ -68,15 +68,16 @@ def _outbox_dir() -> Path:
 
 
 def _dropbox_inbox() -> Optional[Path]:
-    candidates = [
-        Path(os.environ.get("JRC_DROPBOX_RECORDS", "")),
-        Path(r"c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records"),
-    ]
-    for p in candidates:
-        if p.is_dir():
-            dest = p / "03_BUSINESS_ADMIN" / "Job_Application_Inbox"
+    try:
+        from app.jrc_workspace import resolve_workspace, workspace_layout
+
+        root = resolve_workspace(_base_dir())
+        if root:
+            dest = workspace_layout(root)["admin"] / "Job_Application_Inbox"
             dest.mkdir(parents=True, exist_ok=True)
             return dest
+    except Exception:
+        pass
     return None
 
 

@@ -1,122 +1,82 @@
-# Sync J&R business folders for phone Cursor + Dropbox workspace.
-# Deploys 00_START_HERE files and links dropbox-records into business root.
+# Sync ONE unified J&R business workspace (Dropbox).
+# Merges legacy dropbox-records into workspace if needed; deploys 00_START_HERE.
 param(
-    [string]$BusinessRoot = "",
-    [string]$DropboxRecords = "",
+    [string]$WorkspaceRoot = "",
     [switch]$WhatIf
 )
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $Templates = Join-Path $RepoRoot "scripts\templates\dropbox_workspace"
+$WorkspaceName = "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"
 
-function Resolve-BusinessRoot {
+function Resolve-WorkspaceRoot {
     param([string]$Override)
     if ($Override -and (Test-Path -LiteralPath $Override)) { return $Override }
-    $candidates = @(
+    foreach ($p in @(
+        $env:JRC_WORKSPACE_ROOT,
         $env:JRC_DROPBOX_BUSINESS_ROOT,
-        "C:\Users\enrag\Dropbox\All Files\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22",
-        (Join-Path $env:USERPROFILE "Dropbox\All Files\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"),
-        (Join-Path $env:USERPROFILE "Dropbox\dropbox-records"),
-        "c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records"
-    ) | Where-Object { $_ }
-    foreach ($p in $candidates) {
-        if (Test-Path -LiteralPath $p) { return $p }
-    }
-    return $null
-}
-
-function Resolve-DropboxRecords {
-    param([string]$Override)
-    if ($Override -and (Test-Path -LiteralPath $Override)) { return $Override }
-    $candidates = @(
         $env:JRC_DROPBOX_RECORDS,
-        "c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records",
-        (Join-Path $env:USERPROFILE "Dropbox\dropbox-records")
-    ) | Where-Object { $_ }
-    foreach ($p in $candidates) {
-        $reg = Join-Path $p "08_Admin_Standards\JRC_JOB_RELATION_REGISTER.csv"
-        if (Test-Path -LiteralPath $reg) { return $p }
+        "C:\Users\enrag\Dropbox\All Files\$WorkspaceName\$WorkspaceName",
+        (Join-Path $env:USERPROFILE "Dropbox\All Files\$WorkspaceName\$WorkspaceName"),
+        "c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records"
+    )) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $p }
     }
     return $null
 }
 
 function Copy-TemplateTree {
     param([string]$Src, [string]$Dest)
-    if (-not (Test-Path -LiteralPath $Src)) {
-        Write-Warning "Templates missing: $Src"
-        return
-    }
     Get-ChildItem -LiteralPath $Src -Recurse -File | ForEach-Object {
         $rel = $_.FullName.Substring($Src.Length).TrimStart('\')
         $target = Join-Path $Dest $rel
-        $targetDir = Split-Path -Parent $target
         if (-not $WhatIf) {
-            New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
             Copy-Item -LiteralPath $_.FullName -Destination $target -Force
         }
-        Write-Host "  -> $rel"
+        Write-Host "  -> 00_START_HERE\$rel"
     }
 }
 
-$root = Resolve-BusinessRoot -Override $BusinessRoot
+$root = Resolve-WorkspaceRoot -Override $WorkspaceRoot
 if (-not $root) {
-    Write-Error @"
-Dropbox business root not found.
-Install Dropbox Desktop, wait for sync, or pass -BusinessRoot 'C:\Users\...\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22\...'
-"@
+    Write-Error "Unified workspace not found. Install Dropbox Desktop and sync $WorkspaceName"
 }
 
-$records = Resolve-DropboxRecords -Override $DropboxRecords
+Write-Host "=== Sync-JRCBusinessFolders (ONE workspace) ===" -ForegroundColor Cyan
+Write-Host "Workspace: $root"
+
+# Python unify + merge legacy paths
+$py = Join-Path $RepoRoot ".venv\Scripts\python.exe"
+if (-not (Test-Path $py)) { $py = "python" }
+Push-Location $RepoRoot
+& $py -m app.jrc_workspace --ensure
+Pop-Location
+
 $startHere = Join-Path $root "00_START_HERE"
-$readable = Join-Path $startHere "READABLE"
-
-Write-Host "=== Sync-JRCBusinessFolders ===" -ForegroundColor Cyan
-Write-Host "Business root: $root"
-Write-Host "dropbox-records: $(if ($records) { $records } else { '(not found — templates only)' })"
-Write-Host ""
-
-if (-not $WhatIf) {
-    New-Item -ItemType Directory -Force -Path $startHere, $readable | Out-Null
-}
-
-Write-Host "Deploying phone Cursor workspace files to 00_START_HERE..."
+if (-not $WhatIf) { New-Item -ItemType Directory -Force -Path $startHere | Out-Null }
+Write-Host "Deploying phone Cursor files..."
 Copy-TemplateTree -Src $Templates -Dest $startHere
 
-# OPEN guide at Dropbox All Files level (parent of business root when applicable)
-$allFilesGuide = Join-Path (Split-Path -Parent $root) "OPEN_JRC_BUSINESS_HERE.txt"
 if (-not $WhatIf) {
     @"
-Open this folder in Cursor on your PHONE for business work (quotes, logs, CSVs).
+J & R CONSTRUCTION — SINGLE BUSINESS WORKSPACE
+Workspace: $root
+Name: $WorkspaceName
 
-INNER FOLDER TO OPEN:
-  $($root)
-
-VERIFY: open 00_START_HERE\JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
-You should see the `$13,890 Lily Sassafras fence quote.
-
-Do NOT use GitHub J-and-R-construction-management for business files.
-"@ | Set-Content -Path $allFilesGuide -Encoding UTF8
-}
-Write-Host "  -> OPEN_JRC_BUSINESS_HERE.txt (parent folder)"
-
-if ($records -and $records -ne $root) {
-    $linkPath = Join-Path $root "dropbox-records"
-    if (-not (Test-Path -LiteralPath $linkPath)) {
-        if (-not $WhatIf) {
-            try {
-                cmd /c mklink /J "`"$linkPath`"" "`"$records`"" | Out-Null
-                Write-Host "Linked dropbox-records junction -> $records"
-            } catch {
-                Write-Warning "Could not create junction; copy path in PHONE_CURSOR_DROPBOX_WORKSPACE.txt"
-            }
-        }
-    }
+Phone Cursor: open THIS folder only (not GitHub).
+Verify: 00_START_HERE\JRC-315_LILY_FENCE_QUOTE_CURRENT.txt (`$13,890)
+"@ | Set-Content -Path (Join-Path $root "JRC_WORKSPACE.txt") -Encoding UTF8
 }
 
 Write-Host ""
-Write-Host "Phone verify prompt:" -ForegroundColor Green
-Write-Host '  Ask phone Cursor: "Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"'
-Write-Host "  Expect: `$13,890 Lily Sassafras fence quote"
-Write-Host ""
-Write-Host "Next: run scripts\Refresh-ReadableBusinessReports.ps1" -ForegroundColor Yellow
+Write-Host "ONE workspace ready." -ForegroundColor Green
+Write-Host "Phone: open $WorkspaceName inner folder in Cursor"
+Write-Host "Desktop: Office Records Sync uses the same folder"
+
+$refresh = Join-Path $RepoRoot "scripts\Refresh-ReadableBusinessReports.ps1"
+if ((Test-Path $refresh) -and -not $WhatIf) {
+    Write-Host ""
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $refresh -WorkspaceRoot $root
+}

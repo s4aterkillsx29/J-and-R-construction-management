@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Resolve J&R business workspace from local Dropbox sync or Dropbox API (cloud agents)."""
+"""Dropbox API + workspace check — paths resolved via app.jrc_workspace (one folder)."""
 from __future__ import annotations
 
 import json
@@ -7,132 +7,41 @@ import os
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+
+from app.jrc_workspace import (
+    READABLE,
+    START_HERE,
+    WORKSPACE_MARKER,
+    WORKSPACE_NAME,
+    apply_workspace_env,
+    resolve_business_root,
+    resolve_dropbox_records,
+    resolve_workspace,
+    workspace_candidates,
+    write_workspace_manifest,
+)
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
-# Local mirror for cloud agents when using Dropbox API (gitignored).
 CLOUD_MIRROR_DIR = Path(
     os.environ.get("JRC_DROPBOX_MIRROR", str(BASE_DIR / "dropbox-business"))
 ).expanduser()
 
-REGISTER_MARKER = Path("08_Admin_Standards") / "JRC_JOB_RELATION_REGISTER.csv"
-
-# Owner primary business root (Windows office PC).
-DEFAULT_BUSINESS_ROOT = Path(
-    r"C:\Users\enrag\Dropbox\All Files\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"
-    r"\JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"
-)
-DEFAULT_OFFICE_RECORDS = Path(
-    r"c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records"
-)
-
-
-def _home_dropbox() -> Path:
-    return Path.home() / "Dropbox"
-
-
-def business_root_candidates(base_dir: Optional[Path] = None) -> List[Path]:
-    """Ordered local paths that may hold the main J&R business folder."""
-    base = base_dir or BASE_DIR
-    home = Path.home()
-    dropbox = _home_dropbox()
-    env_root = os.environ.get("JRC_DROPBOX_BUSINESS_ROOT", "").strip()
-    candidates: List[Path] = []
-    if env_root:
-        candidates.append(Path(env_root))
-    candidates.extend(
-        [
-            CLOUD_MIRROR_DIR,
-            dropbox
-            / "All Files"
-            / "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"
-            / "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22",
-            dropbox / "J and R Construction",
-            dropbox / "JRC",
-            dropbox / "Invoices2026 1.0",
-            dropbox / "dropbox-records",
-            home / "Dropbox (Personal)" / "J and R Construction",
-            DEFAULT_BUSINESS_ROOT,
-            base.parent / "dropbox-records",
-        ]
-    )
-    seen: set[str] = set()
-    unique: List[Path] = []
-    for path in candidates:
-        key = str(path)
-        if key not in seen:
-            seen.add(key)
-            unique.append(path)
-    return unique
-
-
-def dropbox_records_candidates(base_dir: Optional[Path] = None) -> List[Path]:
-    """Ordered local paths for office dropbox-records (Office Assistant source of truth)."""
-    base = base_dir or BASE_DIR
-    env = os.environ.get("JRC_DROPBOX_RECORDS", "").strip()
-    dropbox = _home_dropbox()
-    candidates: List[Path] = []
-    if env:
-        candidates.append(Path(env))
-    candidates.extend(
-        [
-            CLOUD_MIRROR_DIR / "dropbox-records",
-            CLOUD_MIRROR_DIR,
-            DEFAULT_OFFICE_RECORDS,
-            base.parent / "dropbox-records",
-            dropbox / "dropbox-records",
-            dropbox
-            / "All Files"
-            / "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22"
-            / "JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22",
-            DEFAULT_BUSINESS_ROOT,
-        ]
-    )
-    seen: set[str] = set()
-    unique: List[Path] = []
-    for path in candidates:
-        key = str(path)
-        if key not in seen:
-            seen.add(key)
-            unique.append(path)
-    return unique
-
-
-def _has_register(path: Path) -> bool:
-    return (path / REGISTER_MARKER).is_file()
-
-
-def resolve_dropbox_records(base_dir: Optional[Path] = None) -> Optional[Path]:
-    """Return dropbox-records folder if present locally (synced or mirrored)."""
-    for candidate in dropbox_records_candidates(base_dir):
-        if _has_register(candidate):
-            return candidate.resolve()
-    return None
-
-
-def _is_populated_business_dir(path: Path) -> bool:
-    if not path.is_dir():
-        return False
-    if _has_register(path):
-        return True
-    marker = path / ".jrc_dropbox_mirror"
-    if marker.is_file():
-        return True
-    # Ignore placeholder mirror with only README_KEEP.txt
-    entries = [p for p in path.iterdir() if p.name != "README_KEEP.txt"]
-    return len(entries) > 0
-
-
-def resolve_business_root(base_dir: Optional[Path] = None) -> Optional[Path]:
-    """Return the main business workspace folder when available locally."""
-    records = resolve_dropbox_records(base_dir)
-    if records:
-        return records
-    for candidate in business_root_candidates(base_dir):
-        if _is_populated_business_dir(candidate):
-            return candidate.resolve()
-    return None
+# Re-export unified workspace API (one folder for everything).
+__all__ = [
+    "WORKSPACE_NAME",
+    "WORKSPACE_MARKER",
+    "resolve_workspace",
+    "resolve_dropbox_records",
+    "resolve_business_root",
+    "workspace_candidates",
+    "check_access",
+    "access_mode",
+    "api_search",
+    "api_download",
+    "mirror_file",
+]
 
 
 def get_dropbox_access_token() -> str:
@@ -143,15 +52,16 @@ def get_dropbox_access_token() -> str:
 
 
 def get_api_root() -> str:
-    """Dropbox API path prefix, e.g. /dropbox-records or empty for account root."""
     root = os.environ.get("DROPBOX_API_ROOT", "").strip()
+    if not root:
+        root = f"/{WORKSPACE_NAME}"
     if root and not root.startswith("/"):
         root = "/" + root
     return root.rstrip("/")
 
 
 def access_mode() -> str:
-    if resolve_business_root():
+    if resolve_workspace():
         return "local"
     if get_dropbox_access_token():
         return "api"
@@ -185,14 +95,12 @@ def api_account_check() -> Dict[str, Any]:
 
 
 def api_search(query: str, *, limit: int = 25) -> List[Dict[str, Any]]:
-    root = get_api_root()
     options: Dict[str, Any] = {
-        "path": root if root else "",
+        "path": get_api_root(),
         "max_results": min(max(limit, 1), 100),
         "file_status": "active",
     }
-    payload = {"query": query, "options": options}
-    data = _api_json("files/search_v2", payload)
+    data = _api_json("files/search_v2", {"query": query, "options": options})
     matches: List[Dict[str, Any]] = []
     for entry in data.get("matches") or []:
         meta = (entry.get("metadata") or {}).get("metadata") or {}
@@ -209,14 +117,13 @@ def api_search(query: str, *, limit: int = 25) -> List[Dict[str, Any]]:
 
 
 def api_download(dropbox_path: str) -> bytes:
-    payload = {"path": dropbox_path}
     token = get_dropbox_access_token()
     if not token:
         raise RuntimeError("DROPBOX_ACCESS_TOKEN is not set.")
     url = "https://content.dropboxapi.com/2/files/download"
     headers = {
         "Authorization": f"Bearer {token}",
-        "Dropbox-API-Arg": json.dumps(payload),
+        "Dropbox-API-Arg": json.dumps({"path": dropbox_path}),
     }
     req = urllib.request.Request(url, data=b"", headers=headers, method="POST")
     try:
@@ -228,7 +135,6 @@ def api_download(dropbox_path: str) -> bytes:
 
 
 def mirror_file(dropbox_path: str, local_path: Optional[Path] = None) -> Path:
-    """Download one Dropbox file into the local cloud mirror."""
     content = api_download(dropbox_path)
     if local_path is None:
         root = get_api_root().lstrip("/")
@@ -243,33 +149,38 @@ def mirror_file(dropbox_path: str, local_path: Optional[Path] = None) -> Path:
 
 
 def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
-    """Report how this environment can reach the J&R Dropbox business workspace."""
+    from app.jrc_workspace import REGISTER_REL, ensure_unified_workspace
+
     base = base_dir or BASE_DIR
+    unified = ensure_unified_workspace(base)
+    root = unified.get("workspace")
     report: Dict[str, Any] = {
         "mode": access_mode(),
-        "business_root": None,
-        "dropbox_records": None,
+        "workspace": root,
+        "workspace_name": WORKSPACE_NAME,
         "mirror_dir": str(CLOUD_MIRROR_DIR),
         "candidates_checked": [],
         "api_account": None,
-        "errors": [],
+        "errors": list(unified.get("errors") or []),
         "notes": [
-            "GitHub stores application source only — business files live in Dropbox.",
-            "Set DROPBOX_ACCESS_TOKEN in Cursor agent secrets for cloud Dropbox API access.",
+            "One workspace: phone Cursor, office CSVs, quotes, and Manager share the same Dropbox folder.",
+            "GitHub = app code only. Dropbox = all business files.",
         ],
     }
-    for path in business_root_candidates(base):
+    if unified.get("notes"):
+        report["notes"].extend(unified["notes"])
+    for path in workspace_candidates(base):
         exists = path.is_dir()
-        has_reg = _has_register(path) if exists else False
+        has_marker = (path / WORKSPACE_MARKER).is_file() if exists else False
+        has_reg = (path / REGISTER_REL).is_file() if exists else False
         report["candidates_checked"].append(
-            {"path": str(path), "exists": exists, "has_job_register": has_reg}
+            {
+                "path": str(path),
+                "exists": exists,
+                "workspace_marker": has_marker,
+                "has_job_register": has_reg,
+            }
         )
-    root = resolve_business_root(base)
-    records = resolve_dropbox_records(base)
-    if root:
-        report["business_root"] = str(root)
-    if records:
-        report["dropbox_records"] = str(records)
     token = get_dropbox_access_token()
     if token:
         try:
@@ -277,42 +188,43 @@ def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
             report["api_account"] = {
                 "name": acct.get("name", {}).get("display_name"),
                 "email": acct.get("email"),
-                "root": get_api_root() or "/",
+                "root": get_api_root(),
             }
-            if report["mode"] == "api":
-                report["notes"].append("Using Dropbox API — search and download available.")
         except Exception as exc:
-            report["errors"].append(f"Dropbox API token invalid or unreachable: {exc}")
+            report["errors"].append(f"Dropbox API: {exc}")
     elif report["mode"] == "none":
         report["errors"].append(
-            "No local Dropbox sync and no DROPBOX_ACCESS_TOKEN. "
-            "Install Dropbox on this PC or add a Dropbox API token to agent secrets."
+            "No workspace on this PC. Sync Dropbox or set JRC_WORKSPACE_ROOT."
         )
     return report
 
 
 def format_check_report(report: Dict[str, Any]) -> str:
     lines = [
-        "J & R Construction — Dropbox Business Workspace Check",
+        "J & R Construction — Unified Workspace Check",
         f"Mode: {report.get('mode')}",
-        f"Business root: {report.get('business_root') or 'NOT FOUND'}",
-        f"dropbox-records: {report.get('dropbox_records') or 'NOT FOUND'}",
-        f"Mirror dir: {report.get('mirror_dir')}",
+        f"Workspace ({WORKSPACE_NAME}): {report.get('workspace') or 'NOT FOUND'}",
+        f"Mirror: {report.get('mirror_dir')}",
         "",
         "Candidates:",
     ]
     for row in report.get("candidates_checked") or []:
+        flags = []
+        if row.get("workspace_marker"):
+            flags.append("workspace")
+        if row.get("has_job_register"):
+            flags.append("register")
+        extra = f" ({', '.join(flags)})" if flags else ""
         flag = "OK" if row.get("exists") else "missing"
-        reg = " + register" if row.get("has_job_register") else ""
-        lines.append(f"  [{flag}] {row.get('path')}{reg}")
+        lines.append(f"  [{flag}] {row.get('path')}{extra}")
     if report.get("api_account"):
         acct = report["api_account"]
         lines.extend(
             [
                 "",
                 "Dropbox API:",
-                f"  Account: {acct.get('name')} <{acct.get('email')}>",
-                f"  API root: {acct.get('root')}",
+                f"  {acct.get('name')} <{acct.get('email')}>",
+                f"  root: {acct.get('root')}",
             ]
         )
     if report.get("errors"):
@@ -343,17 +255,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             print("Usage: python -m app.dropbox_workspace --search <query>")
             return 2
         if access_mode() == "none":
-            report = check_access(base)
-            print(format_check_report(report))
+            print(format_check_report(check_access(base)))
             return 1
         if access_mode() == "api":
             for hit in api_search(query):
-                print(f"{hit.get('path')}\t{hit.get('name')}\t{hit.get('size')} bytes")
+                print(f"{hit.get('path')}\t{hit.get('name')}")
             return 0
-        # local search
-        root = resolve_business_root(base)
+        root = resolve_workspace(base)
         if not root:
-            print("No business root found.")
             return 1
         q = query.lower()
         for path in root.rglob("*"):
