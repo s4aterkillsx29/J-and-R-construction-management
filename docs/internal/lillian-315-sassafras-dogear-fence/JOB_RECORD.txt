@@ -1,31 +1,44 @@
 JRC-JOB-315-LILLIAN-DOGEAR-FENCE
 INTERNAL JOB RECORD — NOT CUSTOMER COPY
+Updated: 2026-06-30
 
 Customer: Lillian Cosentino
-Address: 315 Sassafras Lane
+Address: 315 Sassafras Lane (Supply, NC 28462 area)
 Fence type: Dog ear fence (wood) — NOT chain link
-Materials supplier: SW Supply NC
+Materials (cost pad): Home Depot retail takeoff
+Related supplier note: SW Supply NC on file for business context
 
 STATUS
-- Dog ear fence quote assembled by Jacob on PC Cursor (~2026-06-29).
-- Internal quote numbers live in that PC session / Dropbox / local quote files.
-- This cloud repo does NOT yet have the synced quote unless Jacob pushed it.
+- Dog ear fence internal cost pad captured 2026-06-29 (owner field notes).
+- Internal cost floor: $8,432.61 (materials $3,212.61 + field $220 + labor $4,800 + ~$200 tax/rounding).
+- Customer-facing price: NOT SET on pad — quote still in progress.
+- Customer dog ear estimate PDF: NOT YET in GitHub/Dropbox sync.
 
-AGENT RULES — READ BEFORE ANSWERING ABOUT THIS JOB
+SCOPE (from 2026-06-29 cost pad)
+- 34 x 4x4x10 posts
+- ~33 Sakrete 60 lb bags
+- 105 x 2x4x8
+- ~573 dog ear pickets 5/8 x 5-1/2 x 8
+- Gas auger rental $200, fuel $20
+- Labor plan: 2 helpers @ $240/day x 10 days = $4,800
+
+AGENT RULES
 1. NEVER describe this job as chain link fence.
-2. NEVER use generate_lily_315_fence_estimate.py or EST-JRC-JOB-315-LILY-FENCE-001 chain-link PDFs — those were a wrong cloud-agent placeholder.
-3. Search Dropbox and PC file_sources first (business_standards preexisting_file_search_rule).
+2. NEVER use generate_lily_315_fence_estimate.py or EST-JRC-JOB-315-LILY-FENCE-001 chain-link PDFs.
+3. Use INTERNAL_COST_SHEET_LILLIAN_315_DOGEAR_FENCE_20260630.txt for internal numbers.
 4. Customer legal name: Lillian Cosentino (Lily is fine conversationally).
-5. When Jacob asks for internal numbers, pull from HIS dog ear quote document — do not invent.
+5. Stair sets at same address are separate invoiced jobs.
 
 DROPBOX TARGET FOLDER
 02_Documents_Invoices_Estimates_Quotes/Lillian_315_Sassafras/
 
-RELATED JOBS AT SAME ADDRESS (separate scope)
+GITHUB / INTERNAL PATHS
+docs/internal/lillian-315-sassafras-dogear-fence/
+docs/quotes/lillian-315-sassafras/  (customer PDF when ready)
+
+RELATED JOBS AT SAME ADDRESS
 - Stair set 1 — $1,000 — INV-JRC-JOB-315-LILY-STAIR-SET-01-001
 - Stair set 2 — $1,000 — INV-JRC-JOB-315-LILY-STAIR-SET-02-001
 
 SYNC FROM PC
-If quote is only on office PC, Jacob should commit/push from PC Cursor or copy PDF + internal cost sheet into:
-  docs/internal/lillian-315-sassafras-dogear-fence/
-  docs/quotes/lillian-315-sassafras/
+Pull cloud updates or merge PR #14. Mirror internal sheets + future customer PDF to Dropbox.

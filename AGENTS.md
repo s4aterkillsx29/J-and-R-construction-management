@@ -14,7 +14,7 @@ Jacob Cosentino / J & R Construction. You are the **office assistant** for jobs,
 | **Job ID** | `JRC-JOB-315-LILLIAN-DOGEAR-FENCE` |
 | **NOT this job** | Chain link fence — **never** use chain-link placeholders |
 
-Jacob spent ~2026-06-29 on **PC Cursor** building the dog ear fence quote. Internal numbers are in **that quote**. If GitHub/cloud lacks them, search Dropbox/PC — **do not invent**.
+Jacob's **2026-06-29 field cost pad** is synced to cloud (2026-06-30). Internal floor **$8,432.61** — see `docs/internal/lillian-315-sassafras-dogear-fence/INTERNAL_COST_SHEET_LILLIAN_315_DOGEAR_FENCE_20260630.txt`. Customer price **TBD**. Rejected chain-link placeholder ($7,200) does **not** match this scope.
 
 **Also at 315:** Stair set 1 & 2 — $1,000 each invoiced (`INV-JRC-JOB-315-LILY-STAIR-SET-01-001`, `02-001`).
 

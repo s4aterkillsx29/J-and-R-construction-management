@@ -32,8 +32,8 @@
   "dropbox_organization_repair_rule": "When recreating Dropbox organization folders, create missing standard folders and readme/index files only under the one selected Dropbox business root. Keep one document/invoice folder path inside that root. Never delete, move, overwrite, or rename existing Dropbox files unless the owner explicitly asks.",
   "closeout_rule": "Each job should have estimate or invoice PDF, internal job cost sheet, receipt evidence, helper payment notes, final paid/unpaid balance note, and final photos where applicable.",
   "file_naming_rule": "Use JRC_ prefix or clear customer/job/date names. Avoid unclear temp names for final records.",
-  "cursor_status": "Updated in Cursor workspace for customer-facing invoice generation.",
-  "generated_at": "2026-06-27 08:56 PM UTC",
+  "cursor_status": "Updated 2026-06-30: Lillian 315 dog ear fence internal cost pad synced; chain-link placeholder rejected.",
+  "generated_at": "2026-06-30 10:45 PM UTC",
   "program": "J and R Construction Manager",
   "program_version": "7.1 Primary Live Reliable Business Edition"
 }

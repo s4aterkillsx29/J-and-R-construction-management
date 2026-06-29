@@ -8,17 +8,34 @@
       "customer_name": "Lillian Cosentino",
       "customer_aliases": ["Lily", "Lillian"],
       "address": "315 Sassafras Lane",
-      "scope": "Dog ear fence — NOT chain link",
-      "materials_supplier": "SW Supply NC",
-      "status": "Quote in progress / estimate",
+      "scope": "Dog ear wood fence — NOT chain link",
+      "materials_supplier": "Home Depot (cost pad 2026-06-29); SW Supply NC on file",
+      "status": "Quote in progress — internal costs captured, customer price TBD",
+      "internal_cost_base": 8432.61,
+      "internal_cost_breakdown": {
+        "materials_home_depot": 3212.61,
+        "field_equipment": 220.0,
+        "helper_labor_2x240x10d": 4800.0,
+        "implied_tax_or_rounding": 200.0
+      },
+      "labor_plan": "2 helpers @ $240/day x 10 days",
+      "material_takeoff": {
+        "4x4x10_posts": 34,
+        "sakrete_60lb_bags": 33,
+        "2x4x8": 105,
+        "dog_ear_pickets_5_8x5_5x8": 573
+      },
       "document_folder": "02_Documents_Invoices_Estimates_Quotes/Lillian_315_Sassafras",
-      "notes": "Jacob built the dog ear fence quote on PC Cursor (~2026-06-29). Source of truth is PC workspace + Dropbox. NEVER substitute chain-link fence data. Internal numbers are in the quote Jacob prepared — sync from PC if not in GitHub yet.",
+      "internal_cost_sheet": "docs/internal/lillian-315-sassafras-dogear-fence/INTERNAL_COST_SHEET_LILLIAN_315_DOGEAR_FENCE_20260630.txt",
+      "notes": "Owner field pad 2026-06-29 synced to cloud 2026-06-30. Rejected chain-link placeholder ($7,200/$8,325) does not match this scope. Customer PDF still needed.",
       "invalid_reject": [
         "chain link",
         "chain-link",
         "185 LF chain link",
-        "EST-JRC-JOB-315-LILY-FENCE-001 chain link placeholder",
-        "generate_lily_315_fence_estimate.py chain link script"
+        "EST-JRC-JOB-315-LILY-FENCE-001",
+        "generate_lily_315_fence_estimate.py",
+        "Lily_315_Sassafras_Fence_CUSTOMER_ESTIMATE.pdf",
+        "Lily - Fence Estimate - 7200.pdf"
       ]
     },
     {

@@ -1,0 +1,60 @@
+INTERNAL USE ONLY - NOT CUSTOMER COPY
+J & R Construction - Internal Job Cost Sheet
+Generated: 2026-06-30 from owner field cost pad (2026-06-29)
+
+Customer: Lillian Cosentino (Lily)
+Address: 315 Sassafras Lane
+Job ID: JRC-JOB-315-LILLIAN-DOGEAR-FENCE
+Work: Dog ear wood privacy fence — NOT chain link
+Materials source (this sheet): Home Depot retail takeoff
+Status: Quote in progress — customer price TBD
+
+=== MATERIAL TAKEOFF (owner pad) ===
+- 4x4x10 posts ...................... 34 x $16.28 = $553.52
+- Sakrete 60 lb (post concrete) ..... ~33 x $4.68 = $154.44
+- 2x4x8 rails/stringer stock ...... 105 x $4.21 = $442.05
+- 5/8 x 5-1/2 x 8 dog ear pickets ... ~573 x $3.60 = ~$2,062.60
+Materials subtotal .............................. $3,212.61
+
+=== FIELD / EQUIPMENT ===
+- Gas auger rental .............................. $200.00
+- Gas / fuel .................................... $20.00
+Field equipment subtotal ........................ $220.00
+
+=== HELPER LABOR PLAN ===
+- 2 helpers @ $240/day x 10 work days ........... $4,800.00
+- Note: $240/day aligns with J&R owner daily rate reference, not the $140/day helper default.
+  Confirm whether $240 is helper day rate or blended crew rate before final quote.
+
+=== INTERNAL TOTAL (owner pad) ===
+Materials ....................................... $3,212.61
+Field equipment ................................. $220.00
+Helper labor .................................... $4,800.00
+Implied sales tax / rounding (to match pad) ..... ~$200.00
+TOTAL INTERNAL .................................. $8,432.61
+
+=== COMPARISON TO REJECTED CHAIN-LINK PLACEHOLDER (DO NOT USE) ===
+Wrong cloud-agent doc (EST-JRC-JOB-315-LILY-FENCE-001):
+- Claimed 185 LF chain link, 2x 4 ft gates
+- Standard $8,325 / customer F&F $7,200
+- Fake internal split: materials $2,850 + labor $5,475
+
+This dog ear takeoff vs placeholder:
+- Materials: $3,212.61 vs $2,850 claimed (+12.7%) — dog ear pickets drive higher material cost
+- Labor: $4,800 planned vs $5,475 claimed — lower headline labor but 2 paid helpers x 10 days
+- Total internal $8,432.61 vs $7,200 customer placeholder = UNDERWATER if customer price stayed $7,200
+- Total internal $8,432.61 vs $8,325 placeholder standard = roughly break-even before profit
+
+=== AFFORDABILITY FLAGS ===
+- At $7,200 customer (old wrong chain-link F&F price): LOSS ~$1,232 internal vs revenue
+- At $8,325 customer (old wrong standard): ~$107 margin before owner time / overhead / tax
+- Customer price needs a fresh friends-and-family decision based on THIS dog ear scope
+- Owner labor, mobilization, blade wear, scheduling, and unknown conditions are NOT yet added
+- Linear footage, gates, and terminal posts still need field confirmation before customer PDF
+
+=== NEXT STEPS ===
+1. Confirm picket count, LF, gate count/size on site
+2. Set customer F&F price above internal floor with unknown-conditions clause
+3. Generate customer estimate PDF (dog ear only) — separate from stair invoices
+4. Save receipt photos to 03_Receipts_Materials and evidence folder
+5. Keep stair jobs separate (already invoiced @ $1,000 each)

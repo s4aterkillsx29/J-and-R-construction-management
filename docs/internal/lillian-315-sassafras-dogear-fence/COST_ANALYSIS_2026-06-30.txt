@@ -1,0 +1,50 @@
+LILLIAN 315 SASSAFRAS — DOG EAR FENCE COST ANALYSIS
+INTERNAL USE ONLY - NOT CUSTOMER COPY
+Date: 2026-06-30
+
+Sources checked:
+- GitHub main: no customer dog ear fence PDF (only registry + job record)
+- GitHub branch cursor/lily-315-job-lookup-5755: REJECTED chain-link placeholder @ $7,200/$8,325
+- GitHub branch cursor/jrc-office-assistant-59da: correct job identity (dog ear, not chain link)
+- Cloud workspace Dropbox: not mounted — cannot read live Dropbox folder
+- PC Cursor: owner field pad (2026-06-29) is now transcribed into this repo
+
+SUMMARY
+The owner pad defines a dog ear fence with Home Depot materials and 2-helper labor over 10 days.
+Internal floor is $8,432.61. The rejected chain-link customer quote at $7,200 would not cover this scope.
+
+LINE-BY-LINE MATERIAL CHECK (math verified)
+553.52 + 154.44 + 442.05 + 2062.60 = 3212.61  OK
+3212.61 + 220.00 + 4800.00 = 8232.61
+Owner total 8432.61 implies ~$200.00 additional (likely sales tax on materials or rounding)
+
+SCOPE FROM PAD vs PLACEHOLDER DOC
+| Item | Owner pad (dog ear) | Rejected placeholder (chain link) |
+|------|---------------------|-----------------------------------|
+| Fence type | Wood dog ear pickets | Galvanized chain link |
+| Picket/post stock | 573 pickets, 34 posts, 105 2x4 | 185 LF chain link fabric |
+| Gates | Not specified on pad | 2x 4 ft walk gates |
+| Materials vendor | Home Depot (pad table) | Generic / invented |
+| Helper plan | 2 @ $240 x 10 days | Labor lump $5,475 |
+| Customer price | Not on pad | $7,200 F&F / $8,325 std |
+
+BUSINESS STANDARDS COMPLIANCE
+- Customer/internal separation: this file is internal only; do not send to Lillian
+- Preexisting file search: chain-link PDFs must stay rejected
+- Job identity: attach all new docs to JRC-JOB-315-LILLIAN-DOGEAR-FENCE
+- Stair invoices remain separate jobs at same address
+
+SYNC STATUS (2026-06-30)
+[x] Field pad transcribed to docs/internal/lillian-315-sassafras-dogear-fence/
+[x] Internal cost sheet generated
+[x] Active jobs registry updated with internal_cost_base
+[x] Business log entry created
+[ ] Customer dog ear estimate PDF — still needed
+[ ] Dropbox mirror — pending PC/Dropbox path sync
+[ ] PC Cursor push — Jacob should pull this branch or merge PR #14
+
+RECOMMENDED CUSTOMER PRICING DISCUSSION (internal)
+Before quoting Lillian, decide F&F price with:
+- Internal floor ~$8,433 + owner time/overhead buffer
+- Unknown-conditions clause per JRC standards
+- Separate from stair invoices already sent @ $1,000 each

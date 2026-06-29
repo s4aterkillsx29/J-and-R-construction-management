@@ -1,0 +1,29 @@
+FIELD COST PAD — TRANSCRIBED FROM OWNER NOTES
+INTERNAL USE ONLY - NOT CUSTOMER COPY
+
+Customer: Lillian Cosentino
+Address: 315 Sassafras Lane (Supply, NC 28462 area)
+Job: Dog ear fence
+Created: 2026-06-29
+Business: J & R Construction — Jacob Cosentino
+
+=== HOME DEPOT MATERIALS (pre-tax subtotal) ===
+4x4x10 ........................ 34 ea @ $16.28 = $553.52
+Sakrete 60 lb ................ qty per receipt @ $4.68 = $154.44
+2x4x8 ......................... 105 ea @ $4.21 = $442.05
+5/8 x 5-1/2 x 8 dog ear pickets  ~573 ea @ ~$3.60 = ~$2,062.60
+Materials subtotal ............................ $3,212.61
+
+=== AFTER-TAX / FIELD COSTS ===
+Gas auger rental .............................. $200.00
+Gas / fuel .................................... $20.00
+Labor: 2 helpers @ $240/day x 10 days ......... $4,800.00
+
+=== OWNER WRITTEN TOTAL ===
+Total internal costs .......................... $8,432.61
+
+Notes:
+- Pad heading references Home Depot for the materials table.
+- SW Supply NC remains on file for other business context; this takeoff is Home Depot retail.
+- Customer-facing price was NOT written on the pad — internal numbers only.
+- Transcribed 2026-06-30 from owner field photo for cloud/GitHub sync.
