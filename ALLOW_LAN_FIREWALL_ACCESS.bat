@@ -1,19 +1,29 @@
 @echo off
 setlocal
+cd /d "%~dp0"
 TITLE J and R Construction Manager - Allow LAN Firewall Access
+
+net session >nul 2>&1
+if errorlevel 1 (
+  ECHO Requesting Administrator approval for LAN phone access...
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+  exit /b
+)
+
 ECHO ======================================================
 ECHO J and R Construction Manager - LAN/Mobile Firewall Fix
 ECHO ======================================================
 ECHO.
-ECHO This adds an inbound Windows Firewall rule for TCP port 8765.
-ECHO It allows phones/devices on your trusted private Wi-Fi/VPN to reach the shared host.
+ECHO This opens TCP ports 8765-8779 for trusted private Wi-Fi/VPN.
+ECHO Phones and tablets on the same network can then reach the shared host.
 ECHO.
-ECHO Run only on Jacob's host computer. Windows may ask for Administrator approval.
-ECHO.
-pause
-netsh advfirewall firewall add rule name="J and R Construction Manager Shared Host 8765" dir=in action=allow protocol=TCP localport=8765 profile=private
-ECHO.
-ECHO If the command succeeded, restart the shared host and test from your phone:
-ECHO http://YOUR-LAN-IP:8765/connect
+
+call "%~dp0ensure_venv.bat" >nul 2>&1
+if exist "%~dp0.venv\Scripts\python.exe" (
+  "%~dp0.venv\Scripts\python.exe" -m app.allow_lan_firewall
+) else (
+  python -m app.allow_lan_firewall
+)
+
 ECHO.
 pause

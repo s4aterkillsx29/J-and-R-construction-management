@@ -1,4 +1,10 @@
-"""Runtime helpers shared by desktop and launcher scripts."""
+"""Runtime helpers shared by desktop and launcher scripts.
+
+Local host reliability rules:
+- A port is only reused when it is serving the current JRC endpoint set.
+- Old/partial servers are treated as occupied and skipped.
+- Saved port is updated whenever a good endpoint-complete host is found.
+"""
 from __future__ import annotations
 
 import json
@@ -15,8 +21,114 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 LOCAL_HOST_SETTINGS_PATH = BASE_DIR / "data" / "local_host_settings.json"
 DEFAULT_PORT = int(os.environ.get("JRC_PORT", "8765"))
-FALLBACK_PORT_COUNT = 15
+FALLBACK_PORT_COUNT = int(os.environ.get("JRC_FALLBACK_PORT_COUNT", "15"))
 JRC_APP_MARKERS = ("J and R Construction Manager", "J & R Construction", "JRC")
+LAN_FIREWALL_RULE_NAME = "J and R Construction Manager Shared Host LAN"
+REQUIRED_LOCAL_ENDPOINTS = (
+    "/api/health",
+    "/mobile/ping",
+    "/api/connection",
+)
+
+
+def lan_firewall_port_range() -> tuple[int, int]:
+    """TCP port range used by the shared host (includes automatic fallback ports)."""
+    start = DEFAULT_PORT
+    return start, start + FALLBACK_PORT_COUNT - 1
+
+
+def lan_firewall_rule_exists() -> bool:
+    if os.name != "nt":
+        return True
+    low, high = lan_firewall_port_range()
+    try:
+        result = subprocess.run(
+            ["netsh", "advfirewall", "firewall", "show", "rule", f"name={LAN_FIREWALL_RULE_NAME}"],
+            capture_output=True,
+            text=True,
+            timeout=8,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        text = (result.stdout or "") + (result.stderr or "")
+        if "No rules match" in text:
+            return False
+        return f"{low}" in text or f"{low}-{high}" in text or "LocalPort:" in text
+    except Exception:
+        return False
+
+
+def ensure_lan_firewall() -> tuple[bool, str]:
+    """Add inbound Windows Firewall rule for the shared host port range."""
+    if os.name != "nt":
+        return True, "Firewall helper is only needed on Windows."
+    low, high = lan_firewall_port_range()
+    port_range = f"{low}-{high}"
+    if lan_firewall_rule_exists():
+        return True, f"Firewall rule already allows TCP {port_range} on private networks."
+    try:
+        result = subprocess.run(
+            [
+                "netsh",
+                "advfirewall",
+                "firewall",
+                "add",
+                "rule",
+                f"name={LAN_FIREWALL_RULE_NAME}",
+                "dir=in",
+                "action=allow",
+                "protocol=TCP",
+                f"localport={port_range}",
+                "profile=private",
+                "enable=yes",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=12,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        if result.returncode == 0:
+            return True, f"Added firewall rule for TCP {port_range} on private networks."
+        err = (result.stderr or result.stdout or "Unknown error").strip()
+        return False, f"Could not add firewall rule: {err}"
+    except Exception as exc:
+        return False, f"Could not add firewall rule: {exc}"
+
+
+def ensure_lan_firewall_auto(timeout: float = 90.0) -> tuple[bool, str]:
+    """Ensure LAN firewall rule exists; auto-prompt for admin on the host PC if needed."""
+    if os.name != "nt":
+        return True, "Not required on this platform."
+    ok, msg = ensure_lan_firewall()
+    if ok:
+        return True, msg
+    if "elevation" not in msg.lower() and "administrator" not in msg.lower():
+        return False, msg
+
+    py = python_cmd()
+    ps_cmd = (
+        f'Start-Process -FilePath "{py}" -ArgumentList "-m","app.allow_lan_firewall" '
+        f'-WorkingDirectory "{BASE_DIR}" -Verb RunAs -Wait -WindowStyle Hidden'
+    )
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
+            cwd=str(BASE_DIR),
+            timeout=max(15.0, timeout),
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except subprocess.TimeoutExpired:
+        return False, "Windows approval timed out. Click Yes on the UAC prompt when starting the host."
+    except Exception as exc:
+        return False, f"Could not request Windows approval: {exc}"
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if lan_firewall_rule_exists():
+            low, high = lan_firewall_port_range()
+            return True, f"Phone access enabled for TCP {low}-{high} on this host PC."
+        time.sleep(0.5)
+
+    return False, "Phone access was not enabled. Click Yes on the one-time Windows security prompt when it appears."
 
 
 def get_saved_port() -> int:
@@ -72,8 +184,29 @@ def _fetch(url: str, timeout: float = 0.8) -> tuple[int, str]:
         return 0, ""
 
 
+def endpoint_status(port: int, timeout: float = 0.8) -> dict[str, dict[str, object]]:
+    """Return status for every lightweight endpoint the Start Center depends on."""
+    status: dict[str, dict[str, object]] = {}
+    for path in REQUIRED_LOCAL_ENDPOINTS:
+        code, body = _fetch(f"http://127.0.0.1:{int(port)}{path}", timeout=timeout)
+        status[path] = {
+            "ok": code == 200,
+            "status": code,
+            "body": body[:250],
+        }
+    return status
+
+
+def endpoint_status_text(port: int) -> str:
+    checks = endpoint_status(port)
+    lines = []
+    for path, row in checks.items():
+        lines.append(f"{path}: {'OK' if row.get('ok') else 'FAIL'} status={row.get('status')}")
+    return "\n".join(lines)
+
+
 def is_jrc_server(port: int, timeout: float = 0.8) -> bool:
-    """True when this port is serving our Flask app (not some other process)."""
+    """True when a port is serving any recognizable JRC web app."""
     code, body = _fetch(f"http://127.0.0.1:{port}/api/health", timeout=timeout)
     if code == 200 and any(marker in body for marker in JRC_APP_MARKERS):
         return True
@@ -83,11 +216,25 @@ def is_jrc_server(port: int, timeout: float = 0.8) -> bool:
     return False
 
 
+def is_endpoint_complete_jrc_server(port: int, timeout: float = 0.8) -> bool:
+    """True only when the current local-host API endpoint set answers correctly."""
+    if not is_jrc_server(port, timeout=timeout):
+        return False
+    checks = endpoint_status(port, timeout=timeout)
+    return all(row.get("ok") for row in checks.values())
+
+
 def find_launch_port(start_port: int | None = None, attempts: int = FALLBACK_PORT_COUNT) -> int:
-    """Pick a port: reuse JRC if already running, else first free slot from start_port."""
+    """Pick a port: reuse current endpoint-complete JRC server, else first free slot.
+
+    This intentionally refuses to reuse older JRC servers that answer /login or /api/health
+    but do not provide /mobile/ping and /api/connection. That was the main cause of
+    "local host is running but not getting endpoints" false starts.
+    """
     start = int(start_port if start_port is not None else get_saved_port())
     for port in range(start, start + int(attempts)):
-        if is_jrc_server(port):
+        if is_endpoint_complete_jrc_server(port):
+            save_port(port, "Reusing endpoint-complete running JRC server.")
             return port
         if not is_port_listening(port):
             return port
@@ -102,6 +249,11 @@ def python_cmd() -> str:
 
 
 def _spawn_server(port: int, log_path: Path) -> None:
+    try:
+        from app.process_lifecycle import prepare_for_new_host, track_popen
+        prepare_for_new_host()
+    except Exception:
+        track_popen = None
     py = python_cmd()
     env = os.environ.copy()
     env["JRC_PORT"] = str(port)
@@ -114,7 +266,7 @@ def _spawn_server(port: int, log_path: Path) -> None:
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = 0
             flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-        subprocess.Popen(
+        proc = subprocess.Popen(
             [py, "-m", "app.network_server"],
             cwd=str(BASE_DIR),
             stdout=logf,
@@ -124,6 +276,8 @@ def _spawn_server(port: int, log_path: Path) -> None:
             startupinfo=startupinfo,
             creationflags=flags,
         )
+        if track_popen:
+            track_popen(proc, "network_server", note=f"runtime port {port}")
 
 
 def ensure_server_running(port: int | None = None, timeout: float = 25.0) -> tuple[bool, int, str]:
@@ -131,11 +285,11 @@ def ensure_server_running(port: int | None = None, timeout: float = 25.0) -> tup
     port = find_launch_port(preferred)
     login_url = local_url("/login", port)
 
-    if is_jrc_server(port):
-        save_port(port, "Reusing running JRC server.")
+    if is_endpoint_complete_jrc_server(port):
+        save_port(port, "Reusing endpoint-complete running JRC server.")
         return True, port, login_url
 
-    if is_port_listening(port) and not is_jrc_server(port):
+    if is_port_listening(port) and not is_endpoint_complete_jrc_server(port):
         port = find_launch_port(preferred + 1)
         login_url = local_url("/login", port)
 
@@ -147,7 +301,8 @@ def ensure_server_running(port: int | None = None, timeout: float = 25.0) -> tup
 
     deadline = time.time() + timeout
     while time.time() < deadline:
-        if is_jrc_server(port):
+        if is_endpoint_complete_jrc_server(port):
+            save_port(port, "Server started and endpoint set verified.")
             return True, port, login_url
         time.sleep(0.75)
 
@@ -162,9 +317,8 @@ def open_web_dashboard(path: str = "/login") -> tuple[bool, str]:
     webbrowser.open(url)
     if ok:
         return True, f"Opened {url}"
-    if port != DEFAULT_PORT:
-        return True, f"Port {port} in use (preferred port was busy). Opened {url}"
-    return False, f"Server still starting on port {port}. Opened {url} — wait a few seconds and refresh."
+    detail = endpoint_status_text(port)
+    return False, f"Server did not verify all local-host endpoints on port {port}. Opened {url}.\n\n{detail}"
 
 
 def cli_open_web() -> int:

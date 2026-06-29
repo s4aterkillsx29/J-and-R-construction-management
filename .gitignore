@@ -7,6 +7,7 @@ __pycache__/
 .venv/
 venv/
 env/
+.venv_old*/
 
 # Runtime data and local-only files (never commit business DB or install state)
 data/*
@@ -17,7 +18,15 @@ data/*
 *.sqlite
 *.sqlite3
 logs/
-backups/*.zip
+backups/
+exports/
+uploads/
+media/
+receipts/
+customer_files/
+payroll_files/
+tax_records/
+private_files/
 
 # Business admin inbox copies (runtime sync from Dropbox — not source code)
 03_BUSINESS_ADMIN/
@@ -29,9 +38,6 @@ INSTALL_SETUP_REPORT.txt
 PHASE_VERIFICATION_REPORT.txt
 PROGRAM_UPDATE_REPORT.txt
 LIVE_RELEASE_VERIFY_REPORT.txt
-
-# Runtime exports (may contain LAN IPs, session metadata, local paths)
-exports/
 
 # Dropbox business records — not part of app source
 dropbox-records/
@@ -46,7 +52,53 @@ data/local_secrets.env
 !.env.example
 !cloud_templates/.env.example
 !cloud_hosting/env.example
-.venv_old*/
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*secret*
+*secrets*
+*token*
+*credential*
+credentials.json
+service-account*.json
+firebase*.json
+supabase*.json
+render*.env
+railway*.env
+
+# J&R private business/security files — do not push to public GitHub
+*W-9*
+*W9*
+*EIN*
+*CP575*
+*CP_575*
+*IRS*
+*tax*
+*Tax*
+*bank*
+*routing*
+*payroll*
+*Payroll*
+*receipt*
+*Receipt*
+*invoice-private*
+*customer-private*
+
+# Archives and generated packages
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bak
+*.tmp
 
 # OS/editor
 .DS_Store

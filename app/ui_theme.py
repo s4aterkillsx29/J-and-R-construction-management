@@ -92,25 +92,37 @@ def action_card(
         "primary": ACCENT,
         "info": ACCENT_BRIGHT,
         "warn": WARN,
-        "secondary": BORDER_LIGHT,
-    }.get(variant, BORDER_LIGHT)
+        "secondary": INFO,
+    }.get(variant, INFO)
 
     outer = tk.Frame(parent, bg=BG)
     outer.pack(fill="x", padx=12, pady=6)
 
-    card = tk.Frame(outer, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+    card = tk.Frame(outer, bg=CARD, highlightthickness=1, highlightbackground=BORDER, cursor="hand2")
     card.pack(fill="x")
+    card.bind("<Button-1>", lambda e: command())
+
     accent_bar = tk.Frame(card, bg=accent, width=4)
     accent_bar.pack(side="left", fill="y")
     inner = tk.Frame(card, bg=CARD, padx=18, pady=14)
     inner.pack(side="left", fill="both", expand=True)
 
-    top = tk.Frame(inner, bg=CARD)
-    top.pack(fill="x")
-    tk.Label(top, text=title, bg=CARD, fg=TEXT, font=FONT_HEADING, anchor="w").pack(side="left", fill="x", expand=True)
-    action_button(top, "Open →", command, variant=variant if variant != "secondary" else "secondary").pack(side="right")
+    inner.grid_columnconfigure(0, weight=1)
+    inner.grid_columnconfigure(1, weight=0)
 
-    tk.Label(
+    title_lbl = tk.Label(inner, text=title, bg=CARD, fg=TEXT, font=FONT_HEADING, anchor="w")
+    title_lbl.grid(row=0, column=0, sticky="ew", padx=(0, 12))
+    title_lbl.bind("<Button-1>", lambda e: command())
+
+    btn = action_button(
+        inner,
+        "Open",
+        command,
+        variant=variant if variant != "secondary" else "info",
+    )
+    btn.grid(row=0, column=1, sticky="e")
+
+    desc_lbl = tk.Label(
         inner,
         text=description,
         bg=CARD,
@@ -118,8 +130,10 @@ def action_card(
         font=FONT_SMALL,
         anchor="w",
         justify="left",
-        wraplength=wraplength,
-    ).pack(fill="x", pady=(8, 0))
+        wraplength=max(280, wraplength - 120),
+    )
+    desc_lbl.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+    desc_lbl.bind("<Button-1>", lambda e: command())
     return outer
 
 
@@ -260,3 +274,50 @@ def apply_window_icon(window: tk.Misc, icon_path) -> None:
             window.iconbitmap(str(p))
     except Exception:
         pass
+
+
+def status_badge(parent: tk.Misc, ok: bool, text: str = "") -> tk.Label:
+    label = "OK" if ok else "FAIL"
+    bg = "#14532d" if ok else "#7f1d1d"
+    fg = "#6ee7b7" if ok else "#fca5a5"
+    if text:
+        label = text
+    return tk.Label(
+        parent,
+        text=label,
+        bg=bg,
+        fg=fg,
+        font=(FONT, 9, "bold"),
+        padx=10,
+        pady=4,
+    )
+
+
+def health_row(parent: tk.Misc, name: str, ok: bool, detail: str = "") -> tk.Frame:
+    row = tk.Frame(parent, bg=CARD, highlightthickness=1, highlightbackground=BORDER)
+    row.pack(fill="x", pady=4)
+    inner = tk.Frame(row, bg=CARD, padx=14, pady=10)
+    inner.pack(fill="x")
+    inner.grid_columnconfigure(1, weight=1)
+    status_badge(inner, ok).grid(row=0, column=0, sticky="w", padx=(0, 12))
+    tk.Label(inner, text=name, bg=CARD, fg=TEXT, font=(FONT, 10, "bold"), anchor="w").grid(row=0, column=1, sticky="w")
+    if detail:
+        tk.Label(inner, text=detail, bg=CARD, fg=MUTED, font=FONT_SMALL, anchor="w", wraplength=420).grid(
+            row=1, column=0, columnspan=2, sticky="w", pady=(6, 0)
+        )
+    return row
+
+
+def link_row(parent: tk.Misc, label: str, url: str, on_open) -> tk.Frame:
+    row = tk.Frame(parent, bg=PANEL, pady=4)
+    row.pack(fill="x")
+    tk.Label(row, text=label, bg=PANEL, fg=INFO, font=(FONT, 10, "bold"), width=14, anchor="w").pack(side="left")
+    entry = styled_entry(row)
+    entry.insert(0, url)
+    try:
+        entry.configure(state="readonly")
+    except Exception:
+        entry.configure(state="disabled")
+    entry.pack(side="left", fill="x", expand=True, padx=(6, 8), ipady=4)
+    action_button(row, "Open", on_open, variant="info").pack(side="right")
+    return row
