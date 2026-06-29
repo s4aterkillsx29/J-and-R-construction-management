@@ -108,7 +108,7 @@ def main() -> int:
         import sqlite3
 
         ok("densus owner-approval module", True)
-        ok("primary owner constant", is_primary_owner("ivygrows"))
+        ok("primary owner constant", is_primary_owner("admin"))
         db_path = base / "data" / "jr_business.db"
         if db_path.exists():
             conn = sqlite3.connect(db_path)

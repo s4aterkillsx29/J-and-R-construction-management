@@ -31,7 +31,7 @@ if not exist "data\install_profile.json" (
 
 echo Starting server on port %JRC_PORT% ...
 echo Local admin on this PC: jrc_host / jrc_host
-echo Owner from other devices: ivygrows at the LAN URL below
+echo Owner from other devices: admin at the LAN URL below
 echo.
 echo Press Ctrl+C to stop the server.
 echo.

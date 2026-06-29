@@ -32,8 +32,17 @@ try:
 except Exception:
     pass
 LOG_PATH = LOG_DIR / 'local_login_gate_last.log'
-DEFAULT_ADMIN_USERNAME = 'ivygrows'
-DEFAULT_ADMIN_PASSWORD = 'ivygrows'
+try:
+    from app.role_utils import DEFAULT_OWNER_PASSWORD as DEFAULT_ADMIN_PASSWORD
+    from app.role_utils import DEFAULT_OWNER_USERNAME as DEFAULT_ADMIN_USERNAME
+except Exception:
+    DEFAULT_ADMIN_USERNAME = 'admin'
+    DEFAULT_ADMIN_PASSWORD = 'ivygrows'
+try:
+    from app.install_setup_log import get_suggested_admin_username
+except Exception:
+    def get_suggested_admin_username(base_dir: Path) -> str:
+        return DEFAULT_ADMIN_USERNAME
 HASH_ITERATIONS_CURRENT = 250000
 HASH_ITERATIONS_LEGACY = (200000,)
 OWNER = 'Jacob Cosentino'
@@ -150,9 +159,20 @@ def ensure_min_schema():
                          (DEFAULT_ADMIN_USERNAME, OWNER, salt, ph, now_iso(), 'Default local first-setup admin. Change before sharing access.', 'enragementwow@hotmail.com', 'enragementwow@hotmail.com', '(910) 712-0936', 'Owner / Administrator'))
             conn.execute('INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)', ('owner_setup_complete','0'))
             conn.execute('INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)', ('admin_default_password_changed','0'))
-            log('Created default local first-setup ivygrows/ivygrows because database had no users.')
+            log(f'Created default local first-setup {DEFAULT_ADMIN_USERNAME} because database had no users.')
         elif admin:
             conn.execute("UPDATE users SET role='admin', owner_account=1, active=1 WHERE username=?", (DEFAULT_ADMIN_USERNAME,))
+            conn.execute("UPDATE users SET owner_account=0 WHERE username<>?", (DEFAULT_ADMIN_USERNAME,))
+            try:
+                from app.first_setup_security import LEGACY_OWNER_USERNAMES
+                for legacy in LEGACY_OWNER_USERNAMES:
+                    if legacy.lower() != DEFAULT_ADMIN_USERNAME.lower():
+                        conn.execute(
+                            "UPDATE users SET active=0, owner_account=0, role='viewer' WHERE LOWER(username)=?",
+                            (legacy.lower(),),
+                        )
+            except Exception:
+                pass
         conn.execute('INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)', ('app_version','6.6 Quick Setup Stable Live Edition'))
         conn.commit()
 
@@ -389,9 +409,9 @@ def main():
             write_setup_report(BASE_DIR)
         except Exception:
             pass
-        if username==DEFAULT_ADMIN_USERNAME and password==DEFAULT_ADMIN_PASSWORD and is_default_admin_active():
-            status.set('First login worked with ivygrows/ivygrows. Change this password now; it will be saved for future installs.')
-            messagebox.showwarning('Change default password', 'First login verified. Change ivygrows/ivygrows now before customer, mobile, or cloud access.', parent=root)
+        if username == DEFAULT_ADMIN_USERNAME and password == DEFAULT_ADMIN_PASSWORD and is_default_admin_active():
+            status.set(f'First login worked with default password. Change this password now; it will be saved for future installs.')
+            messagebox.showwarning('Change default password', f'First login verified. Change the default {DEFAULT_ADMIN_USERNAME} password now before customer, mobile, or cloud access.', parent=root)
             change_password_dialog(root, user)
         else:
             status.set(f"Setup verified: {username} ({role}). Choose the next action below.")

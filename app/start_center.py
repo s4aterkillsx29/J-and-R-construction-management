@@ -2109,11 +2109,23 @@ def main() -> None:
     except Exception:
         pass
     try:
+        from app.install_live_sync import sync_from_master_if_available
+
+        sync_from_master_if_available(BASE_DIR)
+    except Exception:
+        pass
+    try:
         from app.local_login_gate import require_blocking_login
 
         if not require_blocking_login("Start Center"):
             return
     except Exception as exc:
+        try:
+            from app.install_setup_log import log_event
+
+            log_event(BASE_DIR, "LoginGate", f"Start Center gate failed: {exc}", level="ERROR", step="login_gate")
+        except Exception:
+            pass
         messagebox.showerror(APP_NAME, f"Login required but gate failed: {exc}")
         return
     StartCenter().mainloop()

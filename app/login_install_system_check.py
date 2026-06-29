@@ -29,6 +29,9 @@ if 'apply_user_role_change' not in net: errors.append('apply_user_role_change he
 if 'role_select_options' not in net: errors.append('Friendly role select options missing')
 if 'notify_requester_account_decision' not in an: errors.append('Account request requester notify missing')
 if 'Emergency Owner Access' not in (APP/'local_login_gate.py').read_text(encoding='utf-8',errors='ignore'): errors.append('Local login gate missing Emergency Owner Access')
+lg=(APP/'local_login_gate.py').read_text(encoding='utf-8',errors='ignore')
+if 'get_suggested_admin_username' in lg and 'from app.install_setup_log import get_suggested_admin_username' not in lg:
+    errors.append('Local login gate uses get_suggested_admin_username without import')
 if '/emergency-access' not in net: errors.append('Network server missing /emergency-access route')
 if 'register_emergency_routes' not in net: errors.append('Network server missing register_emergency_routes')
 if 'admin_default_password_changed' not in net or 'DEFAULT_ADMIN_PASSWORD' not in net: errors.append('Network server missing admin default preservation/blocking markers')

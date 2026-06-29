@@ -4,7 +4,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Iterable
 
-DEFAULT_OWNER_USERNAME = "ivygrows"
+DEFAULT_OWNER_USERNAME = "admin"
 DEFAULT_OWNER_PASSWORD = "ivygrows"
 
 ROLE_LABELS = ("admin", "manager", "worker", "helper", "subcontractor", "viewer", "guest", "non_company", "customer")

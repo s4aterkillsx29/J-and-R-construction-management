@@ -51,7 +51,8 @@ SESSION_TIMEOUT_MINUTES = int(os.environ.get("JRC_SESSION_TIMEOUT_MINUTES", "120
 PUBLIC_HOST_MODE = os.environ.get("JRC_PUBLIC_HOST_MODE", "0") == "1"
 CLOUD_PRIMARY_MODE = os.environ.get("JRC_CLOUD_PRIMARY_MODE", "0") == "1" or PUBLIC_HOST_MODE
 REQUIRE_STRONG_DEFAULT_PASSWORD_CHANGE = True
-DEFAULT_ADMIN_USERNAME = "ivygrows"
+from app.role_utils import DEFAULT_OWNER_USERNAME as DEFAULT_ADMIN_USERNAME
+
 DEFAULT_ADMIN_PASSWORD = "ivygrows"
 CLOUD_INITIAL_ADMIN_PASSWORD = os.environ.get("JRC_INITIAL_ADMIN_PASSWORD", "").strip()
 ALLOW_LOCAL_DEFAULT_ADMIN = os.environ.get("JRC_ALLOW_LOCAL_DEFAULT_ADMIN", "1") == "1"
@@ -1026,7 +1027,21 @@ def init_db() -> None:
             )
         else:
             # Preserve the owner's changed password. Updates may restore active/role, but never reset the password to admin/admin.
-            conn.execute("UPDATE users SET role='admin', owner_account=1 WHERE username=?", (DEFAULT_ADMIN_USERNAME,))
+            conn.execute("UPDATE users SET role='admin', owner_account=1, active=1 WHERE username=?", (DEFAULT_ADMIN_USERNAME,))
+            conn.execute(
+                "UPDATE users SET owner_account=0 WHERE username<>?",
+                (DEFAULT_ADMIN_USERNAME,),
+            )
+            try:
+                from app.first_setup_security import LEGACY_OWNER_USERNAMES
+                for legacy in LEGACY_OWNER_USERNAMES:
+                    if legacy.lower() != DEFAULT_ADMIN_USERNAME.lower():
+                        conn.execute(
+                            "UPDATE users SET active=0, owner_account=0, role='viewer' WHERE LOWER(username)=?",
+                            (legacy.lower(),),
+                        )
+            except Exception:
+                pass
             if not is_default_admin_password_active_conn(conn):
                 conn.execute("INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)", ("owner_setup_complete", "1"))
                 conn.execute("INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)", ("admin_default_password_changed", "1"))
@@ -1387,11 +1402,26 @@ def setup_status_page():
     body = """
     <div class='card'><h2>Setup / Verification Center</h2>
     <p>This page is for owner/admin setup after install. Installers do not collect passwords; login happens inside this secured app.</p>
-    <p><a class='btn' href='/health'>System Check</a> <a class='btn btn2' href='/security-audit'>Security Audit</a> <a class='btn btn2' href='/cloud-status'>Cloud Status</a></p>
+    <p>
+      <a class='btn' href='/health'>System Check</a>
+      <a class='btn btn2' href='/security-audit'>Security Audit</a>
+      <a class='btn btn2' href='/owner-security-status'>Owner Security Status</a>
+      <a class='btn btn2' href='/cloud-status'>Cloud Status</a>
+      <a class='btn btn2' href='/admin/troubleshooter'>Full Troubleshooter</a>
+    </p>
+    <p><a class='btn btn2' href='/api/live/ready'>Live Readiness API</a>
+    <a class='btn btn2' href='/connect'>Connection Test</a></p>
     <ul><li>Use a strong admin password.</li><li>Use HTTPS for cloud/internet users.</li><li>Set JRC_SECRET_KEY and JRC_TRUSTED_HOSTS in cloud hosting.</li><li>Use customer and external roles for outside users.</li></ul>
     </div>
     """
     return layout("Setup / Verification Center", body, "health")
+
+
+@app.route("/setup")
+@login_required("audit")
+def setup_redirect():
+    """Legacy alias — dashboard and setup-complete linked /setup before /setup-status existed."""
+    return redirect(url_for("setup_status_page"))
 @app.route("/cloud-status")
 @login_required("configure_hosting")
 def cloud_status_page():
@@ -1854,7 +1884,7 @@ def setup_complete():
         <div class='stat'>Device Policy<b>90 Days</b><span class='muted'>Remembered only if the checkbox was selected during login.</span></div>
         <div class='stat'>Security<b>Active</b><span class='muted'>Passwords hashed, role permissions filtered, admin tools protected.</span></div>
       </div>
-      <p><a class='btn' href='{url_for('dashboard')}'>Open My Dashboard</a> <a class='btn btn2' href='/account/change-password'>Change Password</a> <a class='btn btn2' href='/setup'>Run Setup / Verification Center</a></p>
+      <p><a class='btn' href='{url_for('dashboard')}'>Open My Dashboard</a> <a class='btn btn2' href='/account/change-password'>Change Password</a> <a class='btn btn2' href='/setup-status'>Run Setup / Verification Center</a></p>
     </div>
     <div class='card'><h2>Recommended next steps</h2><ol><li>Change first-setup ivygrows password if still active; updates preserve your new password.</li><li>Run Dropbox Live Check and backup sync from Admin → Dropbox Business.</li><li>Run Self Setup + Verify from the Start Center.</li><li>Use customer/external accounts only for customer-safe information.</li></ol></div>
     """

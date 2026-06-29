@@ -4,10 +4,10 @@ from __future__ import annotations
 import sqlite3
 from typing import Optional, Tuple
 
-DEFAULT_OWNER_USERNAME = "ivygrows"
+DEFAULT_OWNER_USERNAME = "admin"
 DEFAULT_OWNER_PASSWORD = "ivygrows"
-# Legacy installs may still have admin username until migrated.
-LEGACY_OWNER_USERNAMES = ("admin",)
+# Retired first-setup bootstrap account (localhost-only installs before June 2026).
+LEGACY_OWNER_USERNAMES = ("ivygrows",)
 
 FORBIDDEN_RESET_PASSWORDS = frozenset({
     "ivygrows",

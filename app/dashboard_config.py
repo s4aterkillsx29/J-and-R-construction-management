@@ -105,6 +105,7 @@ def dashboard_tiles(role: str, perms: set[str], *, densus_access: bool = False) 
         admin.append(("Data & Backups", "/data", "Export and backup", "btn2"))
     if "audit" in perms:
         admin.append(("Troubleshooter", "/health", "System verification", "btn2"))
+        admin.append(("Setup / Verification", "/setup-status", "System check + security audit", "btn2"))
     add("Admin & Setup", "Owner setup, security, and hosting.", admin)
 
     account: List[Tile] = [

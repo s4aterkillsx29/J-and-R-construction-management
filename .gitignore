@@ -23,6 +23,7 @@ exports/
 uploads/
 media/
 receipts/
+evidence/
 customer_files/
 payroll_files/
 tax_records/
