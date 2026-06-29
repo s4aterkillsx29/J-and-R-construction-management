@@ -20,6 +20,7 @@ data/*
 logs/
 backups/
 exports/
+dropbox_business/
 uploads/
 media/
 receipts/
