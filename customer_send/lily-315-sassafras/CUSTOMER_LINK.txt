@@ -1,0 +1,21 @@
+Lily — 315 Sassafras Lane — Stair Set 1 Invoice ($1,000)
+=========================================================
+
+Customer file:
+  Lily_315_Sassafras_Stair_Set_1_CUSTOMER_INVOICE.pdf
+
+Send Lily one of these links:
+
+1) J&R live server (no login — customer download):
+   https://YOUR-JRC-HOST/customer/lily-315/stair-set-1/download
+
+   Friendly page with download button:
+   https://YOUR-JRC-HOST/customer/lily-315/stair-set-1
+
+2) OneDrive (after sync on your PC):
+   Run: python tools/sync_lily_onedrive_customer_links.py
+   Then paste the OneDrive share link that script prints here:
+   ONEDRIVE_LINK=
+
+OneDrive folder on your PC:
+  OneDrive > Desktop > J and R Construction > 02_Documents_Invoices_Estimates_Quotes > Lily_315_Sassafras

@@ -20,9 +20,11 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = Path(os.environ.get("JRC_DATA_DIR", BASE_DIR / "data"))
 EXPORT_DIR = Path(os.environ.get("JRC_EXPORT_DIR", BASE_DIR / "exports"))
 UPLOAD_DIR = Path(os.environ.get("JRC_UPLOAD_DIR", BASE_DIR / "uploads"))
+CUSTOMER_SEND_DIR = Path(os.environ.get("JRC_CUSTOMER_SEND_DIR", BASE_DIR / "customer_send"))
 DB_PATH = Path(os.environ.get("JRC_DB_PATH", DATA_DIR / "jr_business.db"))
 SECRET_PATH = DATA_DIR / "server_secret.key"
-for folder in (DATA_DIR, EXPORT_DIR, UPLOAD_DIR):
+LILY_STAIR_SET_1_PDF = CUSTOMER_SEND_DIR / "lily-315-sassafras" / "Lily_315_Sassafras_Stair_Set_1_CUSTOMER_INVOICE.pdf"
+for folder in (DATA_DIR, EXPORT_DIR, UPLOAD_DIR, CUSTOMER_SEND_DIR):
     folder.mkdir(parents=True, exist_ok=True)
 
 def now() -> str:
@@ -348,6 +350,30 @@ def mobile():
 @app.route("/connect")
 def connect_page():
     return page("Connection OK", "<div class='card hero'><h1>Connection OK</h1><p>The J&R Construction Manager server answered correctly.</p><a class='btn primary' href='/login'>Login</a><a class='btn' href='/api/health'>API Health</a></div>")
+
+@app.route("/customer/lily-315/stair-set-1")
+def customer_lily_stair_set_1():
+    if not LILY_STAIR_SET_1_PDF.is_file():
+        abort(404)
+    body = (
+        "<div class='card hero'><h1>Lily — 315 Sassafras Lane</h1>"
+        "<p>Stair Set 1 customer invoice — $1,000.00 total</p>"
+        "<p class='muted'>$500.00 deposit before work begins. $500.00 balance due on completion.</p></div>"
+        "<div class='card'><a class='btn primary' href='/customer/lily-315/stair-set-1/download'>"
+        "Download Invoice PDF</a></div>"
+    )
+    return page("Customer Invoice", body)
+
+@app.route("/customer/lily-315/stair-set-1/download")
+def customer_lily_stair_set_1_download():
+    if not LILY_STAIR_SET_1_PDF.is_file():
+        abort(404)
+    return send_file(
+        LILY_STAIR_SET_1_PDF,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name="Lily_315_Sassafras_Stair_Set_1_CUSTOMER_INVOICE.pdf",
+    )
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
