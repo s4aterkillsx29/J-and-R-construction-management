@@ -1,0 +1,23 @@
+J & R CONSTRUCTION — LOGGING STANDARDS (OFFICE ASSISTANT + PHONE CURSOR)
+Updated: 2026-06-29
+
+Every business log entry should include:
+  - Date and time
+  - Job name or address (e.g. 315 Lily Sassafras)
+  - Who (owner, helper, customer contact if relevant)
+  - What happened (work done, materials, payment, issue)
+  - Next step (if any)
+
+PHONE / FIELD LOGS (Dropbox):
+  - Write to the job folder or 00_START_HERE field notes
+  - Dropbox syncs to office PC — do not use GitHub for logs
+
+DESKTOP AFTER PHONE SESSION:
+  1. scripts\Sync-JRCBusinessFolders.ps1
+  2. scripts\Refresh-ReadableBusinessReports.ps1
+  3. Construction Manager → Office Records Sync
+  4. Tell desktop Cursor: "log"
+
+CUSTOMER vs INTERNAL:
+  - Customer quotes/invoices: no internal labor rates or helper pay
+  - Internal workups: mark INTERNAL USE ONLY

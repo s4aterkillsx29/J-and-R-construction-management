@@ -775,6 +775,7 @@ class StartCenter(tk.Tk):
             "developer": ("Developer & admin", [
                 ("Full Live Update", "Sync files, verify packages, run all checks, log and save LIVE_UPDATE_REPORT.txt.", self.run_live_full_update, "primary"),
                 ("Office Records Sync", "Import JRC job register + payroll from dropbox-records; merge exports to office CSVs.", self.run_office_records_sync, "primary"),
+                ("Phone Cursor Dropbox Setup", "Deploy 00_START_HERE files for iPhone Cursor + verify $13,890 Lily quote.", self.run_phone_cursor_dropbox_setup, "primary"),
                 ("Phase Verification", "Run all phase checks; saves PHASE_VERIFICATION_REPORT.txt.", self.run_phase_verification, "info"),
                 ("Developer Tools Console", "Every QA, repair, and admin script — full bells and whistles.", self.developer_tools_window, "info"),
                 ("Account Database Editor", "Users, roles, passwords, sessions — /admin/database/accounts.", self.open_admin_accounts, "primary"),
@@ -1701,6 +1702,35 @@ class StartCenter(tk.Tk):
             messagebox.showwarning("Office sync could not start", err)
             return
         self._watch_process(proc, log, "Office Records Sync", "See logs/office_sync_last.log and exports/office_sync/")
+
+    def run_phone_cursor_dropbox_setup(self):
+        if not self._admin_developer_pc():
+            messagebox.showwarning("Admin Only", "Phone Cursor setup is for Owner Master / admin PCs.")
+            return
+        self.set_status("Deploying phone Cursor Dropbox workspace (00_START_HERE)...")
+        sync_ps1 = BASE_DIR / "scripts" / "Sync-JRCBusinessFolders.ps1"
+        if sync_ps1.is_file():
+            proc, log, err = launch_hidden(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(sync_ps1)],
+                "phone_cursor_sync_last.log",
+            )
+            if err:
+                messagebox.showwarning("Phone Cursor setup could not start", err)
+                return
+            self._watch_process(
+                proc,
+                log,
+                "Phone Cursor Dropbox Setup",
+                "On phone: open JRC_COMPLETE_BUSINESS_FOLDER workspace.\n"
+                "Verify: Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt ($13,890 quote).\n"
+                "Log: logs/phone_cursor_sync_last.log",
+            )
+            return
+        proc, log, err = launch_hidden([PY_CMD, "-m", "app.phone_cursor_workspace", "--deploy"], "phone_cursor_sync_last.log")
+        if err:
+            messagebox.showwarning("Phone Cursor setup could not start", err)
+            return
+        self._watch_process(proc, log, "Phone Cursor Dropbox Setup", "See logs/phone_cursor_sync_last.log")
 
     def run_phase_verification(self):
         if not self._admin_developer_pc():

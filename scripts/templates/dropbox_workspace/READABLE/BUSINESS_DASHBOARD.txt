@@ -1,0 +1,28 @@
+J & R CONSTRUCTION — BUSINESS DASHBOARD (READABLE)
+Updated: PLACEHOLDER — run Refresh-ReadableBusinessReports.ps1 on office PC
+
+This file is rebuilt from dropbox-records office CSVs and the job register.
+It is meant for quick reading on phone Cursor and Dropbox mobile.
+
+--------------------------------------------------------------------------------
+ACTIVE JOBS (sample — refresh on desktop)
+--------------------------------------------------------------------------------
+
+  315 Lily Sassafras — Fence — Quote current: $13,890.00
+  (See 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt)
+
+--------------------------------------------------------------------------------
+OFFICE SYNC
+--------------------------------------------------------------------------------
+
+  Run on desktop after phone work:
+    scripts\Refresh-ReadableBusinessReports.ps1
+    scripts\Sync-JRCBusinessFolders.ps1
+    Office Records Sync in Construction Manager
+
+--------------------------------------------------------------------------------
+SOURCE OF TRUTH
+--------------------------------------------------------------------------------
+
+  Dropbox dropbox-records + JRC_COMPLETE_BUSINESS_FOLDER
+  NOT GitHub (app code only)

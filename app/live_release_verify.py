@@ -55,6 +55,10 @@ def sync_standards_files(base_dir: Path, dropbox: Path) -> List[str]:
             "LOGGING_STANDARDS_OFFICE_ASSISTANT.txt",
         ),
         (
+            dropbox / "00_START_HERE" / "PHONE_CURSOR_DROPBOX_WORKSPACE.txt",
+            "PHONE_CURSOR_DROPBOX_WORKSPACE.txt",
+        ),
+        (
             dropbox / "08_Admin_Standards" / "HELPER_WORK_OVERHEAD_RULE.txt",
             "HELPER_WORK_OVERHEAD_RULE.txt",
         ),
