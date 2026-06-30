@@ -96,6 +96,10 @@ railway*.env
 *Payroll*
 *receipt*
 *Receipt*
+!app/receipt_intake.py
+!tests/test_receipt_intake.py
+!scripts/templates/**/Iphone_photo_receipt_upload_guide.txt
+!scripts/templates/**/LOG_SYNC_RULES_LUMBER_RECEIPTS.txt
 *invoice-private*
 *customer-private*
 

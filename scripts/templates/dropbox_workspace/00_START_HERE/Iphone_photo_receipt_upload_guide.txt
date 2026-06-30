@@ -1,0 +1,70 @@
+J & R CONSTRUCTION — iPHONE PHOTO RECEIPT UPLOAD GUIDE
+Updated: 2026-06-29
+
+Use this with phone Cursor + Dropbox. Business receipts NEVER go to GitHub.
+
+================================================================================
+QUICK STEPS (iPhone)
+================================================================================
+
+1. Take photo of receipt (or save PDF/screenshot).
+
+2. Save/share to Dropbox → your ONE workspace:
+   JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22 (inner folder)
+
+3. Drop the file into:
+   02_RECEIPTS_PHOTO_INBOX/
+   (See Readme_drop_photos_here.txt in that folder.)
+
+4. OPTIONAL — rename before sync (helps auto-filing):
+   YYYY-MM-DD_JobAddress_Supplier_Type_Amount.jpg
+   Example: 2026-06-29_315Lily_GarrisEvans_lumber_127.45.jpg
+
+5. Wait for Dropbox to sync (Wi-Fi or cellular).
+
+6. On PC (evening): Log / Sync — or tell desktop Cursor "log sync".
+
+7. Send receipt photos to desktop Cursor for careful analysis — triple-check
+   amounts, job, supplier, and lumber line items before final filing.
+
+================================================================================
+LUMBER RECEIPTS (Garris Evans — lumber supplier)
+================================================================================
+
+CORRECT NAME: Garris Evans (NOT Gary Evans).
+
+Any receipt from Garris Evans or lumber yards:
+  - Log/sync updates LUMBER_PRICE_REGISTER.csv
+  - Builds your known lumber price history over time
+  - See: 08_Admin_Standards/LOG_SYNC_RULES_LUMBER_RECEIPTS.txt
+
+When you send a photo to Cursor:
+  - Say which job (e.g. 315 Lily Sassafras)
+  - Cursor analyzes line items, prices, quantities
+  - Log/sync files the receipt and updates lumber register
+
+================================================================================
+WHERE FILES GO AFTER LOG/SYNC
+================================================================================
+
+  Inbox drop          → 02_RECEIPTS_PHOTO_INBOX/
+  Filed receipts      → 06_Bookkeeping_Taxes/Receipts_Filed/YYYY-MM/
+  Lumber register     → 08_Admin_Standards/LUMBER_PRICE_REGISTER.csv
+  Intake log          → 00_START_HERE/READABLE/RECEIPT_INTAKE_LOG.txt
+  Pending review      → 00_START_HERE/READABLE/PENDING_RECEIPT_REVIEW.txt
+
+================================================================================
+TRIPLE-CHECK RULE (you + Cursor)
+================================================================================
+
+1. Phone: photo saved to inbox + Dropbox synced
+2. PC Cursor: analyze image — vendor, date, total, job, lumber lines
+3. Log/sync: file renamed (Gary→Garris corrected), filed, register updated
+4. You verify: BUSINESS_DASHBOARD.txt + RECEIPT_INTAKE_LOG.txt + register row
+
+================================================================================
+DAILY HABIT
+================================================================================
+
+  Field: drop photos in 02_RECEIPTS_PHOTO_INBOX/
+  Evening PC: "log sync" + review PENDING_RECEIPT_REVIEW.txt if any
