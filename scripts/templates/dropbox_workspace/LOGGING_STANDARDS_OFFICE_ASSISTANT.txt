@@ -8,6 +8,12 @@ Every business log entry should include:
   - What happened (work done, materials, payment, issue)
   - Next step (if any)
 
+PHONE / RECEIPT PHOTOS (Dropbox):
+  - Drop photos in 02_RECEIPTS_PHOTO_INBOX/ (see Readme_drop_photos_here.txt)
+  - Full guide: 00_START_HERE/Iphone_photo_receipt_upload_guide.txt
+  - Lumber supplier: Garris Evans — NOT Gary Evans (auto-corrected on log/sync)
+  - Lumber prices tracked in 08_Admin_Standards/LUMBER_PRICE_REGISTER.csv
+
 PHONE / FIELD LOGS (Dropbox):
   - Write to the job folder or 00_START_HERE field notes
   - Dropbox syncs to office PC — do not use GitHub for logs

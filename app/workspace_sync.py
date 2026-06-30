@@ -16,7 +16,7 @@ DATA_DIR = Path(os.environ.get("JRC_DATA_DIR", str(BASE_DIR / "data"))).expandus
 DB_PATH = Path(os.environ.get("JRC_DB_PATH", str(DATA_DIR / "jr_business.db"))).expanduser()
 EXPORT_DIR = Path(os.environ.get("JRC_EXPORT_DIR", str(BASE_DIR / "exports"))).expanduser()
 STANDARDS_DIR = BASE_DIR / "business_standards"
-APP_VERSION = "7.13.0"
+APP_VERSION = "7.13.1"
 
 # Workspace → install (Dropbox is source of truth for office docs)
 WORKSPACE_TO_INSTALL = [
@@ -25,9 +25,9 @@ WORKSPACE_TO_INSTALL = [
     ("08_Admin_Standards/HELPER_WORK_OVERHEAD_RULE.txt", "HELPER_WORK_OVERHEAD_RULE.txt"),
     ("00_START_HERE/LOGGING_STANDARDS_OFFICE_ASSISTANT.txt", "LOGGING_STANDARDS_OFFICE_ASSISTANT.txt"),
     ("00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt", "PHONE_CURSOR_DROPBOX_WORKSPACE.txt"),
+    ("00_START_HERE/Iphone_photo_receipt_upload_guide.txt", "Iphone_photo_receipt_upload_guide.txt"),
+    ("08_Admin_Standards/LOG_SYNC_RULES_LUMBER_RECEIPTS.txt", "LOG_SYNC_RULES_LUMBER_RECEIPTS.txt"),
 ]
-
-# Install → workspace (push app-exported standards back to Dropbox for phone)
 INSTALL_TO_WORKSPACE = [
     ("JRC_Business_Document_Standards.json", "08_Admin_Standards/JRC_Business_Document_Standards.json"),
     ("JRC_Business_Document_Standards.csv", "08_Admin_Standards/JRC_Business_Document_Standards.csv"),
@@ -139,9 +139,10 @@ def write_business_dashboard(workspace: Path, report: Dict[str, Any]) -> Path:
             "PHONE VERIFY: 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt → $13,890",
             "",
             "DAILY HABIT:",
-            "  Field (phone): log work in this Dropbox workspace.",
-            "  Evening (PC): tell desktop Cursor 'log' or run Sync Business Workspace.",
-            "  Check: this file on both devices — same Last PC sync = aligned.",
+            "  Field (phone): drop receipt photos in 02_RECEIPTS_PHOTO_INBOX/",
+            "  Evening (PC): Log / Sync — receipt intake + lumber register updated",
+            "  Check: RECEIPT_INTAKE_LOG.txt + LUMBER_PRICES_SUMMARY.txt",
+            "  Lumber supplier: Garris Evans (NOT Gary Evans)",
             "",
             "LAST SYNC SUMMARY:",
         ]
@@ -261,6 +262,21 @@ def run_full_workspace_sync(base_dir: Optional[Path] = None) -> Dict[str, Any]:
         report["notes"].extend(mirror_bookkeeping_readable(workspace, base))
     except Exception as exc:
         report["errors"].append(f"bookkeeping mirror: {exc}")
+
+    try:
+        from app.receipt_intake import process_receipt_inbox
+
+        receipt_rep = process_receipt_inbox(workspace)
+        report["receipt_intake"] = receipt_rep
+        report["notes"].append(
+            f"receipt intake: {receipt_rep.get('processed', 0)} filed, "
+            f"{receipt_rep.get('lumber', 0)} lumber"
+        )
+        report["notes"].extend(receipt_rep.get("notes") or [])
+        for e in receipt_rep.get("errors") or []:
+            report["errors"].append(str(e))
+    except Exception as exc:
+        report["errors"].append(f"receipt intake: {exc}")
 
     try:
         dash = write_business_dashboard(workspace, report)

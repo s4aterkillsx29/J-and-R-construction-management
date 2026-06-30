@@ -26,12 +26,16 @@ def deploy_templates(workspace: Path) -> List[str]:
     notes: List[str] = []
     if not TEMPLATES.is_dir():
         return [f"templates missing: {TEMPLATES}"]
-    dest_root = workspace / START_HERE
+    workspace_roots = {"02_RECEIPTS_PHOTO_INBOX", "08_Admin_Standards", "06_Bookkeeping_Taxes"}
     for src in TEMPLATES.rglob("*"):
         if not src.is_file():
             continue
         rel = src.relative_to(TEMPLATES)
-        dest = dest_root / rel
+        top = rel.parts[0] if rel.parts else ""
+        if top in workspace_roots or top == "00_START_HERE":
+            dest = workspace / rel
+        else:
+            dest = workspace / START_HERE / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
         notes.append(f"deployed {rel}")

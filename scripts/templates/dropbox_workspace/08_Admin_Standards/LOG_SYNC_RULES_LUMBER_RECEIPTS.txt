@@ -1,0 +1,54 @@
+J & R CONSTRUCTION — LOG/SYNC RULES: LUMBER RECEIPTS
+Updated: 2026-06-29
+
+================================================================================
+SUPPLIER NAME (ALWAYS CORRECT)
+================================================================================
+
+  WRONG:  Gary Evans
+  RIGHT:  Garris Evans  (lumber supplier)
+
+Log/sync and receipt intake auto-correct "Gary" → "Garris" in filenames
+and intake logs. Cursor should use Garris Evans in all lumber records.
+
+================================================================================
+WHAT COUNTS AS A LUMBER RECEIPT
+================================================================================
+
+  - Garris Evans invoices/receipts
+  - Lumber yard: 2x4, 2x6, 2x8, 2x10, 2x12, plywood, OSB, studs, boards
+  - Lowe's / Menards / Home Depot materials clearly for lumber/framing
+  - Filename or notes containing: lumber, garris, evans, 2x, plywood
+
+================================================================================
+LOG/SYNC ACTIONS (every PC sync after phone drops)
+================================================================================
+
+1. Scan 02_RECEIPTS_PHOTO_INBOX/ for new photos/PDFs
+2. Correct supplier names (Gary → Garris Evans)
+3. File to 06_Bookkeeping_Taxes/Receipts_Filed/YYYY-MM/
+4. Append line items to LUMBER_PRICE_REGISTER.csv when lumber detected
+5. Write RECEIPT_INTAKE_LOG.txt + PENDING_RECEIPT_REVIEW.txt for Cursor triple-check
+6. Mirror register to 00_START_HERE/READABLE/LUMBER_PRICES_SUMMARY.txt
+
+================================================================================
+LUMBER_PRICE_REGISTER.csv COLUMNS
+================================================================================
+
+  Date, Supplier, Item_Description, Qty, Unit, Unit_Price, Line_Total,
+  Job_Reference, Receipt_File, Logged_At, Verified_By, Notes
+
+Goal: over time you will know prices for lumber items you have already bought.
+
+================================================================================
+CURSOR ANALYSIS (when user sends receipt pictures)
+================================================================================
+
+  - Read every line item carefully
+  - Triple-check math (qty × unit = line total; sum = receipt total)
+  - Use Garris Evans for lumber supplier (never Gary Evans)
+  - Tie to job when stated (e.g. 315 Lily Sassafras)
+  - After analysis, user runs log/sync to persist filing + register
+
+================================================================================
+INTERNAL ONLY — not for customer documents

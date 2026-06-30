@@ -130,6 +130,7 @@ def write_workspace_manifest(root: Path) -> None:
                 "",
                 "Everything lives under THIS folder:",
                 "  00_START_HERE/          phone Cursor + quick files",
+                "  02_RECEIPTS_PHOTO_INBOX/  iPhone receipt photo drops",
                 "  03_BUSINESS_ADMIN/      applications inbox",
                 "  04_FINANCIAL_TRACKING/  income and deposits",
                 "  05_Helper_Pay_Workers/  payroll",
