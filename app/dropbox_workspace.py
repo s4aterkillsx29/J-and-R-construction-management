@@ -242,6 +242,62 @@ def mirror_file(dropbox_path: str, local_path: Optional[Path] = None) -> Path:
     return local_path
 
 
+def _dropbox_api_path(relative_path: str) -> str:
+    """Build a Dropbox API path from a relative path under DROPBOX_API_ROOT."""
+    rel = relative_path.replace("\\", "/").lstrip("/")
+    root = get_api_root()
+    if not root:
+        return f"/{rel}" if rel else "/"
+    return f"{root}/{rel}" if rel else root
+
+
+def api_upload(local_path: Path, dropbox_relative_path: str, *, overwrite: bool = True) -> Dict[str, Any]:
+    """Upload one local file to Dropbox (requires files.content.write scope)."""
+    token = get_dropbox_access_token()
+    if not token:
+        raise RuntimeError("DROPBOX_ACCESS_TOKEN is not set.")
+    if not local_path.is_file():
+        raise FileNotFoundError(f"Local file not found: {local_path}")
+    dropbox_path = _dropbox_api_path(dropbox_relative_path)
+    url = "https://content.dropboxapi.com/2/files/upload"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/octet-stream",
+        "Dropbox-API-Arg": json.dumps(
+            {"path": dropbox_path, "mode": "overwrite" if overwrite else "add", "autorename": not overwrite}
+        ),
+    }
+    data = local_path.read_bytes()
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            raw = resp.read()
+            return json.loads(raw.decode("utf-8")) if raw else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Dropbox upload failed ({exc.code}): {detail}") from exc
+
+
+def api_upload_folder(
+    local_dir: Path,
+    dropbox_relative_dir: str,
+    *,
+    overwrite: bool = True,
+) -> List[Dict[str, Any]]:
+    """Upload all files under local_dir to Dropbox, preserving relative paths."""
+    if not local_dir.is_dir():
+        raise NotADirectoryError(f"Local folder not found: {local_dir}")
+    results: List[Dict[str, Any]] = []
+    for path in sorted(local_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(local_dir).as_posix()
+        target = f"{dropbox_relative_dir.rstrip('/')}/{rel}" if dropbox_relative_dir else rel
+        meta = api_upload(path, target, overwrite=overwrite)
+        results.append({"local": str(path), "dropbox": meta.get("path_display", target), "size": meta.get("size")})
+    return results
+
+
 def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
     """Report how this environment can reach the J&R Dropbox business workspace."""
     base = base_dir or BASE_DIR
@@ -361,7 +417,35 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print(path)
         return 0
 
-    print("Usage: python -m app.dropbox_workspace [--check | --search <query>]")
+    if args[0] in ("--upload", "upload"):
+        if len(args) < 3:
+            print("Usage: python -m app.dropbox_workspace --upload <local_path> <dropbox_relative_path>")
+            return 2
+        if not get_dropbox_access_token():
+            report = check_access(base)
+            print(format_check_report(report))
+            return 1
+        local_path = Path(args[1]).expanduser()
+        meta = api_upload(local_path, args[2])
+        print(f"Uploaded {local_path} -> {meta.get('path_display')}")
+        return 0
+
+    if args[0] in ("--upload-folder", "upload-folder"):
+        if len(args) < 3:
+            print("Usage: python -m app.dropbox_workspace --upload-folder <local_dir> <dropbox_relative_dir>")
+            return 2
+        if not get_dropbox_access_token():
+            report = check_access(base)
+            print(format_check_report(report))
+            return 1
+        local_dir = Path(args[1]).expanduser()
+        results = api_upload_folder(local_dir, args[2])
+        for row in results:
+            print(f"{row['local']} -> {row['dropbox']} ({row.get('size')} bytes)")
+        print(f"Uploaded {len(results)} file(s).")
+        return 0
+
+    print("Usage: python -m app.dropbox_workspace [--check | --search <query> | --upload <local> <dropbox_rel> | --upload-folder <local_dir> <dropbox_rel_dir>]")
     return 2
 
 
