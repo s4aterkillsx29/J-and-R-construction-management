@@ -73,6 +73,8 @@ def dashboard_tiles(role: str, perms: set[str], *, densus_access: bool = False) 
         money.append(("Job Costs", "/job-costs", "Per-job profit view", "btn2"))
     if "manage_payroll" in perms:
         money.append(("Payroll", "/payroll", "Helper pay register", "btn2"))
+    if "view_money" in perms:
+        money.append(("Owner Draws", "/owner-draws", "Paid myself from business checking", "btn2"))
     if "view_bookkeeping" in perms:
         money.append(("Bookkeeping", "/bookkeeping", "Tax and ledger tools", "btn2"))
     add("Money & Books", "Owner/manager financial tools.", money)

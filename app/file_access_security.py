@@ -20,6 +20,7 @@ SENSITIVE_NAME_TOKENS = (
     "internal-workup",
     "helper_pay",
     "owner_labor",
+    "owner_draws",
     "bookkeeping",
     "worker_payment",
     "w2",

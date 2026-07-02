@@ -15,7 +15,7 @@ from app.role_utils import ROLE_LABELS, is_admin_role, normalize_role, role_disp
 
 # Tables admins may browse/edit (sqlite internal tables excluded).
 ALLOWED_TABLES: Set[str] = {
-    "customers", "jobs", "expenses", "workers", "worker_payments", "owner_labor",
+    "customers", "jobs", "expenses", "workers", "worker_payments", "owner_labor", "owner_draws",
     "invoices", "invoice_payments", "evidence", "business_log", "app_settings",
     "file_sources", "file_index", "source_summaries", "shared_files", "shared_jobs",
     "customer_job_requests", "customer_request_events", "customer_user_profiles",

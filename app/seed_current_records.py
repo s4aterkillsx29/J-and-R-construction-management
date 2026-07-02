@@ -38,6 +38,16 @@ def add_worker_payment(db, wid, job_id, date, desc, amount, method='Cash', notes
     db.execute('INSERT INTO worker_payments(worker_id, job_id, date, work_description, amount, payment_method, status, notes) VALUES(?,?,?,?,?,?,?,?)', (wid, job_id, date, desc, amount, method, 'Paid', notes))
 
 
+def add_owner_draw(db, draw_date, amount, account, desc, method='Transfer', notes=''):
+    exists = db.one('SELECT id FROM owner_draws WHERE draw_date=? AND amount=? AND description=?', (draw_date, amount, desc))
+    if exists:
+        return
+    db.execute(
+        'INSERT INTO owner_draws(draw_date, amount, paid_from_account, payment_method, description, work_type, notes, source, created_at) VALUES(?,?,?,?,?,?,?,?,?)',
+        (draw_date, amount, account, method, desc, desc, notes, 'seed', iso_now()),
+    )
+
+
 def seed():
     db = Database(DB_PATH)
     billy = add_customer(db, 'Billy / 401 East 2nd', address='401 East 2nd', notes='Billy deck/stair repair customer.')
@@ -78,7 +88,17 @@ def seed():
         if not exists:
             db.execute('INSERT INTO owner_labor(job_id, date, hours, rate, description, notes) VALUES(?,?,?,?,?,?)', (job_id, date, hrs, 30, desc, 'Job-costing only, not deductible wage to sole proprietor'))
 
-    db.log('System Seed', 'Loaded current known J&R jobs, expenses, worker payments, and owner labor into the Job Manager Pro database.')
+    add_owner_draw(
+        db,
+        '2026-07-02',
+        170,
+        'Business checking',
+        'Business office full day',
+        'Transfer',
+        'Owner draw — sole proprietor equity distribution, not a Schedule C expense.',
+    )
+
+    db.log('System Seed', 'Loaded current known J&R jobs, expenses, worker payments, owner labor, and owner draws into the Job Manager Pro database.')
     print('Seed complete:', DB_PATH)
 
 

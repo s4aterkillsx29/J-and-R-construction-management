@@ -242,6 +242,11 @@ def ensure_all_shared_schemas(conn: sqlite3.Connection) -> None:
     ensure_unified_expenses_schema(conn)
     ensure_unified_file_index_schema(conn)
     try:
+        from app.owner_draws import ensure_owner_draws_schema
+        ensure_owner_draws_schema(conn)
+    except Exception:
+        pass
+    try:
         from app.role_utils import ensure_role_normalization
         ensure_role_normalization(conn)
     except Exception:
