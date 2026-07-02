@@ -81,6 +81,18 @@ if ($records) {
         }
         $lines += ""
     }
+
+    $ownerDraws = Join-Path $records "06_bookkeeping\Owner_Draws_Register.csv"
+    if (Test-Path -LiteralPath $ownerDraws) {
+        $lines += "--------------------------------------------------------------------------------"
+        $lines += "OWNER DRAWS / PAID MYSELF (latest rows)"
+        $lines += "--------------------------------------------------------------------------------"
+        $drows = Import-Csv -LiteralPath $ownerDraws | Select-Object -Last 8
+        foreach ($d in $drows) {
+            $lines += "  $($d.Date) — $($d.Amount) — $($d.Paid_From_Account) — $($d.Description)"
+        }
+        $lines += ""
+    }
 } else {
     $lines += "(dropbox-records not found — run Sync-JRCBusinessFolders.ps1 on office PC)"
     $lines += ""

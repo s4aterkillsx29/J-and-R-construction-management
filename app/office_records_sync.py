@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple
 OFFICE_RATES = {
     "owner_hourly_rate": "30",
     "owner_daily_rate": "240",
+    "owner_office_daily_rate": "170",
     "helper_daily_rate": "140",
     "helper_overhead_per_work": "50",
     "dump_trip_fee_rule": "Actual dump fee plus $50 J&R trip fee",
@@ -39,6 +40,9 @@ def apply_office_business_standards(conn: sqlite3.Connection) -> List[str]:
     extras = [
         ("std_owner_hourly_rate", "Owner labor rate ($/hr)", OFFICE_RATES["owner_hourly_rate"]),
         ("std_owner_daily_rate", "Owner labor rate ($/8-hr day)", OFFICE_RATES["owner_daily_rate"]),
+        ("std_owner_office_daily_rate", "Owner office day pay ($/full day)", OFFICE_RATES["owner_office_daily_rate"]),
+        ("std_owner_draw_account", "Default paid-from account", "Business checking"),
+        ("std_owner_draw_work_type", "Default owner draw work type", "Business office full day"),
         ("std_helper_daily_rate", "Helper default ($/8-hr day)", OFFICE_RATES["helper_daily_rate"]),
         (
             "std_helper_overhead_per_work",
@@ -531,6 +535,30 @@ def _payroll_key(row: Dict[str, str]) -> Tuple[str, str, str]:
     )
 
 
+def _owner_draw_key(row: Dict[str, str]) -> Tuple[str, str, str]:
+    return _draw_key(
+        row.get("Date") or "",
+        row.get("Amount") or "",
+        row.get("Description") or row.get("Work_Type") or "",
+    )
+
+
+def _draw_key(draw_date: str, amount: str, description: str) -> Tuple[str, str, str]:
+    return ((draw_date or "").strip()[:10], _normalize_amount(amount), (description or "").strip().lower())
+
+
+def export_owner_draws_preview_csv(conn: sqlite3.Connection, out_path: Path) -> int:
+    from app.owner_draws import export_owner_draws_csv
+
+    return export_owner_draws_csv(conn, out_path)
+
+
+def import_owner_draws_office(conn: sqlite3.Connection, dropbox: Path) -> Tuple[int, List[str]]:
+    from app.owner_draws import import_owner_draws_from_office_csv
+
+    return import_owner_draws_from_office_csv(conn, dropbox)
+
+
 def _income_key(row: Dict[str, str]) -> Tuple[str, str, str, str]:
     return (
         (row.get("Date") or "").strip(),
@@ -611,6 +639,7 @@ def office_csv_paths(dropbox: Path) -> Dict[str, Path]:
         / "04_FINANCIAL_TRACKING"
         / "Income_Deposits_Balances"
         / "Income_Deposit_Balance_Register.csv",
+        "owner_draws": dropbox / "06_bookkeeping" / "Owner_Draws_Register.csv",
     }
 
 
@@ -620,7 +649,7 @@ def merge_exports_to_office_records(
     """Phase 2 approved — merge export previews into official office CSVs."""
     paths = office_csv_paths(dropbox)
     backup_dir = dropbox / "07_JRC_MANAGER_PROGRAM_FILES" / "backups" / "office_csv"
-    report: Dict[str, object] = {"notes": [], "payroll_added": 0, "income_added": 0}
+    report: Dict[str, object] = {"notes": [], "payroll_added": 0, "income_added": 0, "owner_draws_added": 0}
 
     payroll_preview = exp_dir / "Payroll_Helper_Export_Preview.csv"
     _, payroll_rows = _read_csv_dicts(payroll_preview)
@@ -653,6 +682,22 @@ def merge_exports_to_office_records(
         report["notes"].extend(notes)
     else:
         report["notes"].append("income preview empty — office CSV unchanged")
+
+    owner_preview = exp_dir / "Owner_Draws_Export_Preview.csv"
+    _, owner_rows = _read_csv_dicts(owner_preview)
+    if owner_rows:
+        added, total, notes = merge_preview_into_office_csv(
+            paths["owner_draws"],
+            owner_rows,
+            _owner_draw_key,
+            backup_dir,
+            source_tag,
+        )
+        report["owner_draws_added"] = added
+        report["owner_draws_total_rows"] = total
+        report["notes"].extend(notes)
+    else:
+        report["notes"].append("owner draws preview empty — office CSV unchanged")
 
     return report
 
@@ -687,24 +732,32 @@ def run_office_sync(base_dir: Path) -> Dict[str, object]:
         imp, imp_notes = import_payroll_from_office_csv(conn, dropbox)
         report["payroll_rows_imported"] = imp
         report["notes"].extend(imp_notes)
+        od_imp, od_notes = import_owner_draws_office(conn, dropbox)
+        report["owner_draws_rows_imported"] = od_imp
+        report["notes"].extend(od_notes)
         inc_imp, inc_notes = import_income_from_office_csv(conn, dropbox)
         report["income_rows_imported"] = inc_imp
         report["notes"].extend(inc_notes)
         exp_dir = base_dir / "exports" / "office_sync"
         wp = export_worker_payments_csv(conn, exp_dir / "Payroll_Helper_Export_Preview.csv")
         ip = export_income_preview_csv(conn, exp_dir / "Income_Deposit_Export_Preview.csv")
+        od = export_owner_draws_preview_csv(conn, exp_dir / "Owner_Draws_Export_Preview.csv")
         report["payroll_rows_exported"] = wp
         report["income_rows_exported"] = ip
+        report["owner_draws_rows_exported"] = od
         report["notes"].append(f"exports written to {exp_dir}")
         merge = merge_exports_to_office_records(dropbox, exp_dir)
         report["office_merge"] = merge
         report["payroll_rows_merged"] = merge.get("payroll_added", 0)
         report["income_rows_merged"] = merge.get("income_added", 0)
+        report["owner_draws_rows_merged"] = merge.get("owner_draws_added", 0)
         report["notes"].extend(merge.get("notes", []))
         if wp == 0:
             report["notes"].append("payroll export empty — no new program payments to merge")
         if ip == 0:
             report["notes"].append("income export empty — no new program deposits to merge")
+        if od == 0:
+            report["notes"].append("owner draws export empty — no new owner draws to merge")
         from app.live_chat import ensure_live_chat_schema
 
         ensure_live_chat_schema(conn)

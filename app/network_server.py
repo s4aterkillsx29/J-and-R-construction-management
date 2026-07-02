@@ -650,6 +650,20 @@ def init_db() -> None:
             created_at TEXT,
             FOREIGN KEY(job_id) REFERENCES jobs(id)
         );
+        CREATE TABLE IF NOT EXISTS owner_draws (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            draw_date TEXT NOT NULL,
+            amount REAL NOT NULL DEFAULT 0,
+            paid_from_account TEXT DEFAULT 'Business checking',
+            payment_method TEXT,
+            description TEXT,
+            work_type TEXT,
+            job_id INTEGER,
+            notes TEXT,
+            source TEXT DEFAULT 'manual',
+            created_at TEXT,
+            FOREIGN KEY(job_id) REFERENCES jobs(id)
+        );
         CREATE TABLE IF NOT EXISTS evidence (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             job_id INTEGER,
@@ -1123,6 +1137,19 @@ def init_db() -> None:
                 conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("dropbox_folder", dropbox_path))
         except Exception:
             pass
+        for std_key, std_val in (
+            ("std_owner_draw_rule", "When Jacob pays himself from business checking, log it as an owner draw (equity distribution), not as helper pay or a deductible expense."),
+            ("std_owner_office_daily_rate", "170"),
+            ("std_owner_draw_account", "Business checking"),
+            ("std_owner_draw_work_type", "Business office full day"),
+        ):
+            conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", (std_key, std_val))
+        try:
+            from app.owner_draws import ensure_owner_draws_schema, seed_july_2_2026_office_draw
+            ensure_owner_draws_schema(conn)
+            seed_july_2_2026_office_draw(conn)
+        except Exception:
+            pass
         conn.commit()
 
 def log_event(category: str, message: str, level: str = "INFO") -> None:
@@ -1357,7 +1384,7 @@ def protect_admin_and_sensitive_surfaces():
     if session.get("user_id") and is_customer_or_external(role):
         blocked = (
             "/admin", "/hosting", "/cloud", "/owner-recovery", "/data", "/ai",
-            "/payroll", "/expenses", "/bookkeeping", "/job-costs", "/jobs", "/files",
+            "/payroll", "/expenses", "/bookkeeping", "/job-costs", "/owner-draws", "/jobs", "/files",
             "/business", "/invoices", "/applications", "/customers", "/filekeeping",
         )
         if any(path.startswith(p) for p in blocked):
@@ -1367,7 +1394,7 @@ def protect_admin_and_sensitive_surfaces():
 
 @app.after_request
 def set_security_headers(resp):
-    sensitive_prefixes = ("/admin", "/hosting", "/cloud", "/owner-recovery", "/payroll", "/expenses", "/bookkeeping", "/job-costs", "/files", "/applications", "/customers")
+    sensitive_prefixes = ("/admin", "/hosting", "/cloud", "/owner-recovery", "/payroll", "/expenses", "/bookkeeping", "/job-costs", "/owner-draws", "/files", "/applications", "/customers")
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("Referrer-Policy", "same-origin")
     resp.headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
@@ -1941,7 +1968,8 @@ def dashboard():
         open_ar = conn.execute("SELECT COALESCE(SUM(price-paid),0) FROM jobs WHERE price>paid").fetchone()[0]
         exp = conn.execute("SELECT COALESCE(SUM(amount),0) FROM expenses").fetchone()[0]
         workers = conn.execute("SELECT COALESCE(SUM(amount),0) FROM worker_payments WHERE status='Paid'").fetchone()[0]
-        money_cards = f"""<div class="stat">Paid Income<b>{money(gross)}</b></div><div class="stat">Open Receivables<b>{money(open_ar)}</b></div><div class="stat">Expenses<b>{money(exp)}</b></div><div class="stat">Worker Pay<b>{money(workers)}</b></div>"""
+        owner_draws = conn.execute("SELECT COALESCE(SUM(amount),0) FROM owner_draws").fetchone()[0] if conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='owner_draws'").fetchone() else 0
+        money_cards = f"""<div class="stat">Paid Income<b>{money(gross)}</b></div><div class="stat">Open Receivables<b>{money(open_ar)}</b></div><div class="stat">Expenses<b>{money(exp)}</b></div><div class="stat">Worker Pay<b>{money(workers)}</b></div><div class="stat">Owner Draws<b>{money(owner_draws or 0)}</b></div>"""
         money_cols = "<th>Price</th><th>Paid</th>"
         row_fmt = lambda r: f"<tr><td>{r['id']}</td><td>{html.escape(r['job_name'])}</td><td>{html.escape(r['status'] or '')}</td><td>{money(r['price'])}</td><td>{money(r['paid'])}</td></tr>"
     else:
@@ -3361,6 +3389,7 @@ def ensure_bookkeeping_schema() -> None:
                 ("Vehicle/truck", "fuel,gas,truck,silverado,trailer", "Vehicle/Truck", "Expense"),
                 ("Tools/equipment", "tool,rental,drill,saw,blade", "Tools/Equipment", "Expense"),
                 ("Invoices/payments", "invoice,paid,deposit,balance,check,cash,cash app", "Income/Receivable", "Income"),
+                ("Owner draw / paid myself", "owner draw,paid myself,business checking,office full day", "Owner Draw", "Owner Draw"),
             ]
             for rule_name, match_text, category, entry_type in seeds:
                 conn.execute("INSERT INTO bookkeeping_rules(rule_name, match_text, category, entry_type, active, created_at) VALUES (?,?,?,?,1,?)", (rule_name, match_text, category, entry_type, now_iso()))
@@ -3413,6 +3442,13 @@ def reconcile_bookkeeping(conn: sqlite3.Connection, username: str = 'system') ->
             desc = f"Worker pay: {r['worker_name'] or 'worker'} - {r['description'] or ''}"
             conn.execute("INSERT INTO bookkeeping_ledgers(entry_date,entry_type,category,job_id,source_table,source_id,description,debit,credit,status,created_at,updated_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                          ((r['work_date'] or now)[:10], 'Expense', 'Worker/Helper Pay', r['job_id'], 'worker_payments', r['id'], desc, float(r['amount'] or 0), 0, r['status'] or 'Open', now, now, f"Cost fee separate: {money(r['cost_fee'] or 0)}")); created += 1
+    if conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='owner_draws'").fetchone():
+        for r in conn.execute("SELECT * FROM owner_draws WHERE COALESCE(amount,0)>0").fetchall():
+            exists = conn.execute("SELECT id FROM bookkeeping_ledgers WHERE source_table='owner_draws' AND source_id=?", (r['id'],)).fetchone()
+            if not exists:
+                desc = f"Owner draw: {r['description'] or r['work_type'] or 'Paid myself'}"
+                conn.execute("INSERT INTO bookkeeping_ledgers(entry_date,entry_type,category,job_id,source_table,source_id,description,debit,credit,status,created_at,updated_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                             ((r['draw_date'] or now)[:10], 'Owner Draw', 'Owner Draw / Equity', r['job_id'], 'owner_draws', r['id'], desc, float(r['amount'] or 0), 0, 'Reconciled', now, now, f"Paid from: {r['paid_from_account'] or ''}; not a Schedule C expense")); created += 1
     snap = bookkeeping_snapshot(conn)
     conn.execute("INSERT INTO bookkeeping_runs(run_time,run_type,total_income,total_expenses,total_worker_pay,total_receivables,unmatched_receipts,missing_receipts,duplicate_file_names,open_jobs,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                  (now, 'Manual Reconciliation', snap['income'], snap['expenses'], snap['worker_pay'], snap['receivables'], snap['receipt_files'], snap['missing_receipts'], snap['duplicate_file_names'], snap['open_jobs'], f"Created {created} ledger row(s). Run by {username}."))
@@ -3805,6 +3841,95 @@ def payroll():
     <div class='card'><h2>Recent Payroll Entries</h2><table><tr><th>Date</th><th>Worker</th><th>Job</th><th>Hours</th><th>Rate</th><th>Pay</th><th>Cost Fee</th><th>Status</th><th>Method</th></tr>{trs}</table></div>
     """
     return layout("Payroll", body, "payroll")
+@app.route("/owner-draws", methods=["GET", "POST"])
+@login_required("view_money")
+def owner_draws_page():
+    from app.owner_draws import (
+        default_draw_account,
+        default_office_daily_amount,
+        default_work_type,
+        ensure_owner_draws_schema,
+        log_owner_draw,
+        total_owner_draws,
+    )
+    conn = db()
+    ensure_owner_draws_schema(conn)
+    user = current_user()
+    perms = get_user_permissions(user["id"], user["role"])
+    std_amount = default_office_daily_amount(conn)
+    std_account = default_draw_account(conn)
+    std_work = default_work_type(conn)
+    if request.method == "POST":
+        if "manage_payroll" not in perms and "edit_workers" not in perms and "view_bookkeeping" not in perms:
+            abort(403)
+        amount = parse_float(request.form.get("amount"))
+        if amount <= 0:
+            amount = std_amount
+        job_id_raw = request.form.get("job_id") or None
+        job_id = int(job_id_raw) if job_id_raw else None
+        draw_id = log_owner_draw(
+            conn,
+            draw_date=request.form.get("draw_date") or dt.date.today().isoformat(),
+            amount=amount,
+            description=request.form.get("description") or std_work,
+            paid_from_account=request.form.get("paid_from_account") or std_account,
+            payment_method=request.form.get("payment_method") or "",
+            work_type=request.form.get("work_type") or std_work,
+            job_id=job_id,
+            notes=request.form.get("notes") or "",
+            source="owner-draws-center",
+        )
+        log_event("Owner Draw", f"Logged owner draw {money(amount)} id={draw_id}")
+        flash("Owner draw saved. This is an equity distribution, not a deductible expense.", "success")
+        return redirect(url_for("owner_draws_page"))
+    jobs = conn.execute("SELECT id, job_name FROM jobs ORDER BY updated_at DESC, id DESC").fetchall()
+    job_opts = '<option value="">Overhead / no job</option>' + ''.join(
+        f'<option value="{j["id"]}">{html.escape(j["job_name"])}</option>' for j in jobs
+    )
+    rows = conn.execute(
+        """SELECT od.*, j.job_name FROM owner_draws od
+           LEFT JOIN jobs j ON j.id=od.job_id
+           ORDER BY COALESCE(od.draw_date,'') DESC, od.id DESC LIMIT 200"""
+    ).fetchall()
+    total = total_owner_draws(conn)
+    trs = ''.join(
+        f"<tr><td>{html.escape(r['draw_date'] or '')}</td><td>{money(r['amount'] or 0)}</td>"
+        f"<td>{html.escape(r['paid_from_account'] or '')}</td><td>{html.escape(r['description'] or '')}</td>"
+        f"<td>{html.escape(r['work_type'] or '')}</td><td>{html.escape(r['job_name'] or 'Overhead')}</td>"
+        f"<td>{html.escape(r['payment_method'] or '')}</td></tr>"
+        for r in rows
+    )
+    body = f"""
+    <div class='grid'>
+      <div class='stat'>Total Owner Draws<b>{money(total)}</b></div>
+      <div class='stat'>Standard Office Day<b>{money(std_amount)}</b></div>
+      <div class='stat'>Default Account<b>{html.escape(std_account)}</b></div>
+    </div>
+    <div class='card'><h2>Log Paid Myself (Owner Draw)</h2>
+    <p class='muted'>Owner draws from business checking are equity distributions for a sole proprietor — not helper payroll and not deductible Schedule C expenses. Tell Cursor anytime you pay yourself and it will log here.</p>
+    <form method='post'>
+      <div class='row3'><p><label>Date</label><input name='draw_date' value='{dt.date.today().isoformat()}'></p>
+      <p><label>Amount</label><input name='amount' value='{std_amount:.2f}' placeholder='{std_amount:.2f}'></p>
+      <p><label>Paid From Account</label><input name='paid_from_account' value='{html.escape(std_account)}'></p></div>
+      <div class='row3'><p><label>Work Type</label><input name='work_type' value='{html.escape(std_work)}'></p>
+      <p><label>Description</label><input name='description' value='{html.escape(std_work)}'></p>
+      <p><label>Payment Method</label><input name='payment_method' placeholder='Transfer, check, debit'></p></div>
+      <p><label>Job (optional)</label><select name='job_id'>{job_opts}</select></p>
+      <p><label>Notes</label><textarea name='notes' placeholder='Optional notes'></textarea></p>
+      <button>Save Owner Draw</button> <a class='btn btn2' href='/owner-draws/export'>Export Owner Draws CSV</a>
+    </form></div>
+    <div class='card'><h2>Recent Owner Draws</h2><table><tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th><th>Work Type</th><th>Job</th><th>Method</th></tr>{trs}</table></div>
+    """
+    return layout("Owner Draws", body, "owner-draws")
+@app.route("/owner-draws/export")
+@login_required("view_money")
+def owner_draws_export():
+    from app.owner_draws import ensure_owner_draws_schema, export_owner_draws_csv
+    ensure_owner_draws_schema(db())
+    out = EXPORT_DIR / f"JRC_Owner_Draws_{dt.datetime.now().strftime('%Y-%m-%d_%H%M%S')}.csv"
+    export_owner_draws_csv(db(), out)
+    log_event("Owner Draw", f"Exported owner draws CSV {out.name}")
+    return send_file(out, as_attachment=True)
 @app.route("/payroll/export")
 @login_required("view_workers")
 def payroll_export():
