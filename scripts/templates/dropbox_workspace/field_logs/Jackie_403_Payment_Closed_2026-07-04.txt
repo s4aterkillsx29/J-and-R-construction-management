@@ -1,16 +1,14 @@
 403 East 2nd / Jackie — Payment confirmed
-Date logged: 2026-07-04
+Date logged: 2026-07-04 (updated with check evidence)
 
-Customer: Jackie / 403 East 2nd OIB (JRC-403)
-Job: Deck rebuild + staining — FINISHED
+Customer: Jackie / Jacqueline Robinson — 403 East 2nd OIB (JRC-403)
+Job: Deck rebuild + staining — FINISHED — CLOSED PAID
 
-PAYMENT — PAID IN FULL (per owner):
-  Deposit:       $1,000.00 cash (received ~Jun 29 when work started)
-  Final balance: $1,000.00 cash (paid — job complete)
-  TOTAL:         $2,000.00
+PAYMENT — CHECKS ON FILE (Truist deposits):
+  Check #5565  2026-01-05  $1,250.00  memo: Carpentry
+  Check #5563  2026-06-28    $300.00  memo: Curbing 2
+  TOTAL:                 $1,550.00
 
-Status: Closed Paid — customer paid all debts. No balance remaining.
+Status: Closed Paid — customer paid all debts per owner.
 
-Logged in:
-  04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv
-  08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv
+See: field_logs/Jackie_403_Check_Payments_2026-07-04.txt

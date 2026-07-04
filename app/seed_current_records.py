@@ -61,7 +61,7 @@ def seed():
     j_ray = add_job(db, ray, 'Ray Joyner / 42 Cumberland', '42 Cumberland', 'Closed Paid', 'Install three shower door units. Silicone cure and possible callback/warranty watch.', 5000, 2500, 2500, 'Customer payment', 'Follow-up text sent. Watch for water splashing/callback.', 1)
     j_rachel = add_job(db, rachel, 'Rachel Eades / 2020 Toyota Camry Brake Job', '', 'Closed Paid', 'Brake job. Rotor replacement not included.', 260, 0, 260, 'Cash App', 'Completed June 12. Brake helper confirmed as Brandon Hager.')
     j_robol = add_job(db, robol, 'RO ROBOL / 401 East 2nd Pickets', '401 East 2nd', 'Waiting Payment', 'Re-secured pickets around top deck on roof and landings between stairways.', 100, 0, 0, 'Check by mail', 'Check not received yet.')
-    j_403 = add_job(db, jackie_c, '403 East 2nd / Jackie OIB', '403 East 2nd, Ocean Isle Beach', 'Closed Paid', 'Deck rebuild + staining complete.', 2000, 1000, 1000, 'Cash', 'JRC-403 paid in full. $1000 deposit + $1000 balance. Helper pay receipts on file.')
+    j_403 = add_job(db, jackie_c, '403 East 2nd / Jackie OIB', '403 East 2nd, Ocean Isle Beach', 'Closed Paid', 'Deck rebuild + staining complete.', 2000, 1250, 300, 'Check', 'JRC-403 paid in full. Check #5565 $1250 + Check #5563 $300 on file.')
     j_mintz = add_job(db, mintz, 'Billy Hickman / 321 Mintz Cemetery Phase 1', '321 Mintz Cemetery Rd', 'Estimate Sent', 'Phase 1 flooring tearout, cabinet access where needed, bathroom tile tearout, damaged flooring/subfloor removal, initial full-sheet subfloor repair in damaged areas.', 3000, 0, 0, 'Pending', 'Customer copy sent. Waiting response/payment.')
 
     add_expense(db, j_billy, '2026-06-19', 'Materials', 'Materials & Supplies', 'General materials', 200)

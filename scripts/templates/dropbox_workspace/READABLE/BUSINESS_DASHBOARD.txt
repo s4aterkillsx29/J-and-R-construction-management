@@ -43,7 +43,9 @@ TAX SET-ASIDE — COMPLETED 2026-07-04
 --------------------------------------------------------------------------------
 403 JACKIE — JOB STATUS: CLOSED PAID
 
-  Contract: $2,000.00 cash — deposit $1,000 + final balance $1,000 — PAID IN FULL
+  Contract: paid in full — checks on file $1,550.00
+    Check #5565  $1,250.00  (2026-01-05, Carpentry)
+    Check #5563    $300.00  (2026-06-28, Curbing 2)
   Work: deck rebuild + staining complete. Customer paid all debts.
 
 --------------------------------------------------------------------------------

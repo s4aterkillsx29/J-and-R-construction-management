@@ -1,0 +1,24 @@
+403 East 2nd / Jackie — Check payments on file
+Logged: 2026-07-04
+
+Customer: Jacqueline R. Robinson / Charles E. Robinson
+Address: 403 E 2nd St, Ocean Isle Beach NC (JRC-403)
+
+CHECK #5565 — $1,250.00
+  Date on check: 2026-01-05
+  Memo: Carpentry
+  Bank: Truist (deposited — mobile check image on file)
+  Pay to order of: Jacob Cronenberger
+
+CHECK #5563 — $300.00
+  Date on check: 2026-06-28
+  Memo: Curbing 2
+  Bank: Truist (deposited — mobile check image on file)
+  Pay to order of: Jacob Crumpler
+
+DOCUMENTED CHECK TOTAL: $1,550.00
+
+Job: deck rebuild + staining — CLOSED PAID per owner (all debts paid).
+Income logged in Income_Deposit_Balance_Register.csv.
+
+Note: Payee names on checks differ from Jacob Cosentino / J&R business name — deposit records match Truist.
