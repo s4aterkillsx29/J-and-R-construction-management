@@ -48,6 +48,11 @@ def apply_office_business_standards(conn: sqlite3.Connection) -> List[str]:
             "Owner draw / paid myself rule",
             "Log owner draws from business checking as equity distributions, not helper pay or deductible expenses.",
         ),
+        (
+            "std_log_sync_rule",
+            "Log + sync rule",
+            'When Jacob says "log", update Dropbox office CSVs/field logs AND run python -m app.dropbox_workspace --sync.',
+        ),
         ("std_helper_daily_rate", "Helper default ($/8-hr day)", OFFICE_RATES["helper_daily_rate"]),
         (
             "std_helper_overhead_per_work",

@@ -50,7 +50,10 @@ ON DESKTOP (office laptop) — after a phone session:
   1. Run: scripts\Sync-JRCBusinessFolders.ps1
   2. Run: scripts\Refresh-ReadableBusinessReports.ps1
   3. In Construction Manager: Office Records Sync
-  4. Tell desktop Cursor: "log" to finish the data pipeline
+  4. Tell desktop Cursor: "log" — Cursor MUST run dropbox --sync (see LOGGING_STANDARDS)
+
+CURSOR "LOG" = UPDATE RECORDS + SYNC (not write-only):
+  python -m app.dropbox_workspace --sync
 
 ================================================================================
 DESKTOP SCRIPTS (office PC)

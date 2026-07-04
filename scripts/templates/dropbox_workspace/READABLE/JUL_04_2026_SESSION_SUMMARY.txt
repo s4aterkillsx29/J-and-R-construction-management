@@ -80,7 +80,8 @@ Personal checking:
   07_Personal_Finances/ (expenses, income, balances)
   04_FINANCIAL_TRACKING/ (business balances, set-aside review + transfer)
   READABLE/ (business, personal, tax, this session log)
-  field_logs/Owner_Draw_Personal_Bills_2026-07-03_04.txt
+  04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv
+  field_logs/Jackie_403_Payment_Closed_2026-07-04.txt
 
 ================================================================================
 NEXT STEPS

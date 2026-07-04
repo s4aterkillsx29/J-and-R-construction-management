@@ -337,8 +337,8 @@ OFFICE_SYNC_PATHS = [
 ]
 
 
-def _bootstrap_mirror_from_templates(base_dir: Path) -> List[str]:
-    """Seed cloud mirror from repo templates when live Dropbox is unavailable."""
+def _push_templates_to_mirror(base_dir: Path, *, overwrite: bool = True) -> List[str]:
+    """Copy repo dropbox_workspace templates into cloud mirror (log + sync pipeline)."""
     import shutil
 
     notes: List[str] = []
@@ -349,43 +349,55 @@ def _bootstrap_mirror_from_templates(base_dir: Path) -> List[str]:
 
     records_dest = CLOUD_MIRROR_DIR / "dropbox-records"
     evidence_dest = CLOUD_MIRROR_DIR / "evidence"
+    records_skip_in_start = {
+        "08_Admin_Standards",
+        "05_Helper_Pay_Workers",
+        "04_FINANCIAL_TRACKING",
+        "06_bookkeeping",
+        "07_Personal_Finances",
+    }
+
     for src in templates.rglob("*"):
         if not src.is_file():
             continue
         rel = src.relative_to(templates)
         if rel.parts and rel.parts[0] == "field_logs":
             dest = evidence_dest / Path(*rel.parts[1:])
-            if dest.is_file():
-                continue
             dest.parent.mkdir(parents=True, exist_ok=True)
+            if dest.is_file() and not overwrite:
+                continue
             shutil.copy2(src, dest)
-            notes.append(f"bootstrapped evidence/{dest.name}")
+            notes.append(f"synced evidence/{dest.name}")
             continue
         dest = records_dest / rel
-        if dest.is_file():
-            continue
         dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest.is_file() and not overwrite:
+            continue
         shutil.copy2(src, dest)
-        notes.append(f"bootstrapped {rel}")
+        notes.append(f"synced {rel}")
 
     start_dest = CLOUD_MIRROR_DIR / "00_START_HERE"
     for src in templates.rglob("*"):
         if not src.is_file():
             continue
         rel = src.relative_to(templates)
-        if rel.parts and rel.parts[0] in (
-            "08_Admin_Standards",
-            "05_Helper_Pay_Workers",
-            "04_FINANCIAL_TRACKING",
-            "06_bookkeeping",
-            "07_Personal_Finances",
-        ):
+        if rel.parts and rel.parts[0] in records_skip_in_start:
+            continue
+        if rel.parts and rel.parts[0] == "field_logs":
             continue
         dest = start_dest / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest.is_file() and not overwrite:
+            continue
         shutil.copy2(src, dest)
-        notes.append(f"bootstrapped 00_START_HERE/{rel}")
+        notes.append(f"synced 00_START_HERE/{rel}")
 
+    return notes
+
+
+def _bootstrap_mirror_from_templates(base_dir: Path) -> List[str]:
+    """Seed cloud mirror from repo templates when live Dropbox is unavailable."""
+    notes = _push_templates_to_mirror(base_dir, overwrite=False)
     (CLOUD_MIRROR_DIR / ".jrc_dropbox_mirror").write_text("template-bootstrap\n", encoding="utf-8")
     return notes
 
@@ -481,6 +493,14 @@ def sync_dropbox_mirror(base_dir: Optional[Path] = None) -> Dict[str, Any]:
     records_marker = CLOUD_MIRROR_DIR / "dropbox-records" / REGISTER_MARKER
     if not records_marker.is_file():
         report["notes"].extend(_bootstrap_mirror_from_templates(base))
+    else:
+        pushed = _push_templates_to_mirror(base, overwrite=True)
+        report["notes"].append(f"pushed {len(pushed)} template file(s) to mirror")
+        if len(pushed) <= 12:
+            report["notes"].extend(pushed)
+        else:
+            report["notes"].extend(pushed[:8])
+            report["notes"].append(f"... and {len(pushed) - 8} more")
     report["notes"].extend(_bootstrap_jackie_evidence_from_git(base))
     (CLOUD_MIRROR_DIR / ".jrc_dropbox_mirror").write_text(
         f"synced {datetime.now().isoformat(timespec='seconds')}\n",
@@ -495,6 +515,25 @@ def sync_dropbox_mirror(base_dir: Optional[Path] = None) -> Dict[str, Any]:
     if not resolved:
         report["errors"].append("Mirror sync finished but dropbox-records register still missing.")
         return report
+
+    db_path = base / "data" / "jr_business.db"
+    if not db_path.is_file():
+        try:
+            data_dir = base / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            os.environ.setdefault("JRC_DATA_DIR", str(data_dir))
+            os.environ.setdefault("JRC_DB_PATH", str(db_path))
+            import sys
+
+            app_dir = str(base / "app")
+            if app_dir not in sys.path:
+                sys.path.insert(0, app_dir)
+            from seed_current_records import seed
+
+            seed()
+            report["notes"].append(f"seeded database for office sync: {db_path}")
+        except Exception as exc:
+            report["notes"].append(f"database seed skipped: {exc}")
 
     try:
         from app.office_records_sync import run_office_sync

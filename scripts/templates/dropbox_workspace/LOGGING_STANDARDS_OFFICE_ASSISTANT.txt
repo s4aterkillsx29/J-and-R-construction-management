@@ -18,6 +18,14 @@ DESKTOP AFTER PHONE SESSION:
   3. Construction Manager → Office Records Sync
   4. Tell desktop Cursor: "log"
 
+CURSOR / CLOUD AGENT — WHEN JACOB SAYS "LOG":
+  Logging is NOT complete until sync runs. Always do BOTH:
+  1. Update office CSVs + field logs (scripts/templates/dropbox_workspace/)
+  2. Run: python -m app.dropbox_workspace --sync
+     → pushes templates to dropbox-business mirror + Office Records Sync to DB
+  3. Commit + push git templates (app code path)
+  On office PC: Dropbox Desktop picks up mirror/synced files after Sync-JRCBusinessFolders.ps1
+
 CUSTOMER vs INTERNAL:
   - Customer quotes/invoices: no internal labor rates or helper pay
   - Internal workups: mark INTERNAL USE ONLY
