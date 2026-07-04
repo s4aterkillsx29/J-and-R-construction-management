@@ -328,6 +328,9 @@ OFFICE_SYNC_PATHS = [
     "05_Helper_Pay_Workers/Payroll_Helper_Register.csv",
     "04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv",
     "06_bookkeeping/Owner_Draws_Register.csv",
+    "07_Personal_Finances/Personal_Expenses_Register.csv",
+    "07_Personal_Finances/Personal_Income_Register.csv",
+    "07_Personal_Finances/Personal_Account_Balances.csv",
 ]
 
 
@@ -372,6 +375,7 @@ def _bootstrap_mirror_from_templates(base_dir: Path) -> List[str]:
             "05_Helper_Pay_Workers",
             "04_FINANCIAL_TRACKING",
             "06_bookkeeping",
+            "07_Personal_Finances",
         ):
             continue
         dest = start_dest / rel

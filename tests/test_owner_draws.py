@@ -30,7 +30,7 @@ class OwnerDrawTests(unittest.TestCase):
 
             ensure_owner_draws_schema(conn)
             ids = seed_owner_draws_from_office_records(conn)
-            self.assertEqual(len(ids), 3)
+            self.assertEqual(len(ids), 5)
             again = seed_owner_draws_from_office_records(conn)
             self.assertEqual(ids, again)
             self.assertTrue(
@@ -41,17 +41,17 @@ class OwnerDrawTests(unittest.TestCase):
                     "403 Jackie — business day while Wayne staining",
                 )
             )
-            self.assertEqual(total_owner_draws(conn), 530.0)
+            self.assertEqual(total_owner_draws(conn), 870.0)
 
             log_owner_draw(
                 conn,
-                draw_date="2026-07-04",
+                draw_date="2026-07-05",
                 amount=170.0,
                 description="Business office full day",
                 paid_from_account="Business checking",
                 source="test",
             )
-            self.assertEqual(total_owner_draws(conn), 700.0)
+            self.assertEqual(total_owner_draws(conn), 1040.0)
             conn.close()
 
     def test_export_owner_draws_csv(self):
@@ -70,7 +70,7 @@ class OwnerDrawTests(unittest.TestCase):
             ensure_owner_draws_schema(conn)
             seed_owner_draws_from_office_records(conn)
             count = export_owner_draws_csv(conn, out_path)
-            self.assertEqual(count, 3)
+            self.assertEqual(count, 5)
             text = out_path.read_text(encoding="utf-8")
             self.assertIn("2026-06-29", text)
             self.assertIn("120.00", text)

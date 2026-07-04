@@ -171,6 +171,20 @@ def seed_owner_draws_from_office_records(conn: sqlite3.Connection) -> List[int]:
             "Business day while Wayne on site staining",
             "JRC-403 Wayne staining day. Standard $170 business day.",
         ),
+        (
+            "2026-07-03",
+            170.0,
+            "Owner draw — personal need (no field work)",
+            "Business office full day",
+            "No field work. Standard $170 owner draw to personal checking.",
+        ),
+        (
+            "2026-07-04",
+            170.0,
+            "Owner draw — personal need (no field work)",
+            "Business office full day",
+            "No field work. Standard $170 owner draw to personal checking.",
+        ),
     ]
     ids: List[int] = []
     for draw_date, amount, desc, wtype, notes in entries:

@@ -120,6 +120,24 @@ def seed():
         'Transfer',
         'JRC-403 Wayne staining day. Standard $170 business day.',
     )
+    add_owner_draw(
+        db,
+        '2026-07-03',
+        170,
+        'Business checking',
+        'Owner draw — personal need (no field work)',
+        'Transfer',
+        'No field work. Standard $170 owner draw to personal checking.',
+    )
+    add_owner_draw(
+        db,
+        '2026-07-04',
+        170,
+        'Business checking',
+        'Owner draw — personal need (no field work)',
+        'Transfer',
+        'No field work. Standard $170 owner draw to personal checking.',
+    )
 
     for job_id, work_date, hrs, desc in [
         (j_403, '2026-06-29', 4, 'Owner labor — 403 Jackie deck rebuild half day 1 (band frame)'),

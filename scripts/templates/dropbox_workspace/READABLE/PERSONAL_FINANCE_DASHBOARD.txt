@@ -1,0 +1,38 @@
+J & R CONSTRUCTION — PERSONAL FINANCE DASHBOARD (READABLE)
+Updated: 2026-07-04
+
+Source: dropbox-records/07_Personal_Finances (separate from business books)
+
+--------------------------------------------------------------------------------
+PERSONAL CHECKING (1744) — SNAPSHOT BEFORE OWNER DRAWS
+--------------------------------------------------------------------------------
+
+  Balance: $160.85  (Truist — before $340 owner draws for Jul 3 + Jul 4)
+
+--------------------------------------------------------------------------------
+PERSONAL BILLS PAID / PENDING (2026-07-04)
+--------------------------------------------------------------------------------
+
+  Phone bill              $49.00   Pending (Cash App)
+  WiFi bill               $72.00   Pending (Cash App)
+  Truck insurance (x2)   $101.00   Pending (Cash App)
+
+  Bills total: $222.00
+
+--------------------------------------------------------------------------------
+OWNER DRAWS → PERSONAL (from business checking)
+--------------------------------------------------------------------------------
+
+  2026-07-03  $170.00  Owner draw — no field work, personal need
+  2026-07-04  $170.00  Owner draw — no field work, personal need
+
+  Draws total: $340.00  (logged in business Owner_Draws_Register.csv)
+
+--------------------------------------------------------------------------------
+ESTIMATED PERSONAL CHECKING AFTER DRAWS + BILLS POST
+--------------------------------------------------------------------------------
+
+  $160.85 + $340.00 - $222.00 = $278.85  (estimate once pending bills clear)
+
+--------------------------------------------------------------------------------
+NOT BUSINESS EXPENSE — personal bills stay in personal books only

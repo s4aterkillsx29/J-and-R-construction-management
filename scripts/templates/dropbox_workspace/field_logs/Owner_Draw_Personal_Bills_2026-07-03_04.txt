@@ -1,0 +1,17 @@
+Personal + owner draw log — 2026-07-03 / 2026-07-04
+Jacob Cosentino (owner)
+
+2026-07-03:
+- No field work
+- Owner draw $170 from business checking → personal need
+
+2026-07-04:
+- Personal bills paid/pending via Cash App (Truist personal 1744):
+  - Phone $49.00
+  - WiFi $72.00
+  - Truck insurance (2 personal trucks) $101.00
+- Personal checking balance before owner draws: $160.85 (Truist screenshot)
+- Owner draw $170 from business checking → personal need
+
+Business owner draws logged in 06_bookkeeping/Owner_Draws_Register.csv
+Personal detail in 07_Personal_Finances/
