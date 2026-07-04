@@ -1,2 +1,4 @@
 Date,Amount,Paid_From_Account,Payment_Method,Description,Work_Type,Notes
-2026-07-02,170.00,Business checking,Transfer,Business office full day,Business office full day,Owner draw — sole proprietor equity distribution; not a Schedule C expense. [JRC standard $170 office full day]
+2026-06-29,240.00,Business checking,Transfer,403 Jackie deck rebuild — owner full day 1,Field full day,JRC-403 day 1 band frame. Owner draw from business checking.
+2026-06-30,240.00,Business checking,Transfer,403 Jackie deck rebuild — owner full day 2 (deck finish),Field full day,JRC-403 day 2 deck finish complete.
+2026-07-01,170.00,Business checking,Transfer,403 Jackie — business day while Wayne staining,Business day while Wayne on site staining,JRC-403 Wayne staining day. Standard $170 business day.

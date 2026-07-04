@@ -147,19 +147,53 @@ def log_owner_draw(
     return int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
 
 
+def seed_owner_draws_from_office_records(conn: sqlite3.Connection) -> List[int]:
+    """Seed owner draws aligned with Dropbox Owner_Draws_Register.csv."""
+    entries = [
+        (
+            "2026-06-29",
+            240.0,
+            "403 Jackie deck rebuild — owner full day 1",
+            "Field full day",
+            "JRC-403 day 1 band frame.",
+        ),
+        (
+            "2026-06-30",
+            240.0,
+            "403 Jackie deck rebuild — owner full day 2 (deck finish)",
+            "Field full day",
+            "JRC-403 day 2 deck finish complete.",
+        ),
+        (
+            "2026-07-01",
+            170.0,
+            "403 Jackie — business day while Wayne staining",
+            "Business day while Wayne on site staining",
+            "JRC-403 Wayne staining day. Standard $170 business day.",
+        ),
+    ]
+    ids: List[int] = []
+    for draw_date, amount, desc, wtype, notes in entries:
+        ids.append(
+            log_owner_draw(
+                conn,
+                draw_date=draw_date,
+                amount=amount,
+                description=desc,
+                paid_from_account="Business checking",
+                payment_method="Transfer",
+                work_type=wtype,
+                notes=notes,
+                source="dropbox-office-csv",
+            )
+        )
+    return ids
+
+
 def seed_july_2_2026_office_draw(conn: sqlite3.Connection) -> Optional[int]:
-    """Log the standard $170 business office full day draw for 2026-07-02."""
-    return log_owner_draw(
-        conn,
-        draw_date="2026-07-02",
-        amount=170.0,
-        description="Business office full day",
-        paid_from_account="Business checking",
-        payment_method="Transfer",
-        work_type="Business office full day",
-        notes="Owner draw — sole proprietor equity distribution, not a Schedule C expense.",
-        source="cursor-assistant",
-    )
+    """Deprecated — use seed_owner_draws_from_office_records. Kept for compatibility."""
+    ids = seed_owner_draws_from_office_records(conn)
+    return ids[-1] if ids else None
 
 
 def owner_draw_csv_path(dropbox: Path) -> Path:

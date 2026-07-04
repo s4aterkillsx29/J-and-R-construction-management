@@ -338,10 +338,19 @@ def _bootstrap_mirror_from_templates(base_dir: Path) -> List[str]:
         return notes
 
     records_dest = CLOUD_MIRROR_DIR / "dropbox-records"
+    evidence_dest = CLOUD_MIRROR_DIR / "evidence"
     for src in templates.rglob("*"):
         if not src.is_file():
             continue
         rel = src.relative_to(templates)
+        if rel.parts and rel.parts[0] == "evidence":
+            dest = evidence_dest / Path(*rel.parts[1:])
+            if dest.is_file():
+                continue
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+            notes.append(f"bootstrapped evidence/{dest.name}")
+            continue
         dest = records_dest / rel
         if dest.is_file():
             continue

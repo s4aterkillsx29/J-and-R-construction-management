@@ -90,13 +90,42 @@ def seed():
 
     add_owner_draw(
         db,
-        '2026-07-02',
+        '2026-06-29',
+        240,
+        'Business checking',
+        '403 Jackie deck rebuild — owner full day 1',
+        'Transfer',
+        'JRC-403 day 1 band frame.',
+    )
+    add_owner_draw(
+        db,
+        '2026-06-30',
+        240,
+        'Business checking',
+        '403 Jackie deck rebuild — owner full day 2 (deck finish)',
+        'Transfer',
+        'JRC-403 day 2 deck finish complete.',
+    )
+    add_owner_draw(
+        db,
+        '2026-07-01',
         170,
         'Business checking',
-        'Business office full day',
+        '403 Jackie — business day while Wayne staining',
         'Transfer',
-        'Owner draw — sole proprietor equity distribution, not a Schedule C expense.',
+        'JRC-403 Wayne staining day. Standard $170 business day.',
     )
+
+    for job_id, work_date, hrs, desc in [
+        (j_403, '2026-06-29', 8, 'Owner labor — 403 Jackie deck rebuild full day 1'),
+        (j_403, '2026-06-30', 8, 'Owner labor — 403 Jackie deck rebuild full day 2 finish'),
+    ]:
+        exists = db.one('SELECT id FROM owner_labor WHERE job_id=? AND description=?', (job_id, desc))
+        if not exists:
+            db.execute(
+                'INSERT INTO owner_labor(job_id, date, hours, rate, description, notes) VALUES(?,?,?,?,?,?)',
+                (job_id, work_date, hrs, 30, desc, 'Job-costing only. Two full field days at 403 Jackie.'),
+            )
 
     db.log('System Seed', 'Loaded current known J&R jobs, expenses, worker payments, owner labor, and owner draws into the Job Manager Pro database.')
     print('Seed complete:', DB_PATH)
