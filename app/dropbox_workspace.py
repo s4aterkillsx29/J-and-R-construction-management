@@ -129,6 +129,10 @@ def resolve_business_root(base_dir: Optional[Path] = None) -> Optional[Path]:
     """Return the main business workspace folder when available locally."""
     records = resolve_dropbox_records(base_dir)
     if records:
+        # Phone Cursor workspace uses 00_START_HERE beside dropbox-records in cloud mirror.
+        parent = records.parent
+        if (parent / "00_START_HERE").is_dir():
+            return parent.resolve()
         return records
     for candidate in business_root_candidates(base_dir):
         if _is_populated_business_dir(candidate):
