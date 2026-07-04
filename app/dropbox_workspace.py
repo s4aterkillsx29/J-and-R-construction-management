@@ -6,6 +6,7 @@ import json
 import os
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -291,6 +292,235 @@ def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
     return report
 
 
+def api_list_folder(dropbox_path: str, *, recursive: bool = False) -> List[Dict[str, Any]]:
+    """List files/folders at a Dropbox path."""
+    payload: Dict[str, Any] = {"path": dropbox_path or "", "recursive": recursive}
+    data = _api_json("files/list_folder", payload)
+    entries = list(data.get("entries") or [])
+    while data.get("has_more"):
+        data = _api_json("files/list_folder/continue", {"cursor": data["cursor"]})
+        entries.extend(data.get("entries") or [])
+    return entries
+
+
+def _mirror_rel_path(dropbox_path: str) -> Path:
+    root = get_api_root().lstrip("/")
+    rel = dropbox_path.lstrip("/")
+    if root and rel.startswith(root):
+        rel = rel[len(root) :].lstrip("/")
+    return CLOUD_MIRROR_DIR / rel
+
+
+def sync_file_from_api(dropbox_path: str) -> Optional[Path]:
+    """Download one Dropbox file into the local mirror. Returns local path or None on failure."""
+    try:
+        return mirror_file(dropbox_path)
+    except Exception:
+        return None
+
+
+OFFICE_SYNC_PATHS = [
+    "08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv",
+    "05_Helper_Pay_Workers/Payroll_Helper_Register.csv",
+    "04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv",
+    "06_bookkeeping/Owner_Draws_Register.csv",
+]
+
+
+def _bootstrap_mirror_from_templates(base_dir: Path) -> List[str]:
+    """Seed cloud mirror from repo templates when live Dropbox is unavailable."""
+    import shutil
+
+    notes: List[str] = []
+    templates = base_dir / "scripts" / "templates" / "dropbox_workspace"
+    if not templates.is_dir():
+        notes.append(f"templates missing: {templates}")
+        return notes
+
+    records_dest = CLOUD_MIRROR_DIR / "dropbox-records"
+    for src in templates.rglob("*"):
+        if not src.is_file():
+            continue
+        rel = src.relative_to(templates)
+        dest = records_dest / rel
+        if dest.is_file():
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        notes.append(f"bootstrapped {rel}")
+
+    start_dest = CLOUD_MIRROR_DIR / "00_START_HERE"
+    for src in templates.rglob("*"):
+        if not src.is_file():
+            continue
+        rel = src.relative_to(templates)
+        if rel.parts and rel.parts[0] in (
+            "08_Admin_Standards",
+            "05_Helper_Pay_Workers",
+            "04_FINANCIAL_TRACKING",
+            "06_bookkeeping",
+        ):
+            continue
+        dest = start_dest / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        notes.append(f"bootstrapped 00_START_HERE/{rel}")
+
+    (CLOUD_MIRROR_DIR / ".jrc_dropbox_mirror").write_text("template-bootstrap\n", encoding="utf-8")
+    return notes
+
+
+def _bootstrap_jackie_evidence_from_git(base_dir: Path) -> List[str]:
+    """Copy 403 Jackie field logs from git branch into mirror evidence when present."""
+    import subprocess
+
+    notes: List[str] = []
+    evidence_dest = CLOUD_MIRROR_DIR / "evidence"
+    evidence_dest.mkdir(parents=True, exist_ok=True)
+    branch = "origin/cursor/jackie-deck-rebuild-log-59da"
+    files = [
+        "evidence/Jackie_Deck_Rebuild_Field_Log_2026-06-29.txt",
+        "evidence/Jackie_Deck_Rebuild_Finish_Log_2026-06-30.txt",
+        "evidence/Jackie_Deck_Rebuild_Materials_Correction_2026-06-29.txt",
+    ]
+    for rel in files:
+        dest = evidence_dest / Path(rel).name
+        try:
+            proc = subprocess.run(
+                ["git", "show", f"{branch}:{rel}"],
+                cwd=base_dir,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            dest.write_text(proc.stdout, encoding="utf-8")
+            notes.append(f"evidence {dest.name}")
+        except (subprocess.CalledProcessError, OSError):
+            pass
+    return notes
+
+
+def sync_dropbox_mirror(base_dir: Optional[Path] = None) -> Dict[str, Any]:
+    """Sync Dropbox office files into local mirror, then run office records sync.
+
+    Priority:
+    1. Local Dropbox sync (office PC) — use as-is
+    2. Dropbox API — download office CSVs into mirror
+    3. Template bootstrap — seed mirror from repo templates
+    """
+    base = base_dir or BASE_DIR
+    report: Dict[str, Any] = {
+        "mode": access_mode(),
+        "synced_files": [],
+        "notes": [],
+        "errors": [],
+        "office_sync": None,
+    }
+
+    local_records = resolve_dropbox_records(base)
+    if local_records and str(local_records).startswith(str(CLOUD_MIRROR_DIR)) is False:
+        report["mode"] = "local"
+        report["dropbox_records"] = str(local_records)
+        report["notes"].append("Using local Dropbox Desktop sync — no mirror download needed.")
+        try:
+            from app.office_records_sync import run_office_sync
+
+            report["office_sync"] = run_office_sync(base)
+        except Exception as exc:
+            report["errors"].append(f"office sync failed: {exc}")
+        return report
+
+    CLOUD_MIRROR_DIR.mkdir(parents=True, exist_ok=True)
+    token = get_dropbox_access_token()
+    api_root = get_api_root()
+
+    if token:
+        report["mode"] = "api"
+        prefix = api_root.rstrip("/")
+        for rel in OFFICE_SYNC_PATHS:
+            dropbox_path = f"{prefix}/{rel}" if prefix else f"/{rel}"
+            local = sync_file_from_api(dropbox_path)
+            if local:
+                report["synced_files"].append(str(local))
+            else:
+                report["notes"].append(f"API miss (will bootstrap if needed): {rel}")
+        try:
+            for hit in api_search("403 Jackie deck rebuild", limit=10):
+                path = hit.get("path") or ""
+                if path and hit.get("name", "").endswith((".txt", ".csv")):
+                    local = sync_file_from_api(path)
+                    if local:
+                        report["synced_files"].append(str(local))
+        except Exception as exc:
+            report["notes"].append(f"API search skipped: {exc}")
+    else:
+        report["notes"].append(
+            "No DROPBOX_ACCESS_TOKEN — using template bootstrap into dropbox-business mirror."
+        )
+
+    records_marker = CLOUD_MIRROR_DIR / "dropbox-records" / REGISTER_MARKER
+    if not records_marker.is_file():
+        report["notes"].extend(_bootstrap_mirror_from_templates(base))
+    report["notes"].extend(_bootstrap_jackie_evidence_from_git(base))
+    (CLOUD_MIRROR_DIR / ".jrc_dropbox_mirror").write_text(
+        f"synced {datetime.now().isoformat(timespec='seconds')}\n",
+        encoding="utf-8",
+    )
+
+    os.environ.setdefault("JRC_DROPBOX_RECORDS", str(CLOUD_MIRROR_DIR / "dropbox-records"))
+    os.environ.setdefault("JRC_DROPBOX_MIRROR", str(CLOUD_MIRROR_DIR))
+
+    resolved = resolve_dropbox_records(base)
+    report["dropbox_records"] = str(resolved) if resolved else None
+    if not resolved:
+        report["errors"].append("Mirror sync finished but dropbox-records register still missing.")
+        return report
+
+    try:
+        from app.office_records_sync import run_office_sync
+
+        report["office_sync"] = run_office_sync(base)
+        report["notes"].append("office records sync completed")
+    except Exception as exc:
+        report["errors"].append(f"office sync failed: {exc}")
+
+    return report
+
+
+def format_sync_report(report: Dict[str, Any]) -> str:
+    lines = [
+        "J & R Construction — Dropbox Sync Report",
+        f"Mode: {report.get('mode')}",
+        f"dropbox-records: {report.get('dropbox_records') or 'NOT FOUND'}",
+        "",
+    ]
+    files = report.get("synced_files") or []
+    if files:
+        lines.append(f"Downloaded {len(files)} file(s) via API:")
+        lines.extend(f"  - {f}" for f in files[:20])
+        lines.append("")
+    notes = report.get("notes") or []
+    if notes:
+        lines.append("Notes:")
+        lines.extend(f"  - {n}" for n in notes[:30])
+    errors = report.get("errors") or []
+    if errors:
+        lines.extend(["", "Errors:"])
+        lines.extend(f"  - {e}" for e in errors)
+    office = report.get("office_sync")
+    if isinstance(office, dict):
+        lines.extend(
+            [
+                "",
+                "Office sync:",
+                f"  jobs inserted={office.get('jobs_inserted', 0)} updated={office.get('jobs_updated', 0)}",
+                f"  payroll imported={office.get('payroll_rows_imported', 0)}",
+                f"  owner draws imported={office.get('owner_draws_rows_imported', 0)}",
+            ]
+        )
+    return "\n".join(lines)
+
+
 def format_check_report(report: Dict[str, Any]) -> str:
     lines = [
         "J & R Construction — Dropbox Business Workspace Check",
@@ -361,7 +591,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print(path)
         return 0
 
-    print("Usage: python -m app.dropbox_workspace [--check | --search <query>]")
+    if args[0] in ("--sync", "sync"):
+        report = sync_dropbox_mirror(base)
+        print(format_sync_report(report))
+        return 1 if report.get("errors") else 0
+
+    print("Usage: python -m app.dropbox_workspace [--check | --search <query> | --sync]")
     return 2
 
 
