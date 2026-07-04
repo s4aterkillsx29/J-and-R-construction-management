@@ -1,5 +1,5 @@
 J & R CONSTRUCTION — LOGGING STANDARDS (OFFICE ASSISTANT + PHONE CURSOR)
-Updated: 2026-06-29
+Updated: 2026-07-04
 
 Every business log entry should include:
   - Date and time
@@ -24,7 +24,8 @@ CUSTOMER vs INTERNAL:
 
 OWNER DRAWS (PAID MYSELF):
   - When Jacob pays himself from business checking, log as OWNER DRAW — not helper pay, not expense
-  - Standard office full day: $170 from Business checking
+  - Field half day (owner): $120 | Field full day (owner): $240 | Business/office day: $170
+  - Business/office day = e.g. Wayne staining while owner on business day ($170)
   - Office CSV: dropbox-records/06_bookkeeping/Owner_Draws_Register.csv
   - Program: Construction Manager -> Owner Draws, or tell Cursor: "paid myself $___ today for ___"
   - Owner draws are equity distributions for a sole proprietor (not deductible wages)

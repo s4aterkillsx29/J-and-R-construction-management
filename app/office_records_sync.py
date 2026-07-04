@@ -43,6 +43,11 @@ def apply_office_business_standards(conn: sqlite3.Connection) -> List[str]:
         ("std_owner_office_daily_rate", "Owner office day pay ($/full day)", OFFICE_RATES["owner_office_daily_rate"]),
         ("std_owner_draw_account", "Default paid-from account", "Business checking"),
         ("std_owner_draw_work_type", "Default owner draw work type", "Business office full day"),
+        (
+            "std_owner_draw_rule",
+            "Owner draw / paid myself rule",
+            "Log owner draws from business checking as equity distributions, not helper pay or deductible expenses.",
+        ),
         ("std_helper_daily_rate", "Helper default ($/8-hr day)", OFFICE_RATES["helper_daily_rate"]),
         (
             "std_helper_overhead_per_work",
