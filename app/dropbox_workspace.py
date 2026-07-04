@@ -343,7 +343,7 @@ def _bootstrap_mirror_from_templates(base_dir: Path) -> List[str]:
         if not src.is_file():
             continue
         rel = src.relative_to(templates)
-        if rel.parts and rel.parts[0] == "evidence":
+        if rel.parts and rel.parts[0] == "field_logs":
             dest = evidence_dest / Path(*rel.parts[1:])
             if dest.is_file():
                 continue
