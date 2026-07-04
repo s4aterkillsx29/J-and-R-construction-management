@@ -1,21 +1,24 @@
-Personal + owner draw log — 2026-07-03 / 2026-07-04
+Personal + owner draw + tax set-aside log — 2026-07-03 / 2026-07-04
 Jacob Cosentino (owner)
 
 2026-07-03:
-- No field work
-- Owner draw $170 (included in Jul 4 bank transfer)
+- No field work — owner draw $170 (paid via Jul 4 $340 batch transfer)
 
 2026-07-04:
-- Personal bills pending via Cash App (Truist personal 1744):
-  - Phone $49.00
-  - WiFi $72.00
-  - Truck insurance (2 personal trucks) $101.00
-- Personal checking before transfer: $160.85
-- Truist transfer $340.00: business checking 6104 → personal 1744
-  - Covers Jul 3 + Jul 4 owner draws ($170 each)
-  - Memo: Business payroll july 3rd and july 4th for Jacob Owner non working day
-- Personal checking after transfer: $500.85
-- Business checking after transfer: $426.42
+PERSONAL (account 1744):
+- Bills pending via Cash App: $18 (Jul 3) + $49 phone + $70 WiFi + $101 truck insurance = $238
+- Posted balance $500.85 after $340 owner draw transfer
+- Estimated after pending: ~$262.85
 
-Business owner draws: 06_bookkeeping/Owner_Draws_Register.csv
-Personal detail: 07_Personal_Finances/
+OWNER DRAW TRANSFER:
+- $340.00 business checking 6104 → personal 1744
+- Covers Jul 3 + Jul 4 owner draws ($170 each)
+- Memo: Business payroll july 3rd and july 4th for Jacob Owner non working day
+
+TAX SET-ASIDE TRANSFER (same day):
+- $275.00 business checking 6104 → tax savings 6112
+- Checking after: $151.42 | Tax savings after: $788.59
+- ~25.6% of logged YTD net profit — on target
+
+Files: 06_bookkeeping/, 07_Personal_Finances/, 04_FINANCIAL_TRACKING/Setaside_Review/
+Full session summary: READABLE/JUL_04_2026_SESSION_SUMMARY.txt

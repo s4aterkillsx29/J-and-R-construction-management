@@ -1,7 +1,15 @@
 J & R CONSTRUCTION — BUSINESS DASHBOARD (READABLE)
-Updated: 2026-07-04
+Updated: 2026-07-04 (final)
 
-Source: dropbox-records office CSVs + field logs (receipts on file per owner)
+Source: dropbox-records office CSVs + field logs + Truist screenshots
+
+--------------------------------------------------------------------------------
+BUSINESS ACCOUNTS (TRUIST) — CURRENT
+--------------------------------------------------------------------------------
+
+  Business checking 6104:     $151.42
+  Tax savings 6112:           $788.59
+  Business total:             $940.01
 
 --------------------------------------------------------------------------------
 403 JACKIE — OWNER PAY (paid myself)
@@ -10,28 +18,20 @@ Source: dropbox-records office CSVs + field logs (receipts on file per owner)
   2026-06-29  $120.00  Half day — band frame (JRC-403)
   2026-06-30  $240.00  Full day — deck finish (JRC-403)
   2026-07-01  $170.00  Business day while Wayne staining (JRC-403)
-  2026-07-03  $170.00  Owner draw — transferred to personal 1744 (Jul 4 batch $340)
-  2026-07-04  $170.00  Owner draw — transferred to personal 1744 (Jul 4 batch $340)
+  2026-07-03  $170.00  Owner draw — transferred Jul 4 ($340 batch)
+  2026-07-04  $170.00  Owner draw — transferred Jul 4 ($340 batch)
 
   Owner total: $870.00
 
 --------------------------------------------------------------------------------
-BUSINESS CHECKING (6104) — AFTER JUL 4 OWNER DRAW TRANSFER
+TAX SET-ASIDE — COMPLETED 2026-07-04
 --------------------------------------------------------------------------------
 
-  Balance: $426.42  (after $340 transfer to personal 1744)
+  Transferred $275.00: checking 6104 → savings 6112
+  Tax savings now $788.59 (~25.6% of logged YTD profit ~$3,083)
 
 --------------------------------------------------------------------------------
-TAX SAVINGS (6112) — REVIEW 2026-07-04
---------------------------------------------------------------------------------
-
-  Current balance: $513.59
-  Target (25% of ~$3,083 net profit): ~$771
-  SHORT: ~$257 — recommend transfer ~$275 from checking 6104 → savings 6112
-  See READABLE/TAX_SAVINGS_REVIEW.txt and 04_FINANCIAL_TRACKING/Setaside_Review/
-
---------------------------------------------------------------------------------
-403 JACKIE — HELPER PAY (payroll)
+403 JACKIE — HELPER PAY
 --------------------------------------------------------------------------------
 
   2026-06-29  Jesse   $120.00  Half day — band frame (receipt on file)
@@ -41,10 +41,9 @@ TAX SAVINGS (6112) — REVIEW 2026-07-04
   Helper total: $560.00
 
 --------------------------------------------------------------------------------
-403 JACKIE — JOB STATUS
---------------------------------------------------------------------------------
+403 JACKIE — JOB STATUS: COMPLETE (deck rebuild + staining)
 
-  JRC-403 — Jackie / 403 East 2nd OIB — Deck rebuild + staining COMPLETE
+OPEN: Jackie $2,000 cash not yet logged as received — set aside ~$500 tax when paid
 
 --------------------------------------------------------------------------------
 SOURCE OF TRUTH: Dropbox dropbox-records (not GitHub)

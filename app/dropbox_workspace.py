@@ -330,6 +330,7 @@ OFFICE_SYNC_PATHS = [
     "06_bookkeeping/Owner_Draws_Register.csv",
     "04_FINANCIAL_TRACKING/Business_Account_Balances.csv",
     "04_FINANCIAL_TRACKING/Setaside_Review/Setaside_Review_2026-07-04.csv",
+    "04_FINANCIAL_TRACKING/Setaside_Review/Setaside_Transfers_Register.csv",
     "07_Personal_Finances/Personal_Expenses_Register.csv",
     "07_Personal_Finances/Personal_Income_Register.csv",
     "07_Personal_Finances/Personal_Account_Balances.csv",

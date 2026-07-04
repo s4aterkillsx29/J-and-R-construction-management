@@ -1,5 +1,5 @@
 J & R CONSTRUCTION — PERSONAL FINANCE DASHBOARD (READABLE)
-Updated: 2026-07-04 (after transfer)
+Updated: 2026-07-04 (final)
 
 Source: dropbox-records/07_Personal_Finances (separate from business books)
 
@@ -7,36 +7,29 @@ Source: dropbox-records/07_Personal_Finances (separate from business books)
 PERSONAL CHECKING (1744) — CURRENT
 --------------------------------------------------------------------------------
 
-  Before transfer:  $160.85
-  Transfer in:      $340.00  (Truist from business 6104 — Jul 3 + Jul 4 owner draws)
-  After transfer:   $500.85  (Truist confirmed)
+  Posted balance:           $500.85  (includes $340 owner draw transfer)
+  Pending bills out:        $238.00  (not yet deducted from posted balance)
+  Estimated after pending:  $262.85
 
 --------------------------------------------------------------------------------
-PERSONAL BILLS (2026-07-04) — STILL PENDING
+PERSONAL BILLS — PENDING
 --------------------------------------------------------------------------------
 
-  Phone bill              $49.00   Pending (Cash App)
-  WiFi bill               $72.00   Pending (Cash App)
-  Truck insurance (x2)   $101.00   Pending (Cash App)
+  2026-07-03  Cash App                    $18.00
+  2026-07-04  Phone bill                  $49.00
+  2026-07-04  WiFi bill                   $70.00
+  2026-07-04  Truck insurance (2 trucks) $101.00
 
-  Bills total: $222.00
-
-  Estimated after bills post: $500.85 - $222.00 = $278.85
+  Pending total: $238.00
 
 --------------------------------------------------------------------------------
 OWNER DRAWS → PERSONAL (TRANSFERRED)
 --------------------------------------------------------------------------------
 
-  2026-07-03  $170.00  Owner draw — no field work
-  2026-07-04  $170.00  Owner draw — no field work
+  2026-07-03  $170.00  No field work — personal need
+  2026-07-04  $170.00  No field work — personal need
 
-  Single Truist transfer $340.00 on 2026-07-04 from business checking 6104
-
---------------------------------------------------------------------------------
-BUSINESS CHECKING (6104) — AFTER TRANSFER
---------------------------------------------------------------------------------
-
-  Balance: $426.42  (Truist — after $340 owner draw transfer)
+  Truist transfer $340.00 on 2026-07-04 from business checking 6104
 
 --------------------------------------------------------------------------------
 NOT BUSINESS EXPENSE — personal bills stay in personal books only

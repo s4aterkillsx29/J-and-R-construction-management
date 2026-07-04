@@ -1,3 +1,4 @@
 Date,Account,Balance,Notes
-2026-07-04,Personal checking 1744,160.85,Truist — before $340 owner draw transfer from business 6104
-2026-07-04,Personal checking 1744,500.85,Truist — after $340 transfer completed (Jul 3 + Jul 4 draws)
+2026-07-04,Personal checking 1744,160.85,Before $340 owner draw transfer from business 6104
+2026-07-04,Personal checking 1744,500.85,Posted balance after $340 transfer (Jul 3+4 draws)
+2026-07-04,Personal checking 1744,262.85,Estimated after all pending bills post ($238 pending out)

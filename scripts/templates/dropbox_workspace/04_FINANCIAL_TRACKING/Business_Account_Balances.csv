@@ -1,4 +1,6 @@
 Date,Account,Balance,Notes
 2026-07-04,Business checking 6104,426.42,After $340 owner draw to personal 1744
-2026-07-04,Tax savings 6112,513.59,Truist business savings — tax set-aside account
-2026-07-04,Business total cash & savings,940.01,Truist business tab total
+2026-07-04,Tax savings 6112,513.59,Before tax set-aside transfer
+2026-07-04,Business checking 6104,151.42,After $275 tax set-aside transfer to savings 6112
+2026-07-04,Tax savings 6112,788.59,After $275 transfer from checking 6104 — on target at ~25.6%
+2026-07-04,Business total cash & savings,940.01,Truist business tab — unchanged (internal transfer)

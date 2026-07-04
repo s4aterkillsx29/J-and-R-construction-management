@@ -1,0 +1,91 @@
+J & R CONSTRUCTION — SESSION LOG 2026-07-04
+Jacob Cosentino — full review of everything logged this session
+
+================================================================================
+1. JRC-403 JACKIE DECK (COMPLETED — PRIOR SESSION + CONFIRMED)
+================================================================================
+
+Owner draws (business):
+  2026-06-29  $120   half day band frame
+  2026-06-30  $240   full day deck finish
+  2026-07-01  $170   business day while Wayne staining
+  Owner total on job: $530
+
+Helper pay (receipts on file):
+  2026-06-29  Jesse  $120   half day
+  2026-06-30  Jesse  $240   full day
+  2026-07-01  Wayne  $200   staining — job finished
+  Helper total: $560
+
+Job status: COMPLETE. Jackie $2,000 cash NOT yet logged as received.
+
+================================================================================
+2. OWNER DRAWS — JUL 3 & 4 (NO FIELD WORK)
+================================================================================
+
+  2026-07-03  $170   personal need
+  2026-07-04  $170   personal need
+
+  Transferred: $340.00 Truist 2026-07-04
+  From business checking 6104 → personal checking 1744
+  Memo: Business payroll july 3rd and july 4th for Jacob Owner non working day
+
+  All-time owner draws logged: $870.00
+
+================================================================================
+3. PERSONAL FINANCES (NOT BUSINESS)
+================================================================================
+
+Bills pending on personal 1744:
+  Jul 3  Cash App           $18
+  Jul 4  Phone              $49
+  Jul 4  WiFi               $70
+  Jul 4  Truck insurance   $101
+  Pending total: $238
+
+Personal checking:
+  Posted:    $500.85  (after $340 owner draw)
+  Estimated after pending bills: ~$262.85
+
+================================================================================
+4. TAX SET-ASIDE TRANSFER — COMPLETED
+================================================================================
+
+  Transferred $275.00: business checking 6104 → tax savings 6112
+
+  Before:  checking $426.42  |  savings $513.59
+  After:   checking $151.42  |  savings $788.59
+  Business total unchanged: $940.01
+
+  Tax savings now ~25.6% of logged YTD net profit (~$3,083) — ON TARGET
+
+================================================================================
+5. CURRENT ACCOUNT SNAPSHOT (TRUIST 2026-07-04)
+================================================================================
+
+  BUSINESS
+    Checking 6104:    $151.42
+    Tax savings 6112: $788.59
+    Total:            $940.01
+
+  PERSONAL
+    Checking 1744:    $500.85 posted (~$262.85 after pending bills)
+
+================================================================================
+6. OFFICE FILES UPDATED (DROPBOX SOURCE OF TRUTH)
+================================================================================
+
+  06_bookkeeping/Owner_Draws_Register.csv
+  05_Helper_Pay_Workers/Payroll_Helper_Register.csv
+  07_Personal_Finances/ (expenses, income, balances)
+  04_FINANCIAL_TRACKING/ (business balances, set-aside review + transfer)
+  READABLE/ (business, personal, tax, this session log)
+  field_logs/Owner_Draw_Personal_Bills_2026-07-03_04.txt
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+  - Log Jackie $2,000 when cash received + ~$500 to tax savings
+  - Monitor business checking $151.42 — operating balance is tight
+  - Office PC: Sync-JRCBusinessFolders.ps1 + Office Records Sync
