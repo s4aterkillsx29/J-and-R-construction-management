@@ -1,11 +1,9 @@
 Date,Review_Type,Metric,Amount,Notes
-2026-07-04,YTD income logged (paid jobs),Gross receipts,6760.00,"Billy $1500 + Ray $5000 + Rachel $260. Jackie $2000 NOT yet logged as received."
+2026-07-04,YTD income logged (paid jobs),Gross receipts,8760.00,"Billy $1500 + Ray $5000 + Rachel $260 + Jackie $2000 (paid in full)"
 2026-07-04,YTD deductible expenses,Materials & supplies,2717.00,From job expense records
 2026-07-04,YTD helper pay,Worker pay,960.00,Deductible labor — not owner draws
-2026-07-04,Estimated net profit,Schedule C style,3083.00,Gross minus expenses minus helper pay (owner draws NOT deducted)
-2026-07-04,Tax set-aside target 25%,Recommended savings,770.75,25% of estimated net profit
-2026-07-04,Tax savings before transfer,Account 6112,513.59,Truist before set-aside
-2026-07-04,Tax set-aside transfer,Checking 6104 to savings 6112,275.00,COMPLETED per owner 2026-07-04
-2026-07-04,Tax savings after transfer,Account 6112,788.59,~25.6% of logged YTD profit — on target at 25%
-2026-07-04,Business checking after set-aside,Account 6104,151.42,Operating balance — monitor closely
-2026-07-04,When Jackie $2000 received,Additional set-aside,500.00,Plan 25% ($500) to tax savings when cash received
+2026-07-04,Estimated net profit,Schedule C style,5083.00,Gross minus expenses minus helper pay (owner draws NOT deducted)
+2026-07-04,Tax set-aside target 25%,Recommended savings,1270.75,25% of estimated net profit
+2026-07-04,Tax savings after Jul 4 transfer,Account 6112,788.59,After $275 transfer completed
+2026-07-04,Shortfall at 25% after Jackie income,Additional set-aside needed,482.16,1270.75 - 788.59 — plan next transfer when cash allows
+2026-07-04,Tax set-aside transfer completed,Checking 6104 to savings 6112,275.00,Completed earlier Jul 4

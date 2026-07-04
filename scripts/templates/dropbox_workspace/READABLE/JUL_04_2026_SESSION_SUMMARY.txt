@@ -2,7 +2,7 @@ J & R CONSTRUCTION — SESSION LOG 2026-07-04
 Jacob Cosentino — full review of everything logged this session
 
 ================================================================================
-1. JRC-403 JACKIE DECK (COMPLETED — PRIOR SESSION + CONFIRMED)
+1. JRC-403 JACKIE DECK — CLOSED PAID
 ================================================================================
 
 Owner draws (business):
@@ -17,7 +17,7 @@ Helper pay (receipts on file):
   2026-07-01  Wayne  $200   staining — job finished
   Helper total: $560
 
-Job status: COMPLETE. Jackie $2,000 cash NOT yet logged as received.
+Job status: CLOSED PAID — $2,000 cash received in full ($1,000 deposit + $1,000 balance).
 
 ================================================================================
 2. OWNER DRAWS — JUL 3 & 4 (NO FIELD WORK)
@@ -57,7 +57,7 @@ Personal checking:
   After:   checking $151.42  |  savings $788.59
   Business total unchanged: $940.01
 
-  Tax savings now ~25.6% of logged YTD net profit (~$3,083) — ON TARGET
+  Tax savings $788.59 — was on target before Jackie income logged; with $2k income in YTD, plan ~$482 more to hit 25%
 
 ================================================================================
 5. CURRENT ACCOUNT SNAPSHOT (TRUIST 2026-07-04)
@@ -86,6 +86,6 @@ Personal checking:
 NEXT STEPS
 ================================================================================
 
-  - Log Jackie $2,000 when cash received + ~$500 to tax savings
+  - Plan ~$482 more to tax savings when cash allows (Jackie income now in YTD)
   - Monitor business checking $151.42 — operating balance is tight
   - Office PC: Sync-JRCBusinessFolders.ps1 + Office Records Sync

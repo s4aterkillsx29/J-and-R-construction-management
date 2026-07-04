@@ -41,9 +41,10 @@ TAX SET-ASIDE — COMPLETED 2026-07-04
   Helper total: $560.00
 
 --------------------------------------------------------------------------------
-403 JACKIE — JOB STATUS: COMPLETE (deck rebuild + staining)
+403 JACKIE — JOB STATUS: CLOSED PAID
 
-OPEN: Jackie $2,000 cash not yet logged as received — set aside ~$500 tax when paid
+  Contract: $2,000.00 cash — deposit $1,000 + final balance $1,000 — PAID IN FULL
+  Work: deck rebuild + staining complete. Customer paid all debts.
 
 --------------------------------------------------------------------------------
 SOURCE OF TRUTH: Dropbox dropbox-records (not GitHub)
