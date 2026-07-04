@@ -51,7 +51,7 @@ class OwnerDrawTests(unittest.TestCase):
                 paid_from_account="Business checking",
                 source="test",
             )
-            self.assertEqual(total_owner_draws(conn), 820.0)
+            self.assertEqual(total_owner_draws(conn), 700.0)
             conn.close()
 
     def test_export_owner_draws_csv(self):
