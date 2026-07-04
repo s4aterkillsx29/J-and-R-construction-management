@@ -328,6 +328,8 @@ OFFICE_SYNC_PATHS = [
     "05_Helper_Pay_Workers/Payroll_Helper_Register.csv",
     "04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv",
     "06_bookkeeping/Owner_Draws_Register.csv",
+    "04_FINANCIAL_TRACKING/Business_Account_Balances.csv",
+    "04_FINANCIAL_TRACKING/Tax_Savings/Tax_Savings_Review_2026-07-04.csv",
     "07_Personal_Finances/Personal_Expenses_Register.csv",
     "07_Personal_Finances/Personal_Income_Register.csv",
     "07_Personal_Finances/Personal_Account_Balances.csv",
