@@ -1,28 +1,29 @@
 J & R CONSTRUCTION — BUSINESS DASHBOARD (READABLE)
-Updated: PLACEHOLDER — run Refresh-ReadableBusinessReports.ps1 on office PC
+Updated: 2026-07-04
 
-This file is rebuilt from dropbox-records office CSVs and the job register.
-It is meant for quick reading on phone Cursor and Dropbox mobile.
+Source: dropbox-records office CSVs + field logs
 
 --------------------------------------------------------------------------------
-ACTIVE JOBS (sample — refresh on desktop)
+403 JACKIE — OWNER PAY (paid myself)
 --------------------------------------------------------------------------------
 
-  315 Lily Sassafras — Fence — Quote current: $13,890.00
-  (See 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt)
+  2026-06-29  $120.00  Half day 1 — band frame installed/staked (JRC-403)
+  2026-06-30  $240.00  Full day 2 — deck finish complete (JRC-403)
+  2026-07-01  $170.00  Business day while Wayne staining deck (JRC-403)
+
+  Total paid myself (403 Jackie): $530.00
+
+--------------------------------------------------------------------------------
+403 JACKIE — JOB STATUS
+--------------------------------------------------------------------------------
+
+  JRC-403 — Jackie / 403 East 2nd OIB — Active — Deck rebuild and exterior scope
 
 --------------------------------------------------------------------------------
 OFFICE SYNC
 --------------------------------------------------------------------------------
 
-  Run on desktop after phone work:
-    scripts\Refresh-ReadableBusinessReports.ps1
-    scripts\Sync-JRCBusinessFolders.ps1
-    Office Records Sync in Construction Manager
+  Run on desktop: Refresh-ReadableBusinessReports.ps1 → Sync-JRCBusinessFolders.ps1 → Office Records Sync
 
 --------------------------------------------------------------------------------
-SOURCE OF TRUTH
---------------------------------------------------------------------------------
-
-  Dropbox dropbox-records + JRC_COMPLETE_BUSINESS_FOLDER
-  NOT GitHub (app code only)
+SOURCE OF TRUTH: Dropbox dropbox-records (not GitHub)

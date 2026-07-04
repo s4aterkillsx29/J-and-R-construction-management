@@ -41,7 +41,7 @@ class OwnerDrawTests(unittest.TestCase):
                     "403 Jackie — business day while Wayne staining",
                 )
             )
-            self.assertEqual(total_owner_draws(conn), 650.0)
+            self.assertEqual(total_owner_draws(conn), 530.0)
 
             log_owner_draw(
                 conn,
@@ -73,7 +73,7 @@ class OwnerDrawTests(unittest.TestCase):
             self.assertEqual(count, 3)
             text = out_path.read_text(encoding="utf-8")
             self.assertIn("2026-06-29", text)
-            self.assertIn("240.00", text)
+            self.assertIn("120.00", text)
             self.assertIn("2026-07-01", text)
             self.assertIn("Wayne staining", text)
             conn.close()

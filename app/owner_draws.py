@@ -152,10 +152,10 @@ def seed_owner_draws_from_office_records(conn: sqlite3.Connection) -> List[int]:
     entries = [
         (
             "2026-06-29",
-            240.0,
-            "403 Jackie deck rebuild — owner full day 1",
-            "Field full day",
-            "JRC-403 day 1 band frame.",
+            120.0,
+            "403 Jackie deck rebuild — owner half day (band frame)",
+            "Field half day",
+            "JRC-403 day 1 band frame. Owner half day.",
         ),
         (
             "2026-06-30",

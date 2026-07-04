@@ -91,11 +91,11 @@ def seed():
     add_owner_draw(
         db,
         '2026-06-29',
-        240,
+        120,
         'Business checking',
-        '403 Jackie deck rebuild — owner full day 1',
+        '403 Jackie deck rebuild — owner half day (band frame)',
         'Transfer',
-        'JRC-403 day 1 band frame.',
+        'JRC-403 day 1 band frame. Owner half day.',
     )
     add_owner_draw(
         db,
@@ -117,7 +117,7 @@ def seed():
     )
 
     for job_id, work_date, hrs, desc in [
-        (j_403, '2026-06-29', 8, 'Owner labor — 403 Jackie deck rebuild full day 1'),
+        (j_403, '2026-06-29', 4, 'Owner labor — 403 Jackie deck rebuild half day 1 (band frame)'),
         (j_403, '2026-06-30', 8, 'Owner labor — 403 Jackie deck rebuild full day 2 finish'),
     ]:
         exists = db.one('SELECT id FROM owner_labor WHERE job_id=? AND description=?', (job_id, desc))
