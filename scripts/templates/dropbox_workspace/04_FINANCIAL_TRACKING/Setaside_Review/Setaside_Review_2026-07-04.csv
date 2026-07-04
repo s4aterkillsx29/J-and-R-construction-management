@@ -1,0 +1,12 @@
+Date,Review_Type,Metric,Amount,Notes
+2026-07-04,YTD income logged (paid jobs),Gross receipts,6760.00,"Billy $1500 + Ray $5000 + Rachel $260. Jackie $2000 NOT yet logged as received."
+2026-07-04,YTD deductible expenses,Materials & supplies,2717.00,From job expense records
+2026-07-04,YTD helper pay,Worker pay,960.00,Deductible labor — not owner draws
+2026-07-04,Estimated net profit,Schedule C style,3083.00,Gross minus expenses minus helper pay (owner draws NOT deducted)
+2026-07-04,Tax set-aside target 25%,Recommended savings,770.75,25% of estimated net profit
+2026-07-04,Tax set-aside target 30%,Recommended savings,924.90,30% of estimated net profit (conservative cushion)
+2026-07-04,Current tax savings balance,Account 6112,513.59,Truist screenshot 2026-07-04
+2026-07-04,Shortfall at 25%,Transfer needed,257.16,770.75 - 513.59
+2026-07-04,Shortfall at 30%,Transfer needed,411.31,924.90 - 513.59
+2026-07-04,Recommended transfer now,From checking 6104,275.00,Mid-range — brings savings to ~$788.59 (~25.6% of logged profit)
+2026-07-04,When Jackie $2000 received,Additional set-aside,500.00,Plan 25% ($500) to tax savings when cash received
