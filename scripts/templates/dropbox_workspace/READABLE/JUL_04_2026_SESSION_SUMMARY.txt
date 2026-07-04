@@ -1,92 +1,51 @@
-J & R CONSTRUCTION — SESSION LOG 2026-07-04
-Jacob Cosentino — full review of everything logged this session
+J & R CONSTRUCTION — SESSION LOG 2026-07-04 (FINAL — SAVED)
+Jacob Cosentino — log + sync complete
 
 ================================================================================
-1. JRC-403 JACKIE DECK — CLOSED PAID
+1. JRC-403 JACKIE @ 403 EAST 2ND — CLOSED PAID
 ================================================================================
 
-Owner draws (business):
-  2026-06-29  $120   half day band frame
-  2026-06-30  $240   full day deck finish
-  2026-07-01  $170   business day while Wayne staining
-  Owner total on job: $530
+DECK REBUILD + STAINING — $2,000 cash (job total unchanged):
+  Deposit $1,000 + final balance $1,000 — paid in full
 
-Helper pay (receipts on file):
-  2026-06-29  Jesse  $120   half day
-  2026-06-30  Jesse  $240   full day
-  2026-07-01  Wayne  $200   staining — job finished
-  Helper total: $560
+PRIOR TEAROUT / VINE WORK (separate income — checks on file):
+  Check #5565  2026-01-05  $1,250  Carpentry
+  Check #5563  2026-06-28    $300  Curbing 2
+  Payee misspelled on checks — intended Jacob Cosentino
 
-Job status: CLOSED PAID — $2,000 cash received in full ($1,000 deposit + $1,000 balance).
+Owner draws on deck job: $530 | Helper pay: $560 (receipts on file)
 
 ================================================================================
-2. OWNER DRAWS — JUL 3 & 4 (NO FIELD WORK)
+2. OWNER DRAWS JUL 3–4 — TRANSFERRED $340 TO PERSONAL
 ================================================================================
 
-  2026-07-03  $170   personal need
-  2026-07-04  $170   personal need
-
-  Transferred: $340.00 Truist 2026-07-04
-  From business checking 6104 → personal checking 1744
-  Memo: Business payroll july 3rd and july 4th for Jacob Owner non working day
-
-  All-time owner draws logged: $870.00
+  Jul 3 + Jul 4 @ $170 each — all-time owner draws: $870
 
 ================================================================================
-3. PERSONAL FINANCES (NOT BUSINESS)
+3. PERSONAL FINANCES
 ================================================================================
 
-Bills pending on personal 1744:
-  Jul 3  Cash App           $18
-  Jul 4  Phone              $49
-  Jul 4  WiFi               $70
-  Jul 4  Truck insurance   $101
-  Pending total: $238
-
-Personal checking:
-  Posted:    $500.85  (after $340 owner draw)
-  Estimated after pending bills: ~$262.85
+  Posted personal 1744: $500.85 | ~$262.85 after pending bills ($238)
 
 ================================================================================
-4. TAX SET-ASIDE TRANSFER — COMPLETED
+4. BUSINESS ACCOUNTS (TRUIST)
 ================================================================================
 
-  Transferred $275.00: business checking 6104 → tax savings 6112
-
-  Before:  checking $426.42  |  savings $513.59
-  After:   checking $151.42  |  savings $788.59
-  Business total unchanged: $940.01
-
-  Tax savings $788.59 — was on target before Jackie income logged; with $2k income in YTD, plan ~$482 more to hit 25%
+  Checking 6104:    $151.42
+  Tax savings 6112: $788.59  ($275 set-aside transfer completed)
+  Business total:   $940.01
 
 ================================================================================
-5. CURRENT ACCOUNT SNAPSHOT (TRUIST 2026-07-04)
+5. TAX SET-ASIDE NOTE
 ================================================================================
 
-  BUSINESS
-    Checking 6104:    $151.42
-    Tax savings 6112: $788.59
-    Total:            $940.01
-
-  PERSONAL
-    Checking 1744:    $500.85 posted (~$262.85 after pending bills)
+  YTD gross logged: $10,310 | 25% target ~$1,658 | short ~$870 when cash allows
 
 ================================================================================
-6. OFFICE FILES UPDATED (DROPBOX SOURCE OF TRUTH)
-================================================================================
+SYNC STATUS: python -m app.dropbox_workspace --sync — COMPLETE
+GIT: committed + pushed cursor/owner-draw-logging-5449 | PR #17
 
-  06_bookkeeping/Owner_Draws_Register.csv
-  05_Helper_Pay_Workers/Payroll_Helper_Register.csv
-  07_Personal_Finances/ (expenses, income, balances)
-  04_FINANCIAL_TRACKING/ (business balances, set-aside review + transfer)
-  READABLE/ (business, personal, tax, this session log)
-  04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv
-  field_logs/Jackie_403_Payment_Closed_2026-07-04.txt
+OFFICE PC NEXT: Sync-JRCBusinessFolders.ps1 + Office Records Sync
 
 ================================================================================
-NEXT STEPS
-================================================================================
-
-  - Plan ~$482 more to tax savings when cash allows (Jackie income now in YTD)
-  - Monitor business checking $151.42 — operating balance is tight
-  - Office PC: Sync-JRCBusinessFolders.ps1 + Office Records Sync
+SOURCE OF TRUTH: Dropbox dropbox-records (not GitHub)
