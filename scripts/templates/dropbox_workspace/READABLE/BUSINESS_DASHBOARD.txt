@@ -43,10 +43,11 @@ TAX SET-ASIDE — COMPLETED 2026-07-04
 --------------------------------------------------------------------------------
 403 JACKIE — JOB STATUS: CLOSED PAID
 
-  Contract: paid in full — checks on file $1,550.00
-    Check #5565  $1,250.00  (2026-01-05, Carpentry)
-    Check #5563    $300.00  (2026-06-28, Curbing 2)
-  Work: deck rebuild + staining complete. Customer paid all debts.
+  Deck rebuild + staining: $2,000.00 cash — paid in full (deposit $1,000 + balance $1,000)
+  Prior tearout/vine work (same address): $1,550.00 checks on file
+    Check #5565  $1,250  Carpentry (2026-01-05) — payee misspelled; intended Jacob Cosentino
+    Check #5563    $300  Curbing 2 (2026-06-28) — payee misspelled; intended Jacob Cosentino
+  Checks are separate scope from deck job — job totals unchanged.
 
 --------------------------------------------------------------------------------
 SOURCE OF TRUTH: Dropbox dropbox-records (not GitHub)
