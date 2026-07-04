@@ -10,10 +10,16 @@ Source: dropbox-records office CSVs + field logs (receipts on file per owner)
   2026-06-29  $120.00  Half day — band frame (JRC-403)
   2026-06-30  $240.00  Full day — deck finish (JRC-403)
   2026-07-01  $170.00  Business day while Wayne staining (JRC-403)
-  2026-07-03  $170.00  Owner draw — no field work, personal need
-  2026-07-04  $170.00  Owner draw — no field work, personal need
+  2026-07-03  $170.00  Owner draw — transferred to personal 1744 (Jul 4 batch $340)
+  2026-07-04  $170.00  Owner draw — transferred to personal 1744 (Jul 4 batch $340)
 
   Owner total: $870.00
+
+--------------------------------------------------------------------------------
+BUSINESS CHECKING (6104) — AFTER JUL 4 OWNER DRAW TRANSFER
+--------------------------------------------------------------------------------
+
+  Balance: $426.42  (after $340 transfer to personal 1744)
 
 --------------------------------------------------------------------------------
 403 JACKIE — HELPER PAY (payroll)

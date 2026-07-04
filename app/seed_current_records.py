@@ -127,7 +127,7 @@ def seed():
         'Business checking',
         'Owner draw — personal need (no field work)',
         'Transfer',
-        'No field work. Standard $170 owner draw to personal checking.',
+        'Transferred $340 to personal 1744 on 2026-07-04 (batch with Jul 4 draw).',
     )
     add_owner_draw(
         db,
@@ -136,7 +136,7 @@ def seed():
         'Business checking',
         'Owner draw — personal need (no field work)',
         'Transfer',
-        'No field work. Standard $170 owner draw to personal checking.',
+        'Transferred $340 to personal 1744 on 2026-07-04. Truist memo: Business payroll july 3rd and july 4th for Jacob Owner non working day.',
     )
 
     for job_id, work_date, hrs, desc in [

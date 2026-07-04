@@ -3,15 +3,19 @@ Jacob Cosentino (owner)
 
 2026-07-03:
 - No field work
-- Owner draw $170 from business checking → personal need
+- Owner draw $170 (included in Jul 4 bank transfer)
 
 2026-07-04:
-- Personal bills paid/pending via Cash App (Truist personal 1744):
+- Personal bills pending via Cash App (Truist personal 1744):
   - Phone $49.00
   - WiFi $72.00
   - Truck insurance (2 personal trucks) $101.00
-- Personal checking balance before owner draws: $160.85 (Truist screenshot)
-- Owner draw $170 from business checking → personal need
+- Personal checking before transfer: $160.85
+- Truist transfer $340.00: business checking 6104 → personal 1744
+  - Covers Jul 3 + Jul 4 owner draws ($170 each)
+  - Memo: Business payroll july 3rd and july 4th for Jacob Owner non working day
+- Personal checking after transfer: $500.85
+- Business checking after transfer: $426.42
 
-Business owner draws logged in 06_bookkeeping/Owner_Draws_Register.csv
-Personal detail in 07_Personal_Finances/
+Business owner draws: 06_bookkeeping/Owner_Draws_Register.csv
+Personal detail: 07_Personal_Finances/
