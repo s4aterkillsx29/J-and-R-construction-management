@@ -1,0 +1,54 @@
+J & R CONSTRUCTION — SESSION LOG 2026-07-04 (FINAL — SAVED)
+Jacob Cosentino — log + sync complete
+
+================================================================================
+1. JRC-403 JACKIE @ 403 EAST 2ND — CLOSED PAID
+================================================================================
+
+DECK REBUILD + STAINING — $2,000 cash (job total unchanged):
+  Deposit $1,000 + final balance $1,000 — paid in full
+
+PRIOR TEAROUT / VINE WORK (separate income — checks on file):
+  Check #5565  2026-01-05  $1,250  Carpentry
+  Check #5563  2026-06-28    $300  Curbing 2
+  Payee misspelled on checks — intended Jacob Cosentino
+
+Owner draws on deck job: $530 | Helper pay: $560 (receipts on file)
+
+================================================================================
+2. OWNER DRAWS FRI + SAT (JUL 3–4) — TRANSFERRED $340 TO PERSONAL
+================================================================================
+
+  Friday Jul 3  $170 — non-working business day (no field work)
+  Saturday Jul 4 $170 — business day (office/admin)
+  Truist $340 transfer 2026-07-04 — bank screenshots on file
+  All-time owner draws: $870
+
+================================================================================
+3. PERSONAL FINANCES
+================================================================================
+
+  Posted personal 1744: $500.85 | ~$262.85 after pending bills ($238)
+
+================================================================================
+4. BUSINESS ACCOUNTS (TRUIST)
+================================================================================
+
+  Checking 6104:    $151.42
+  Tax savings 6112: $788.59  ($275 set-aside transfer completed)
+  Business total:   $940.01
+
+================================================================================
+5. TAX SET-ASIDE NOTE
+================================================================================
+
+  YTD gross logged: $10,310 | 25% target ~$1,658 | short ~$870 when cash allows
+
+================================================================================
+SYNC STATUS: python -m app.dropbox_workspace --sync — COMPLETE
+GIT: committed + pushed cursor/owner-draw-logging-5449 | PR #17
+
+OFFICE PC NEXT: Sync-JRCBusinessFolders.ps1 + Office Records Sync
+
+================================================================================
+SOURCE OF TRUTH: Dropbox dropbox-records (not GitHub)

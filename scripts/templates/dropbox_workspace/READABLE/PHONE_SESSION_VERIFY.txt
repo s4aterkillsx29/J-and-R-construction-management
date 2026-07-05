@@ -1,0 +1,48 @@
+J & R CONSTRUCTION — PHONE SESSION VERIFY
+Updated: 2026-07-05
+Last sync: 2026-07-05 — Fri/Sat owner draws + bank evidence logged
+
+This file confirms everything from the phone Cursor conversation was WRITTEN to Dropbox files (not chat-only).
+
+================================================================================
+VERIFY COMMAND
+================================================================================
+
+  python -m app.dropbox_workspace --verify-phone
+
+================================================================================
+CRITICAL FILES (must exist in dropbox-records / 00_START_HERE)
+================================================================================
+
+  [x] 06_bookkeeping/Owner_Draws_Register.csv — 5 draws; Fri non-working + Sat business day
+  [x] 05_Helper_Pay_Workers/Payroll_Helper_Register.csv — Jesse + Wayne 403
+  [x] 08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv — JRC-403 Closed Paid
+  [x] 04_FINANCIAL_TRACKING/.../Income_Deposit_Balance_Register.csv — Jackie checks + deck cash
+  [x] 07_Personal_Finances/Personal_Income_Register.csv — $340 transfer
+  [x] 07_Personal_Finances/Personal_Expenses_Register.csv — personal bills
+  [x] READABLE/OWNER_DRAWS_REGISTER.txt — $870 total readable
+  [x] READABLE/OFFICE_WORK_QUEUE.txt — office tasks status
+  [x] Truist Jul 5 bank screenshots — phone_to_pc_cursor_full/ + personal $428.45
+  [x] PHONE_TO_PC_CURSOR_FULL_EXPORT.txt — full phone session for PC import
+  [x] PHONE_FIELD_LOG_PASTE.txt — session summary + paste area
+  [x] field_logs/Owner_Draw_Truist_Bank_Evidence_2026-07-04.txt — Truist screenshots logged
+  [x] field_logs/ — Jackie, Ray, owner draw logs (in evidence/)
+
+================================================================================
+PHONE MUST SAVE FILES — NOT CHAT ONLY
+================================================================================
+
+  1. Cloud Cursor says "log update sync" → writes files + runs --sync
+  2. YOU on phone: open Dropbox app → confirm green sync checkmark
+  3. PC: Sync-JRCBusinessFolders.ps1 after Dropbox syncs
+
+  Add DROPBOX_ACCESS_TOKEN to Cursor secrets for direct live Dropbox upload from cloud.
+
+================================================================================
+STILL NEED (not in files yet — paste in PHONE_FIELD_LOG_PASTE.txt)
+================================================================================
+
+  Envelope cash count
+  Current Truist balances (Jul 5+)
+
+================================================================================

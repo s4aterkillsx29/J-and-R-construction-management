@@ -1,0 +1,55 @@
+WHY PC CANNOT SEE PHONE LOGS — READ THIS FIRST
+Updated: 2026-07-05
+
+================================================================================
+THE PROBLEM (3 different places)
+================================================================================
+
+  1. PHONE CLOUD CURSOR (this chat agent)
+     Writes to: GitHub templates + cloud mirror (dropbox-business/)
+     Does NOT write directly to your PC Dropbox folder.
+     Full export for PC: 00_START_HERE/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt
+     GitHub copy: docs/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt
+
+  2. YOUR PC DROPBOX FOLDER
+     Path examples:
+       C:\Users\enrag\Dropbox\...\JRC_COMPLETE_BUSINESS_FOLDER...\ 
+       c:\Users\enrag\projects\JRC-Construction-Office\dropbox-records
+     PC Cursor reads HERE — only what Dropbox Desktop has synced.
+
+  3. GITHUB REPO
+     App code + templates only. NOT your live business Dropbox.
+
+  If phone Cursor only REPLIED IN CHAT without saving Dropbox files,
+  your PC will NEVER see it.
+
+================================================================================
+THE FIX — LOG UPDATE SYNC PIPELINE
+================================================================================
+
+  PHONE / CLOUD:
+    Say "log update sync" — agent updates CSVs + runs --sync to mirror
+    OR paste into PHONE_FIELD_LOG_PASTE.txt and SAVE in Dropbox app
+
+  PC (required for cloud logs to appear):
+    1. Wait for Dropbox Desktop sync (green check)
+    2. Run: scripts\Sync-JRCBusinessFolders.ps1
+    3. Run: scripts\Refresh-ReadableBusinessReports.ps1
+    4. Construction Manager → Office Records Sync
+    5. Tell PC Cursor: "recheck paste file" or "log update sync"
+
+================================================================================
+FASTEST PATH FOR FRIDAY/SATURDAY NUMBERS
+================================================================================
+
+  LOGGED (Jul 3–4):
+    Friday $170 — non-working business day
+    Saturday $170 — business day
+    Truist $340 transfer + bank evidence on file
+
+  Still need — paste in PHONE_FIELD_LOG_PASTE.txt (save in Dropbox on phone):
+    - Envelope cash count
+    - Truist checking + tax savings balances (Jul 5+)
+    - Anything else out since Saturday
+
+================================================================================

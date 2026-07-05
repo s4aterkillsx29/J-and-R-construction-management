@@ -1,0 +1,48 @@
+J & R CONSTRUCTION — PERSONAL FINANCE DASHBOARD (READABLE)
+Updated: 2026-07-05 (Truist screenshots ~4:32 PM)
+
+Source: dropbox-records/07_Personal_Finances (separate from business books)
+
+--------------------------------------------------------------------------------
+PERSONAL CHECKING (1744) — CURRENT (Jul 5 Truist)
+--------------------------------------------------------------------------------
+
+  Posted balance:           $428.45
+  Pending total (bank):      $29.60
+  Estimated after pending:  ~$398.85
+
+--------------------------------------------------------------------------------
+PERSONAL BILLS — STATUS
+--------------------------------------------------------------------------------
+
+  POSTED:
+  2026-07-03  Cash App                    $18.00
+
+  PENDING (Truist Jul 5 screenshot):
+  2026-07-04  Phone bill                  $49.00
+  2026-07-04  WiFi bill                   $70.00
+  2026-07-04  Truck insurance (2 trucks) $101.00
+  2026-07-04  Papa John's (net w/refund)   $0.00  (charge + refund same day)
+  2026-07-04  Sugar Life 21st             ~$9.68  (estimate)
+  2026-07-05  Cash App                    $19.00
+  2026-07-05  Papa John's                 $43.46
+
+  Bank pending total: $29.60 (authoritative — not all line items may be in total)
+
+--------------------------------------------------------------------------------
+OWNER DRAWS → PERSONAL (TRANSFERRED)
+--------------------------------------------------------------------------------
+
+  2026-07-03 (Fri)  $170.00  Non-working business day
+  2026-07-04 (Sat)  $170.00  Business day (office/admin)
+
+  Truist transfer $340.00 on 2026-07-04 from business checking 6104
+
+--------------------------------------------------------------------------------
+PC HANDOFF: 00_INBOX_To_File/phone_to_pc_cursor_full/
+--------------------------------------------------------------------------------
+
+  Bank screenshot analysis + full export for desktop Cursor import
+
+--------------------------------------------------------------------------------
+NOT BUSINESS EXPENSE — personal bills stay in personal books only

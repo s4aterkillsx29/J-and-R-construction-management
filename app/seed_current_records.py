@@ -38,6 +38,16 @@ def add_worker_payment(db, wid, job_id, date, desc, amount, method='Cash', notes
     db.execute('INSERT INTO worker_payments(worker_id, job_id, date, work_description, amount, payment_method, status, notes) VALUES(?,?,?,?,?,?,?,?)', (wid, job_id, date, desc, amount, method, 'Paid', notes))
 
 
+def add_owner_draw(db, draw_date, amount, account, desc, method='Transfer', notes=''):
+    exists = db.one('SELECT id FROM owner_draws WHERE draw_date=? AND amount=? AND description=?', (draw_date, amount, desc))
+    if exists:
+        return
+    db.execute(
+        'INSERT INTO owner_draws(draw_date, amount, paid_from_account, payment_method, description, work_type, notes, source, created_at) VALUES(?,?,?,?,?,?,?,?,?)',
+        (draw_date, amount, account, method, desc, desc, notes, 'seed', iso_now()),
+    )
+
+
 def seed():
     db = Database(DB_PATH)
     billy = add_customer(db, 'Billy / 401 East 2nd', address='401 East 2nd', notes='Billy deck/stair repair customer.')
@@ -51,7 +61,7 @@ def seed():
     j_ray = add_job(db, ray, 'Ray Joyner / 42 Cumberland', '42 Cumberland', 'Closed Paid', 'Install three shower door units. Silicone cure and possible callback/warranty watch.', 5000, 2500, 2500, 'Customer payment', 'Follow-up text sent. Watch for water splashing/callback.', 1)
     j_rachel = add_job(db, rachel, 'Rachel Eades / 2020 Toyota Camry Brake Job', '', 'Closed Paid', 'Brake job. Rotor replacement not included.', 260, 0, 260, 'Cash App', 'Completed June 12. Brake helper confirmed as Brandon Hager.')
     j_robol = add_job(db, robol, 'RO ROBOL / 401 East 2nd Pickets', '401 East 2nd', 'Waiting Payment', 'Re-secured pickets around top deck on roof and landings between stairways.', 100, 0, 0, 'Check by mail', 'Check not received yet.')
-    j_403 = add_job(db, jackie_c, '403 East 2nd / Jackie OIB', '403 East 2nd, Ocean Isle Beach', 'Estimate Sent', 'Bush/tree cleanup, 1 inch rock in 8x4 bed, stringer blocking, lower deck removal, pump house removal, pipe cap installs.', 2000, 0, 0, 'Cash expected', 'Cash payment should be tracked as business income when received.')
+    j_403 = add_job(db, jackie_c, '403 East 2nd / Jackie OIB', '403 East 2nd, Ocean Isle Beach', 'Closed Paid', 'Deck rebuild + staining complete.', 2000, 1000, 1000, 'Cash', 'Deck $2000 paid in full cash. Prior tearout/vine checks $1550 logged separately in income register.')
     j_mintz = add_job(db, mintz, 'Billy Hickman / 321 Mintz Cemetery Phase 1', '321 Mintz Cemetery Rd', 'Estimate Sent', 'Phase 1 flooring tearout, cabinet access where needed, bathroom tile tearout, damaged flooring/subfloor removal, initial full-sheet subfloor repair in damaged areas.', 3000, 0, 0, 'Pending', 'Customer copy sent. Waiting response/payment.')
 
     add_expense(db, j_billy, '2026-06-19', 'Materials', 'Materials & Supplies', 'General materials', 200)
@@ -59,13 +69,19 @@ def seed():
     add_expense(db, j_ray, '2026-06-19', 'Shower doors', 'Materials & Supplies', 'Shower door units', 2190)
     add_expense(db, j_ray, '2026-06-19', "Lowe's", 'Materials & Supplies', "Lowe's extra supplies", 80, 'Pending receipt')
     add_expense(db, j_rachel, '2026-06-12', 'Brake parts', 'Materials & Supplies', 'Brake pads and shop supplies', 97)
+    add_expense(db, j_ray, '2026-07-05', 'Callback materials', 'Materials & Supplies', 'JRC-042R shower door callback prep — OOP', 80, 'Confirmed', 'Ray callback prep materials out of pocket')
 
     brandon = worker_id(db, 'Brandon Hager')
     jackie = worker_id(db, 'Jackie White')
+    jesse = worker_id(db, 'Jesse')
+    wayne = worker_id(db, 'Wayne')
     add_worker_payment(db, brandon, j_billy, '2026-06-19', 'Helper labor', 130, 'Cash/check', 'Confirmed actual paid amount')
     add_worker_payment(db, brandon, j_billy, '2026-06-19', 'Helper labor', 90, 'Cash/check', 'Confirmed actual paid amount')
     add_worker_payment(db, brandon, j_rachel, '2026-06-12', 'Brake helper', 40, 'Cash', 'Brake helper confirmed as Brandon Hager')
     add_worker_payment(db, jackie, j_ray, '2026-06-19', 'Shower door helper full day', 140, 'Cash', 'Own transportation')
+    add_worker_payment(db, jesse, j_403, '2026-06-29', 'Helper half day — 403 Jackie deck band frame', 120, 'Cash', 'Receipt on file.')
+    add_worker_payment(db, jesse, j_403, '2026-06-30', 'Helper full day — 403 Jackie deck finish', 240, 'Cash', 'Receipt on file.')
+    add_worker_payment(db, wayne, j_403, '2026-07-01', 'Deck staining — finished', 200, 'Cash', 'Receipt on file.')
 
     # Owner labor job-costing records
     for job_id, date, hrs, desc in [
@@ -78,7 +94,64 @@ def seed():
         if not exists:
             db.execute('INSERT INTO owner_labor(job_id, date, hours, rate, description, notes) VALUES(?,?,?,?,?,?)', (job_id, date, hrs, 30, desc, 'Job-costing only, not deductible wage to sole proprietor'))
 
-    db.log('System Seed', 'Loaded current known J&R jobs, expenses, worker payments, and owner labor into the Job Manager Pro database.')
+    add_owner_draw(
+        db,
+        '2026-06-29',
+        120,
+        'Business checking',
+        '403 Jackie deck rebuild — owner half day (band frame)',
+        'Transfer',
+        'JRC-403 day 1 band frame. Owner half day.',
+    )
+    add_owner_draw(
+        db,
+        '2026-06-30',
+        240,
+        'Business checking',
+        '403 Jackie deck rebuild — owner full day 2 (deck finish)',
+        'Transfer',
+        'JRC-403 day 2 deck finish complete.',
+    )
+    add_owner_draw(
+        db,
+        '2026-07-01',
+        170,
+        'Business checking',
+        '403 Jackie — business day while Wayne staining',
+        'Transfer',
+        'JRC-403 Wayne staining day. Standard $170 business day.',
+    )
+    add_owner_draw(
+        db,
+        '2026-07-03',
+        170,
+        'Business checking',
+        'Owner draw — Friday non-working business day (no field work)',
+        'Transfer',
+        'Paid via $340 Truist batch transfer 2026-07-04 (with Saturday draw). Bank screenshots on file.',
+    )
+    add_owner_draw(
+        db,
+        '2026-07-04',
+        170,
+        'Business checking',
+        'Owner draw — Saturday business day (office/admin)',
+        'Transfer',
+        'Paid via $340 Truist batch transfer 2026-07-04. Truist memo batches Fri+Sat; books: Fri non-working / Sat business day. Bank screenshots on file.',
+    )
+
+    for job_id, work_date, hrs, desc in [
+        (j_403, '2026-06-29', 4, 'Owner labor — 403 Jackie deck rebuild half day 1 (band frame)'),
+        (j_403, '2026-06-30', 8, 'Owner labor — 403 Jackie deck rebuild full day 2 finish'),
+    ]:
+        exists = db.one('SELECT id FROM owner_labor WHERE job_id=? AND description=?', (job_id, desc))
+        if not exists:
+            db.execute(
+                'INSERT INTO owner_labor(job_id, date, hours, rate, description, notes) VALUES(?,?,?,?,?,?)',
+                (job_id, work_date, hrs, 30, desc, 'Job-costing only. Half day Jun 29 + full day Jun 30 at 403 Jackie.'),
+            )
+
+    db.log('System Seed', 'Loaded current known J&R jobs, expenses, worker payments, owner labor, and owner draws into the Job Manager Pro database.')
     print('Seed complete:', DB_PATH)
 
 

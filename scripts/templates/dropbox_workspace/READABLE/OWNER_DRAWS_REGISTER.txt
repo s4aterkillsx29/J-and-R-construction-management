@@ -1,0 +1,34 @@
+J & R CONSTRUCTION — OWNER DRAWS / PAID MYSELF (READABLE)
+Updated: 2026-07-05
+Source: dropbox-records/06_bookkeeping/Owner_Draws_Register.csv
+
+Owner draws = equity from business checking. NOT helper pay. NOT deductible expense.
+
+--------------------------------------------------------------------------------
+ALL OWNER DRAWS (Jacob Cosentino)
+--------------------------------------------------------------------------------
+
+  2026-06-29  $120.00  Business checking  403 Jackie — field half day (band frame)
+  2026-06-30  $240.00  Business checking  403 Jackie — field full day (deck finish)
+  2026-07-01  $170.00  Business checking  403 Jackie — business day (Wayne staining)
+  2026-07-03  $170.00  Business checking  Friday — non-working business day (no field work)
+  2026-07-04  $170.00  Business checking  Saturday — business day (office/admin)
+
+  TOTAL: $870.00
+
+--------------------------------------------------------------------------------
+JRC-403 JACKIE (owner pay on that job only): $530.00
+
+--------------------------------------------------------------------------------
+FRI + SAT (JUL 3–4) TRANSFER TO PERSONAL — BANK PHOTOS ON FILE
+--------------------------------------------------------------------------------
+
+  $340.00 Truist transfer 2026-07-04: business 6104 → personal 1744
+  Friday Jul 3 ($170 non-working) + Saturday Jul 4 ($170 business day)
+  Truist memo batches both days: Business payroll july 3rd and july 4th for Jacob Owner non working day
+  Evidence: field_logs/Owner_Draw_Truist_Bank_Evidence_2026-07-04.txt
+  Personal mirror: 07_Personal_Finances/Personal_Income_Register.csv
+
+--------------------------------------------------------------------------------
+RATES (business standards)
+  Field half day: $120 | Field full day: $240 | Business/office day: $170 | Non-working business day: $170

@@ -1,0 +1,17 @@
+J & R CONSTRUCTION — LOG UPDATE SYNC (quick reference)
+Updated: 2026-07-05
+Last sync: 2026-07-05 — Fri/Sat owner draws corrected, bank evidence logged
+
+Jacob's rule: LOG always means UPDATE + SYNC to Dropbox.
+
+  1. UPDATE  office CSVs + field logs
+  2. SYNC    python -m app.dropbox_workspace --sync
+  3. SAVE    commit + push (templates in git)
+
+Say any of: log | log update sync | log sync | log save
+
+NOT done until --sync finishes.
+
+Office PC: Sync-JRCBusinessFolders.ps1 → live Dropbox
+
+Full standards: LOGGING_STANDARDS_OFFICE_ASSISTANT.txt

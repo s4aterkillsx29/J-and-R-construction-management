@@ -1,0 +1,36 @@
+J & R CONSTRUCTION — TAX / SET-ASIDE REVIEW (READABLE)
+Updated: 2026-07-04 — TRANSFER COMPLETED
+
+Source: logged jobs + Truist balances (not tax advice — review with CPA)
+
+--------------------------------------------------------------------------------
+CURRENT BUSINESS BALANCES (TRUIST)
+--------------------------------------------------------------------------------
+
+  Business checking 6104:     $151.42
+  Tax savings 6112:           $788.59
+  Business total:             $940.01
+
+--------------------------------------------------------------------------------
+SET-ASIDE TRANSFER — DONE
+--------------------------------------------------------------------------------
+
+  Date:     2026-07-04
+  Amount:   $275.00
+  From:     Business checking 6104
+  To:       Tax savings 6112
+  Result:   Savings $513.59 → $788.59 (~25.6% of logged YTD profit)
+
+--------------------------------------------------------------------------------
+YTD LOGGED BUSINESS (PAID INCOME ONLY)
+--------------------------------------------------------------------------------
+
+  Gross receipts:            $10,310.00  (Jackie: deck $2000 cash + prior tearout/vine checks $1550)
+  Minus expenses:            -$2,717.00
+  Minus helper pay:            -$960.00
+  Estimated net profit:       $6,633.00
+
+  Target at 25%: ~$1,658 | Current savings: $788.59 | SHORT ~$870 for full 25%
+
+--------------------------------------------------------------------------------
+DO NOT use tax savings for personal bills or owner draws

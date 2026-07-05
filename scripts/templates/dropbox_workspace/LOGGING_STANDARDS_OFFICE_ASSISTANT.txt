@@ -1,5 +1,27 @@
 J & R CONSTRUCTION — LOGGING STANDARDS (OFFICE ASSISTANT + PHONE CURSOR)
-Updated: 2026-06-29
+Updated: 2026-07-05
+
+================================================================================
+LOG UPDATE SYNC — ALWAYS (Jacob's rule)
+================================================================================
+
+  Saying "log" means: UPDATE records + SYNC to Dropbox. Never write-only.
+
+  Cursor / cloud agent — every log session:
+    1. UPDATE — office CSVs + field logs (scripts/templates/dropbox_workspace/)
+    2. SYNC   — python -m app.dropbox_workspace --sync  (or --log)
+    3. SAVE   — commit + push git templates
+
+  Logging is NOT complete until --sync finishes and mirror has latest files.
+
+  Phrases that mean the same thing:
+    "log" | "log update sync" | "log sync" | "log save"
+
+  Or on phone: open 00_START_HERE/PHONE_FIELD_LOG_PASTE.txt in Dropbox, paste Fri/Sat notes, SAVE — then PC says recheck paste file after Dropbox syncs.
+
+  Why PC misses phone chat-only logs: 00_START_HERE/WHY_PC_CANNOT_SEE_PHONE_LOGS.txt
+
+================================================================================
 
 Every business log entry should include:
   - Date and time
@@ -12,12 +34,35 @@ PHONE / FIELD LOGS (Dropbox):
   - Write to the job folder or 00_START_HERE field notes
   - Dropbox syncs to office PC — do not use GitHub for logs
 
+OWNER DRAWS ON DROPBOX (required files):
+  - Business: dropbox-records/06_bookkeeping/Owner_Draws_Register.csv
+  - Readable: dropbox-records/READABLE/OWNER_DRAWS_REGISTER.txt
+  - Personal side (transfers to personal checking): 07_Personal_Finances/Personal_Income_Register.csv
+  - Every owner draw row must be in Owner_Draws_Register.csv — personal mirror when money hits personal 1744
+
 DESKTOP AFTER PHONE SESSION:
   1. scripts\Sync-JRCBusinessFolders.ps1
   2. scripts\Refresh-ReadableBusinessReports.ps1
   3. Construction Manager → Office Records Sync
-  4. Tell desktop Cursor: "log"
+  4. Tell desktop Cursor: "log update sync"
+
+CURSOR — LOG UPDATE SYNC (not write-only):
+  python -m app.dropbox_workspace --sync   (alias: --log)
 
 CUSTOMER vs INTERNAL:
   - Customer quotes/invoices: no internal labor rates or helper pay
   - Internal workups: mark INTERNAL USE ONLY
+
+OWNER DRAWS (PAID MYSELF):
+  - When Jacob pays himself from business checking, log as OWNER DRAW — not helper pay, not expense
+  - Field half day (owner): $120 | Field full day (owner): $240 | Business/office day: $170
+  - Business/office day = e.g. Wayne staining while owner on business day ($170)
+  - Office CSV: dropbox-records/06_bookkeeping/Owner_Draws_Register.csv
+  - Program: Construction Manager -> Owner Draws, or tell Cursor: "paid myself $___ today for ___"
+  - Owner draws are equity distributions for a sole proprietor (not deductible wages)
+
+PERSONAL FINANCES (JACOB — NOT BUSINESS):
+  - Personal bills, personal checking, personal truck insurance → 07_Personal_Finances/
+  - Office CSVs: Personal_Expenses_Register.csv, Personal_Income_Register.csv, Personal_Account_Balances.csv
+  - Owner draw transfers TO personal are logged in BOTH business Owner_Draws_Register AND Personal_Income_Register
+  - Personal bills are NOT business expenses

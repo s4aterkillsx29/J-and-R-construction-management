@@ -1,0 +1,63 @@
+Truist bank evidence — owner draw + tax set-aside — 2026-07-04
+Jacob Cosentino / J & R Construction
+Logged from phone session bank screenshots (images on file)
+
+================================================================================
+TRANSFER 1 — OWNER DRAW (business → personal)
+================================================================================
+
+  Date:        2026-07-04
+  Amount:      $340.00
+  From:        Business checking 6104
+  To:          Personal checking 1744
+  Memo:        Business payroll july 3rd and july 4th for Jacob Owner non working day
+
+  Books allocation:
+    2026-07-03 (Friday)    $170.00  Non-working business day
+    2026-07-04 (Saturday)  $170.00  Business day (office/admin)
+
+  Evidence: Truist transfer confirmation screenshot (phone session Jul 4)
+
+================================================================================
+TRANSFER 2 — TAX SET-ASIDE (checking → savings)
+================================================================================
+
+  Date:        2026-07-04
+  Amount:      $275.00
+  From:        Business checking 6104
+  To:          Tax savings 6112
+
+  Evidence: Truist transfer confirmation screenshot (phone session Jul 4)
+
+================================================================================
+BALANCES CONFIRMED FROM BANK SCREENSHOTS (2026-07-04)
+================================================================================
+
+  Business checking 6104:
+    After $340 owner draw:     $426.42
+    After $275 tax transfer:   $151.42
+
+  Tax savings 6112:
+    Before tax transfer:       $513.59
+    After $275 transfer:       $788.59
+
+  Personal checking 1744:
+    Before owner draw:         $160.85
+    After $340 transfer:       $500.85
+
+  Business total (checking + savings): $940.01
+
+  Evidence: Truist account balance screenshots — business tab + personal 1744 (phone session Jul 4)
+
+================================================================================
+FILE LOCATIONS
+================================================================================
+
+  Register:  06_bookkeeping/Owner_Draws_Register.csv
+  Personal:  07_Personal_Finances/Personal_Income_Register.csv
+  Balances:  04_FINANCIAL_TRACKING/Business_Account_Balances.csv
+             07_Personal_Finances/Personal_Account_Balances.csv
+  Tax:       04_FINANCIAL_TRACKING/Setaside_Review/Setaside_Transfers_Register.csv
+
+  Original phone photos: save copies to
+    00_INBOX_To_File/iPhone_Uploads/Truist_2026-07-04_owner_draw/

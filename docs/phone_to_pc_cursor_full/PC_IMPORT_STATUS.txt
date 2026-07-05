@@ -1,0 +1,24 @@
+Phone → PC import status
+Updated: 2026-07-05
+
+PHONE CURSOR COMPLETED:
+  [x] All bank photo DATA imported to CSVs + TRUIST_BANK_SCREENSHOTS_2026-07-05.txt
+  [x] PC_CURSOR_IMPORT_NOW.txt at 00_START_HERE (desktop paste target)
+  [x] docs/phone_to_pc_cursor_full/ on GitHub for immediate PC pull
+  [x] log update sync run
+
+PC CURSOR: say "import phone_to_pc_cursor_full"
+
+PC CURSOR SHOULD VERIFY:
+  [ ] 3 photo .jpg files saved in this folder by Jacob (if not, use this .txt analysis)
+  [ ] Sync-JRCBusinessFolders.ps1 completed
+  [ ] python -m app.dropbox_workspace --verify-phone
+  [ ] Office Records Sync
+  [ ] READABLE dashboards match TRUIST_BANK_SCREENSHOTS_2026-07-05.txt
+
+JACOB NOTES FOR PC (from desktop chat — not business data):
+  - Lily fence + Jackie leads = LEADS only until customers call / Jacob says go
+  - No active jobs waiting deposit except what's in job register
+  - Personal question re: calling old boss Duck for work — Jacob decision, not logged
+
+GIT: cursor/owner-draw-logging-5449 | PR #17

@@ -1,8 +1,8 @@
 J & R CONSTRUCTION — PHONE CURSOR + DROPBOX WORKSPACE
-Updated: 2026-06-29
+Updated: 2026-07-05
 
 RULE: Business files live in DROPBOX — not GitHub.
-GitHub = app code only. Dropbox = quotes, logs, CSVs, receipts, job records.
+Phone Cursor must WRITE FILES + SYNC — chat-only replies do NOT reach your PC.
 
 ================================================================================
 PHONE SETUP (Cursor iPhone app) — DO THIS ONCE
@@ -25,17 +25,33 @@ PHONE SETUP (Cursor iPhone app) — DO THIS ONCE
 5. VERIFY setup is correct — ask phone Cursor:
    "Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"
 
-   SUCCESS = you see the $13,890 Lily Sassafras fence quote.
+   SUCCESS = you see the $10,440 Lily Sassafras fence quote.
    FAIL = file not found or it talks about GitHub → workspace is wrong folder.
 
 ================================================================================
 BOOKMARK THESE FILES ON PHONE
 ================================================================================
 
-  00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt   (this file)
-  00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
+  00_START_HERE/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt — SEND ALL PHONE ENTRIES TO PC
+  dropbox-records/00_INBOX_To_File/phone_to_pc_cursor_full/ — PC says "import phone_to_pc_cursor_full"
+  00_START_HERE/PHONE_FIELD_LOG_PASTE.txt          — paste new numbers HERE + SAVE
+  00_START_HERE/WHY_PC_CANNOT_SEE_PHONE_LOGS.txt  — if PC missing data, read this
+  00_START_HERE/READABLE/PHONE_SESSION_VERIFY.txt  — what this phone session logged
+  00_START_HERE/READABLE/OWNER_DRAWS_REGISTER.txt
   00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt
   00_START_HERE/LOGGING_STANDARDS_OFFICE_ASSISTANT.txt
+  00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
+
+================================================================================
+PHONE CURSOR — EVERY LOG SESSION
+================================================================================
+
+  Tell Cursor: "log update sync" (NOT just "log" in chat without files)
+
+  Cursor must:
+    1. UPDATE office CSVs + field logs
+    2. RUN sync (writes to mirror; uploads to live Dropbox if API token set)
+    3. YOU: open Dropbox app → confirm files synced (green check)
 
 ================================================================================
 DAILY WORKFLOW
@@ -50,7 +66,10 @@ ON DESKTOP (office laptop) — after a phone session:
   1. Run: scripts\Sync-JRCBusinessFolders.ps1
   2. Run: scripts\Refresh-ReadableBusinessReports.ps1
   3. In Construction Manager: Office Records Sync
-  4. Tell desktop Cursor: "log" to finish the data pipeline
+  4. Tell desktop Cursor: "log update sync"
+
+CURSOR — LOG UPDATE SYNC (not write-only):
+  python -m app.dropbox_workspace --sync   (alias: --log)
 
 ================================================================================
 DESKTOP SCRIPTS (office PC)

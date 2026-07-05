@@ -1,0 +1,66 @@
+================================================================================
+PC CURSOR — IMPORT BANK PHOTOS NOW (paste this on desktop)
+================================================================================
+
+Say exactly this in PC Cursor:
+
+    import phone_to_pc_cursor_full
+
+================================================================================
+WHERE THE DATA IS (already analyzed from your 3 Truist screenshots)
+================================================================================
+
+DROPBOX (after sync):
+  dropbox-records\00_INBOX_To_File\phone_to_pc_cursor_full\
+    TRUIST_BANK_SCREENSHOTS_2026-07-05.txt  ← all numbers from photos
+    PHONE_TO_PC_CURSOR_FULL_EXPORT.txt
+    PC_IMPORT_STATUS.txt
+    README.txt
+
+GITHUB (works immediately if PC has repo):
+  docs\phone_to_pc_cursor_full\TRUIST_BANK_SCREENSHOTS_2026-07-05.txt
+  Branch: cursor/owner-draw-logging-5449
+
+ALSO synced to:
+  00_START_HERE\PC_CURSOR_IMPORT_NOW.txt  (this file)
+
+================================================================================
+PC STEPS (do in order)
+================================================================================
+
+  1. On phone: Dropbox app → green checkmark (sync done)
+  2. PC: scripts\Sync-JRCBusinessFolders.ps1
+  3. PC Cursor: open folder phone_to_pc_cursor_full
+  4. PC Cursor: say "import phone_to_pc_cursor_full"
+  5. PC: python -m app.dropbox_workspace --log
+  6. Construction Manager → Office Records Sync
+
+================================================================================
+ABOUT THE ACTUAL .JPG PHOTOS
+================================================================================
+
+Phone Cursor cannot attach binary photos to Dropbox from cloud chat.
+All balances and transactions FROM your photos are already in:
+  TRUIST_BANK_SCREENSHOTS_2026-07-05.txt
+
+To also send the image files to PC:
+  iPhone → Photos or Truist app → Share → Save to Dropbox
+  Folder: JRC business / dropbox-records / 00_INBOX_To_File /
+          phone_to_pc_cursor_full /
+
+  Name them:
+    Truist_business_balances_2026-07-05.jpg
+    Truist_personal_1744_2026-07-05.jpg
+    Truist_personal_pending_2026-07-05.jpg
+
+PC does not need the .jpg files to update books — text analysis is complete.
+
+================================================================================
+NUMBERS PC SHOULD IMPORT (from photos — already in CSVs)
+================================================================================
+
+BUSINESS (Jul 5):  Checking $151.42 | Savings $788.59 | Total $940.01
+PERSONAL 1744:     Posted $428.45 | Pending $29.60 | Est. ~$398.85
+OWNER DRAWS:       Fri $170 non-working + Sat $170 business = $870 total
+
+================================================================================

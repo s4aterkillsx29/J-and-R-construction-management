@@ -1,0 +1,20 @@
+SAVE 3 TRUIST PHOTOS TO DROPBOX (iPhone — 30 seconds)
+================================================================
+
+Phone Cursor already logged every number from your photos.
+This step is ONLY if you want the actual .jpg files on PC too.
+
+1. Open iPhone Photos (or Truist app → screenshot)
+2. Select each Truist screenshot
+3. Tap Share → Save to Dropbox (or Copy to Dropbox)
+4. Navigate to folder:
+     dropbox-records / 00_INBOX_To_File / phone_to_pc_cursor_full /
+5. Save as:
+     Truist_business_balances_2026-07-05.jpg
+     Truist_personal_1744_2026-07-05.jpg
+     Truist_personal_pending_2026-07-05.jpg
+6. Wait for green checkmark in Dropbox app
+7. On PC run Sync-JRCBusinessFolders.ps1
+8. Tell PC Cursor: import phone_to_pc_cursor_full
+
+OR skip photos — PC can use TRUIST_BANK_SCREENSHOTS_2026-07-05.txt only.

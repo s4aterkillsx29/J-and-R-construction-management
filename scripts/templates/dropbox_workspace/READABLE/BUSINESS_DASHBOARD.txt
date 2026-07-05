@@ -1,28 +1,65 @@
 J & R CONSTRUCTION — BUSINESS DASHBOARD (READABLE)
-Updated: PLACEHOLDER — run Refresh-ReadableBusinessReports.ps1 on office PC
+Updated: 2026-07-05
 
-This file is rebuilt from dropbox-records office CSVs and the job register.
-It is meant for quick reading on phone Cursor and Dropbox mobile.
-
---------------------------------------------------------------------------------
-ACTIVE JOBS (sample — refresh on desktop)
---------------------------------------------------------------------------------
-
-  315 Lily Sassafras — Fence — Quote current: $13,890.00
-  (See 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt)
+Source: dropbox-records office CSVs + field logs + Truist screenshots
 
 --------------------------------------------------------------------------------
-OFFICE SYNC
+BUSINESS ACCOUNTS (TRUIST) — AS OF 2026-07-05 (confirmed screenshot)
 --------------------------------------------------------------------------------
 
-  Run on desktop after phone work:
-    scripts\Refresh-ReadableBusinessReports.ps1
-    scripts\Sync-JRCBusinessFolders.ps1
-    Office Records Sync in Construction Manager
+  Business checking 6104:     $151.42  (unchanged)
+  Tax savings 6112:           $788.59  (unchanged)
+  Business total:             $940.01
 
 --------------------------------------------------------------------------------
-SOURCE OF TRUTH
+OWNER DRAWS / PAID MYSELF (all draws — see OWNER_DRAWS_REGISTER.txt)
 --------------------------------------------------------------------------------
 
-  Dropbox dropbox-records + JRC_COMPLETE_BUSINESS_FOLDER
-  NOT GitHub (app code only)
+  2026-06-29  $120.00  403 Jackie — field half day
+  2026-06-30  $240.00  403 Jackie — field full day
+  2026-07-01  $170.00  403 Jackie — business day (Wayne staining)
+  2026-07-03  $170.00  Friday — non-working business day (→ personal 1744 Jul 4)
+  2026-07-04  $170.00  Saturday — business day (→ personal 1744 Jul 4)
+
+  All-time owner draws total: $870.00
+  Office CSV: 06_bookkeeping/Owner_Draws_Register.csv
+
+--------------------------------------------------------------------------------
+TAX SET-ASIDE — COMPLETED 2026-07-04
+--------------------------------------------------------------------------------
+
+  Transferred $275.00: checking 6104 → savings 6112
+  Tax savings: $788.59
+
+--------------------------------------------------------------------------------
+403 JACKIE — HELPER PAY
+--------------------------------------------------------------------------------
+
+  2026-06-29  Jesse   $120.00  Half day — band frame (receipt on file)
+  2026-06-30  Jesse   $240.00  Full day — deck finish (receipt on file)
+  2026-07-01  Wayne   $200.00  Deck staining — FINISHED (receipt on file)
+
+  Helper total: $560.00
+
+--------------------------------------------------------------------------------
+403 JACKIE — JOB STATUS: CLOSED PAID
+
+  Deck rebuild + staining: $2,000.00 cash — paid in full
+  Prior tearout/vine checks: $1,550.00 (#5565 + #5563) — separate scope
+
+--------------------------------------------------------------------------------
+ACTIVE LEADS / CALLBACKS
+--------------------------------------------------------------------------------
+
+  JRC-315  Lily — fence $10,440 (65% dep $6,786) + off-books tree/stairs cash
+  JRC-042R Ray — callback prep, materials OOP $80
+  Jackie @ 403 — lighthouse fix-up quote + deck bench add-on (photos on file)
+
+--------------------------------------------------------------------------------
+TAX SET-ASIDE PLANNED
+--------------------------------------------------------------------------------
+
+  $154.35 → savings 6112 when envelope allows (Planned)
+
+--------------------------------------------------------------------------------
+SOURCE OF TRUTH: Dropbox dropbox-records (not GitHub)

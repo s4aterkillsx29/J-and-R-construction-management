@@ -1,0 +1,25 @@
+403 East 2nd / Jackie — Check payments (prior tearout/vine scope)
+Logged: 2026-07-04
+
+Customer: Jacqueline R. Robinson / Charles E. Robinson
+Address: 403 E 2nd St, Ocean Isle Beach NC
+
+SCOPE: Tearout / vine removal / earlier carpentry work at 403 — NOT the deck rebuild job.
+
+CHECK #5565 — $1,250.00
+  Date on check: 2026-01-05
+  Memo: Carpentry
+  Bank: Truist (deposited — check image on file)
+  Payee on check: Jacob Cronenberger (misspelled — intended Jacob Cosentino; older customer)
+
+CHECK #5563 — $300.00
+  Date on check: 2026-06-28
+  Memo: Curbing 2
+  Bank: Truist (deposited — check image on file)
+  Payee on check: Jacob Crumpler (misspelled — intended Jacob Cosentino; older customer)
+
+CHECK TOTAL (prior scope): $1,550.00
+
+DECK REBUILD + STAINING (separate job — totals unchanged):
+  $2,000.00 cash paid in full ($1,000 deposit + $1,000 balance)
+  See Jackie_403_Payment_Closed_2026-07-04.txt

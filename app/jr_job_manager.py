@@ -254,6 +254,20 @@ class Database:
                 notes TEXT,
                 FOREIGN KEY(job_id) REFERENCES jobs(id)
             );
+            CREATE TABLE IF NOT EXISTS owner_draws (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                draw_date TEXT NOT NULL,
+                amount REAL NOT NULL DEFAULT 0,
+                paid_from_account TEXT DEFAULT 'Business checking',
+                payment_method TEXT,
+                description TEXT,
+                work_type TEXT,
+                job_id INTEGER,
+                notes TEXT,
+                source TEXT DEFAULT 'manual',
+                created_at TEXT,
+                FOREIGN KEY(job_id) REFERENCES jobs(id)
+            );
             CREATE TABLE IF NOT EXISTS evidence (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 job_id INTEGER,
@@ -2046,6 +2060,11 @@ BUSINESS_STANDARD_DEFINITIONS = [
     ('invoice_prefix', 'Invoice number prefix', 'INV'),
     ('log_timestamp_rule', 'Log timestamp rule', 'Every business log, payment note, file note, tax/admin update, and customer communication should include date and time.'),
     ('owner_labor_rule', 'Owner labor tax rule', 'Owner labor is job-costing only for a sole proprietor and is not a deductible wage paid to the owner.'),
+    ('owner_draw_rule', 'Owner draw / paid myself rule', 'When Jacob pays himself from business checking, log it as an owner draw (equity distribution), not as a helper payment or deductible expense. Tell Cursor/assistant each time you pay yourself.'),
+    ('owner_office_daily_rate', 'Owner office day pay ($/full day)', '170'),
+    ('owner_draw_account', 'Default paid-from account', 'Business checking'),
+    ('owner_draw_work_type', 'Default owner draw work type', 'Business office full day'),
+    ('log_sync_rule', 'Log update sync rule', 'When Jacob says log / log update sync / log sync: UPDATE Dropbox office CSVs + field logs, then ALWAYS run python -m app.dropbox_workspace --sync. Logging is not complete until sync finishes.'),
     ('cash_income_rule', 'Cash income rule', 'Cash payments are business income when received even if no 1099/customer tax report is expected.'),
     ('receipt_rule', 'Receipt/evidence rule', 'Keep receipt photos, PDFs, screenshots, invoices, payment notes, and final balance notes with the job record.'),
     ('closeout_rule', 'Closeout checklist standard', 'Each job should have estimate or invoice PDF, internal job cost sheet, receipt evidence, helper payment notes, final paid/unpaid balance note, and final photos where applicable.'),
