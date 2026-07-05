@@ -213,6 +213,106 @@ def api_search(query: str, *, limit: int = 25) -> List[Dict[str, Any]]:
     return matches
 
 
+def api_upload_file(local_path: Path, dropbox_path: str) -> None:
+    """Upload one local file to Dropbox (overwrite). Requires DROPBOX_ACCESS_TOKEN."""
+    token = get_dropbox_access_token()
+    if not token:
+        raise RuntimeError("DROPBOX_ACCESS_TOKEN is not set.")
+    content = local_path.read_bytes()
+    api_arg = json.dumps(
+        {
+            "path": dropbox_path,
+            "mode": "overwrite",
+            "autorename": False,
+            "mute": True,
+        }
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/octet-stream",
+        "Dropbox-API-Arg": api_arg,
+    }
+    req = urllib.request.Request(
+        "https://content.dropboxapi.com/2/files/upload",
+        data=content,
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            resp.read()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Dropbox upload failed ({exc.code}): {detail}") from exc
+
+
+def push_mirror_to_live_dropbox() -> List[str]:
+    """Push local mirror files to live Dropbox via API (phone/cloud log update sync)."""
+    token = get_dropbox_access_token()
+    if not token:
+        return ["No DROPBOX_ACCESS_TOKEN — live Dropbox upload skipped (mirror + git only)."]
+    prefix = get_api_root().rstrip("/")
+    notes: List[str] = []
+    roots = [
+        CLOUD_MIRROR_DIR / "dropbox-records",
+        CLOUD_MIRROR_DIR / "00_START_HERE",
+        CLOUD_MIRROR_DIR / "evidence",
+    ]
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for local in root.rglob("*"):
+            if not local.is_file():
+                continue
+            rel = local.relative_to(CLOUD_MIRROR_DIR).as_posix()
+            db_path = f"{prefix}/{rel}" if prefix else f"/{rel}"
+            try:
+                api_upload_file(local, db_path)
+                notes.append(f"uploaded to Dropbox: {rel}")
+            except Exception as exc:
+                notes.append(f"upload failed {rel}: {exc}")
+    return notes
+
+
+PHONE_SESSION_CRITICAL = [
+    ("dropbox-records/06_bookkeeping/Owner_Draws_Register.csv", "2026-07-04"),
+    ("dropbox-records/06_bookkeeping/Owner_Draws_Register.csv", "Owner draw — personal need"),
+    ("dropbox-records/05_Helper_Pay_Workers/Payroll_Helper_Register.csv", "Wayne"),
+    ("dropbox-records/08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv", "Closed Paid"),
+    ("dropbox-records/04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv", "5565"),
+    ("dropbox-records/07_Personal_Finances/Personal_Income_Register.csv", "340"),
+    ("00_START_HERE/PHONE_FIELD_LOG_PASTE.txt", "PHONE FIELD LOG"),
+    ("00_START_HERE/READABLE/OWNER_DRAWS_REGISTER.txt", "TOTAL: $870"),
+    ("00_START_HERE/READABLE/OFFICE_WORK_QUEUE.txt", "JRC-403"),
+    ("00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt", "10,440"),
+]
+
+
+def verify_phone_session_files() -> Dict[str, Any]:
+    """Verify this phone session's critical files exist in the mirror with expected content."""
+    report: Dict[str, Any] = {"ok": True, "checks": [], "missing": [], "errors": []}
+    for rel, marker in PHONE_SESSION_CRITICAL:
+        path = CLOUD_MIRROR_DIR / rel
+        entry = {"file": rel, "marker": marker, "ok": False}
+        if not path.is_file():
+            entry["error"] = "missing"
+            report["missing"].append(rel)
+            report["ok"] = False
+        else:
+            try:
+                text = path.read_text(encoding="utf-8", errors="replace")
+                if marker in text:
+                    entry["ok"] = True
+                else:
+                    entry["error"] = f"marker '{marker}' not found"
+                    report["ok"] = False
+            except OSError as exc:
+                entry["error"] = str(exc)
+                report["ok"] = False
+        report["checks"].append(entry)
+    return report
+
+
 def api_download(dropbox_path: str) -> bytes:
     payload = {"path": dropbox_path}
     token = get_dropbox_access_token()
@@ -544,6 +644,23 @@ def sync_dropbox_mirror(base_dir: Optional[Path] = None) -> Dict[str, Any]:
     except Exception as exc:
         report["errors"].append(f"office sync failed: {exc}")
 
+    upload_notes = push_mirror_to_live_dropbox()
+    if upload_notes:
+        report["dropbox_uploads"] = upload_notes
+        report["notes"].extend(upload_notes[:15])
+        if len(upload_notes) > 15:
+            report["notes"].append(f"... and {len(upload_notes) - 15} more uploads")
+
+    verify = verify_phone_session_files()
+    report["phone_verify"] = verify
+    if not verify.get("ok"):
+        report["notes"].append("phone session verify: SOME CHECKS FAILED (see --verify-phone)")
+        for c in verify.get("checks") or []:
+            if not c.get("ok"):
+                report["notes"].append(f"verify: {c.get('file')} — {c.get('error', 'marker missing')}")
+    else:
+        report["notes"].append("phone session verify: ALL CRITICAL FILES OK")
+
     return report
 
 
@@ -578,6 +695,17 @@ def format_sync_report(report: Dict[str, Any]) -> str:
                 f"  owner draws imported={office.get('owner_draws_rows_imported', 0)}",
             ]
         )
+    verify = report.get("phone_verify")
+    if isinstance(verify, dict):
+        lines.extend(
+            [
+                "",
+                "Phone session verify:",
+                f"  all critical files OK: {verify.get('ok')}",
+            ]
+        )
+        if verify.get("missing"):
+            lines.append(f"  missing: {', '.join(verify['missing'])}")
     return "\n".join(lines)
 
 
@@ -650,6 +778,15 @@ def main(argv: Optional[List[str]] = None) -> int:
             if path.is_file() and q in path.name.lower():
                 print(path)
         return 0
+
+    if args[0] in ("--verify-phone", "verify-phone"):
+        verify = verify_phone_session_files()
+        print("Phone session file verify:")
+        for c in verify.get("checks") or []:
+            flag = "OK" if c.get("ok") else "FAIL"
+            print(f"  [{flag}] {c.get('file')} — {c.get('error') or 'marker found'}")
+        print(f"\nAll OK: {verify.get('ok')}")
+        return 0 if verify.get("ok") else 1
 
     if args[0] in ("--sync", "sync", "--log", "log", "log-update-sync"):
         report = sync_dropbox_mirror(base)

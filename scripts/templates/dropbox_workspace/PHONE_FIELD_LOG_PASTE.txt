@@ -1,34 +1,44 @@
 PHONE FIELD LOG — PASTE HERE (saves to Dropbox when you save this file)
-Updated: 2026-07-05
-
-Instructions:
-  1. On PHONE: open this file in Dropbox business workspace
-  2. Paste Fri/Sat numbers and notes at the TOP (below the line)
-  3. SAVE — wait for Dropbox to sync (green checkmark)
-  4. On PC: tell Cursor "recheck paste file" or "log update sync"
+Updated: 2026-07-05 — phone session verified + written to Dropbox files
 
 ================================================================================
-PASTE NEW ENTRIES BELOW (newest first)
+PHONE SESSION LOGGED TO DROPBOX FILES (this conversation)
 ================================================================================
 
-(example — delete when you paste real data)
-Fri owner draw: $240 — job: ___
-Sat owner draw: $240 — job: ___
+OWNER DRAWS (paid myself) — Owner_Draws_Register.csv:
+  2026-06-29  $120   403 Jackie field half day
+  2026-06-30  $240   403 Jackie field full day
+  2026-07-01  $170   403 Jackie business day (Wayne staining)
+  2026-07-03  $170   personal need — no field work
+  2026-07-04  $170   personal need — no field work
+  TOTAL: $870 | Jul 3-4 transferred $340 to personal 1744
+
+PERSONAL BILLS (pending on personal 1744):
+  Jul 3  Cash App $18 | Jul 4 phone $49 | WiFi $70 | truck insurance $101
+  Posted $500.85 | ~$262.85 after pending
+
+BUSINESS ACCOUNTS (Jul 4 Truist):
+  Checking 6104: $151.42 | Tax savings 6112: $788.59
+  Tax transfer done: $275 | Planned: $154.35 when envelope allows
+
+JRC-403 JACKIE:
+  Deck $2000 cash paid full | Wayne $200 stain done | CLOSED PAID
+  Prior tearout/vine checks $1550 (#5565 $1250 + #5563 $300) — NOT deck
+  Leads: lighthouse fix-up + deck bench add-on (photos on file)
+
+OTHER:
+  Lily fence $10440 / 65% dep $6786
+  Ray JRC-042R callback $80 OOP materials
+
+================================================================================
+PASTE NEW ENTRIES BELOW (newest first) — then SAVE in Dropbox app
+================================================================================
+
+(still need from Jacob)
+Fri owner draw: $240? — which job?
+Sat owner draw: $240? — which job?
 Envelope cash: $___
-Truist checking 6104: $___
-Truist tax savings 6112: $___
-Wayne stain done: yes, paid $200
-Other Fri/Sat out of envelope or checking: ___
-
-================================================================================
-ALREADY LOGGED ON DROPBOX (do not duplicate unless correcting)
-================================================================================
-
-Owner draws $870 — Owner_Draws_Register.csv
-JRC-403 closed paid — deck $2000 cash, Wayne $200
-Jackie checks $1550 tearout/vine — separate from deck
-Lily fence $10440 / dep $6786
-Ray JRC-042R callback $80 OOP
-Tax $275 done; $154.35 planned when envelope allows
+Current Truist checking + tax savings: $___
+Other Fri/Sat out of envelope/checking: ___
 
 ================================================================================
