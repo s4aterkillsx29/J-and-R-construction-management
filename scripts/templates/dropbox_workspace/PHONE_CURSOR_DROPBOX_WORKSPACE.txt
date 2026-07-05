@@ -25,7 +25,7 @@ PHONE SETUP (Cursor iPhone app) — DO THIS ONCE
 5. VERIFY setup is correct — ask phone Cursor:
    "Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"
 
-   SUCCESS = you see the $13,890 Lily Sassafras fence quote.
+   SUCCESS = you see the $10,440 Lily Sassafras fence quote.
    FAIL = file not found or it talks about GitHub → workspace is wrong folder.
 
 ================================================================================

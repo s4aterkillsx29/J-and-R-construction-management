@@ -69,6 +69,7 @@ def seed():
     add_expense(db, j_ray, '2026-06-19', 'Shower doors', 'Materials & Supplies', 'Shower door units', 2190)
     add_expense(db, j_ray, '2026-06-19', "Lowe's", 'Materials & Supplies', "Lowe's extra supplies", 80, 'Pending receipt')
     add_expense(db, j_rachel, '2026-06-12', 'Brake parts', 'Materials & Supplies', 'Brake pads and shop supplies', 97)
+    add_expense(db, j_ray, '2026-07-05', 'Callback materials', 'Materials & Supplies', 'JRC-042R shower door callback prep — OOP', 80, 'Confirmed', 'Ray callback prep materials out of pocket')
 
     brandon = worker_id(db, 'Brandon Hager')
     jackie = worker_id(db, 'Jackie White')

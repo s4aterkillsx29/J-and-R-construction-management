@@ -334,6 +334,7 @@ OFFICE_SYNC_PATHS = [
     "07_Personal_Finances/Personal_Expenses_Register.csv",
     "07_Personal_Finances/Personal_Income_Register.csv",
     "07_Personal_Finances/Personal_Account_Balances.csv",
+    "04_FINANCIAL_TRACKING/Cash_Envelope_Status.csv",
 ]
 
 

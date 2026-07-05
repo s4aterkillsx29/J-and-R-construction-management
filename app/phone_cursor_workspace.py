@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 BASE_DIR = Path(__file__).resolve().parents[1]
 TEMPLATES = BASE_DIR / "scripts" / "templates" / "dropbox_workspace"
 
-VERIFY_QUOTE_MARKER = "$13,890"
+VERIFY_QUOTE_MARKER = "$10,440"
 VERIFY_QUOTE_FILE = "00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"
 
 
@@ -82,9 +82,9 @@ def verify_phone_workspace(business_root: Optional[Path] = None) -> Dict[str, An
     if VERIFY_QUOTE_MARKER in text and "Lily" in text:
         report["quote_has_amount"] = True
         report["ok"] = True
-        report["notes"].append("Phone workspace verify OK — $13,890 Lily quote found.")
+        report["notes"].append("Phone workspace verify OK — $10,440 Lily quote found.")
     else:
-        report["errors"].append("Quote file exists but missing $13,890 Lily marker.")
+        report["errors"].append("Quote file exists but missing $10,440 Lily marker.")
     for name in (
         "00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt",
         "00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt",
