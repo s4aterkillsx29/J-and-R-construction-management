@@ -22,6 +22,7 @@ CRITICAL FILES (must exist in dropbox-records / 00_START_HERE)
   [x] 07_Personal_Finances/Personal_Expenses_Register.csv — personal bills
   [x] READABLE/OWNER_DRAWS_REGISTER.txt — $870 total readable
   [x] READABLE/OFFICE_WORK_QUEUE.txt — office tasks status
+  [x] Truist Jul 5 bank screenshots — phone_to_pc_cursor_full/ + personal $428.45
   [x] PHONE_TO_PC_CURSOR_FULL_EXPORT.txt — full phone session for PC import
   [x] PHONE_FIELD_LOG_PASTE.txt — session summary + paste area
   [x] field_logs/Owner_Draw_Truist_Bank_Evidence_2026-07-04.txt — Truist screenshots logged

@@ -1,4 +1,5 @@
 Date,Category,Amount,Source,Status,Notes
-2026-07-05,Envelope cash count,,Owner count,NEEDS INPUT,Paste current envelope cash for Fri/Sat books
-2026-07-05,Truist checking 6104,,Truist,NEEDS INPUT,Paste balance or screenshot to 00_INBOX_To_File/iPhone_Uploads/
-2026-07-05,Truist tax savings 6112,,Truist,NEEDS INPUT,Paste balance or screenshot
+2026-07-05,Envelope cash count,,Owner count,NEEDS INPUT,Paste current envelope cash count
+2026-07-05,Truist checking 6104,151.42,Truist screenshot,Confirmed,Business tab Jul 5 ~4:33 PM — unchanged from Jul 4
+2026-07-05,Truist tax savings 6112,788.59,Truist screenshot,Confirmed,Business tab Jul 5 ~4:33 PM — unchanged from Jul 4
+2026-07-05,Business total cash & savings,940.01,Truist screenshot,Confirmed,Business tab Jul 5

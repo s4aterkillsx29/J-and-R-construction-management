@@ -4,11 +4,11 @@ Updated: 2026-07-05
 Source: dropbox-records office CSVs + field logs + Truist screenshots
 
 --------------------------------------------------------------------------------
-BUSINESS ACCOUNTS (TRUIST) — AS OF 2026-07-04
+BUSINESS ACCOUNTS (TRUIST) — AS OF 2026-07-05 (confirmed screenshot)
 --------------------------------------------------------------------------------
 
-  Business checking 6104:     $151.42
-  Tax savings 6112:           $788.59
+  Business checking 6104:     $151.42  (unchanged)
+  Tax savings 6112:           $788.59  (unchanged)
   Business total:             $940.01
 
 --------------------------------------------------------------------------------

@@ -11,14 +11,15 @@ DONE (logged + synced to Dropbox)
   [x] Ray JRC-042R — callback prep, materials OOP $80 logged
   [x] Tax set-aside — $154.35 planned when envelope allows
   [x] Owner draws $870 — Owner_Draws_Register.csv + OWNER_DRAWS_REGISTER.txt
-  [x] Fri Jul 3 + Sat Jul 4 owner draws — $170 each (non-working Fri / business Sat) + Truist bank evidence
+  [x] Fri Jul 3 + Sat Jul 4 owner draws — $170 each + Truist bank evidence
+  [x] Jul 5 Truist screenshots — personal $428.45 / business confirmed
+  [x] phone_to_pc_cursor_full/ inbox folder for PC import
 
 ================================================================================
 NEEDS JACOB INPUT (paste numbers + say log update sync)
 ================================================================================
 
   [ ] Current envelope cash count
-  [ ] Current Truist checking + tax savings balances (Jul 5+)
   [ ] Anything else out of envelope or checking since Saturday
 
   Paste here or screenshot → 00_INBOX_To_File/iPhone_Uploads/

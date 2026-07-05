@@ -1,45 +1,37 @@
 PHONE FIELD LOG — PASTE HERE (saves to Dropbox when you save this file)
-Updated: 2026-07-05 — Fri/Sat owner draws corrected + bank evidence logged
+Updated: 2026-07-05 — Truist bank screenshots logged + PC handoff folder ready
 
-SEND TO PC CURSOR: open PHONE_TO_PC_CURSOR_FULL_EXPORT.txt (full session export)
+SEND TO PC CURSOR:
+  00_INBOX_To_File/phone_to_pc_cursor_full/  (then PC says "import phone_to_pc_cursor_full")
+  OR: PHONE_TO_PC_CURSOR_FULL_EXPORT.txt
 
 ================================================================================
+PHONE SESSION LOGGED TO DROPBOX FILES
+================================================================================
 
-OWNER DRAWS (paid myself) — Owner_Draws_Register.csv:
+OWNER DRAWS — $870 total:
   2026-06-29  $120   403 Jackie field half day
   2026-06-30  $240   403 Jackie field full day
   2026-07-01  $170   403 Jackie business day (Wayne staining)
-  2026-07-03  $170   FRIDAY — non-working business day (no field work)
-  2026-07-04  $170   SATURDAY — business day (office/admin)
-  TOTAL: $870 | Jul 3-4 transferred $340 to personal 1744 (Truist bank photos on file)
+  2026-07-03  $170   FRIDAY — non-working business day
+  2026-07-04  $170   SATURDAY — business day
 
-PERSONAL BILLS (pending on personal 1744):
-  Jul 3  Cash App $18 | Jul 4 phone $49 | WiFi $70 | truck insurance $101
-  Posted $500.85 | ~$262.85 after pending
+PERSONAL 1744 (Jul 5 Truist screenshots):
+  Posted $428.45 | Pending $29.60 | Est. after ~$398.85
+  Jul 3 $18 POSTED | Jul 4 phone/wifi/insurance still pending
+  NEW: Jul 5 Cash App $19, Papa John's, Sugar Life
 
-BUSINESS ACCOUNTS (Jul 4 Truist — bank screenshots on file):
-  Checking 6104: $151.42 | Tax savings 6112: $788.59
-  Tax transfer done: $275 | Planned: $154.35 when envelope allows
+BUSINESS (Jul 5 confirmed unchanged):
+  Checking 6104: $151.42 | Savings 6112: $788.59 | Total $940.01
 
-JRC-403 JACKIE:
-  Deck $2000 cash paid full | Wayne $200 stain done | CLOSED PAID
-  Prior tearout/vine checks $1550 (#5565 $1250 + #5563 $300) — NOT deck
-  Leads: lighthouse fix-up + deck bench add-on (photos on file)
-
-OTHER:
-  Lily fence $10440 / 65% dep $6786
-  Ray JRC-042R callback $80 OOP materials
-
-BANK EVIDENCE:
-  Owner_Draw_Truist_Bank_Evidence_2026-07-04.txt — $340 owner draw + $275 tax transfer
+JRC-403 JACKIE: Deck $2000 CLOSED PAID | Leads: lighthouse + deck bench
+OTHER: Lily fence $10440 | Ray callback $80 OOP
 
 ================================================================================
-PASTE NEW ENTRIES BELOW (newest first) — then SAVE in Dropbox app
+PASTE NEW ENTRIES BELOW — then SAVE in Dropbox app
 ================================================================================
 
-(still need from Jacob)
+(still need)
 Envelope cash: $___
-Current Truist checking + tax savings: $___
-Other out of envelope/checking since Saturday: ___
 
 ================================================================================

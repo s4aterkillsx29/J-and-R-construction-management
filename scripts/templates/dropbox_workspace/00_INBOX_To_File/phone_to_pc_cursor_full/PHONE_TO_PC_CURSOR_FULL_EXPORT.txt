@@ -1,0 +1,212 @@
+================================================================================
+J & R CONSTRUCTION — PHONE SESSION → PC CURSOR FULL EXPORT
+================================================================================
+
+Generated: 2026-07-05
+Owner: Jacob Cosentino
+Source: Phone Cursor session (Jul 3–5, 2026) — all entries written to Dropbox files
+
+================================================================================
+HOW TO OPEN THIS ON YOUR PC CURSOR (pick one)
+================================================================================
+
+DROPBOX (preferred — business source of truth):
+  1. Wait for Dropbox to sync on phone (green checkmark).
+  2. On office PC run: scripts\Sync-JRCBusinessFolders.ps1
+  3. Open in PC Cursor:
+     00_START_HERE/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt
+
+GITHUB (if PC has the repo open):
+  docs/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt
+  Branch: cursor/owner-draw-logging-5449 | PR #17
+
+TELL PC CURSOR (paste this line):
+  "Import everything from PHONE_TO_PC_CURSOR_FULL_EXPORT.txt — log update sync"
+
+Then PC runs: python -m app.dropbox_workspace --log
+And: Sync-JRCBusinessFolders.ps1 + Office Records Sync
+
+================================================================================
+SECTION 1 — OWNER DRAWS (PAID MYSELF) — TOTAL $870.00
+================================================================================
+Register: dropbox-records/06_bookkeeping/Owner_Draws_Register.csv
+
+  2026-06-29  $120.00  Business checking  Field half day
+    403 Jackie deck rebuild — band frame installed and staked
+
+  2026-06-30  $240.00  Business checking  Field full day
+    403 Jackie deck rebuild — deck finish complete
+
+  2026-07-01  $170.00  Business checking  Business day
+    403 Jackie — Wayne on site staining (standard $170 business day)
+
+  2026-07-03  $170.00  Business checking  FRIDAY — Non-working business day
+    No field work. Paid via $340 Truist batch transfer Jul 4.
+
+  2026-07-04  $170.00  Business checking  SATURDAY — Business day (office/admin)
+    Paid via same $340 Truist batch transfer Jul 4.
+
+  Owner pay on JRC-403 Jackie job only: $530.00 ($120 + $240 + $170)
+  NOT helper pay. NOT deductible expense.
+
+================================================================================
+SECTION 2 — TRUIST BANK TRANSFERS + BALANCES (Jul 4 — screenshots on file)
+================================================================================
+Evidence: field_logs/Owner_Draw_Truist_Bank_Evidence_2026-07-04.txt
+Photo inbox: 00_INBOX_To_File/iPhone_Uploads/Truist_2026-07-04_owner_draw/
+
+TRANSFER A — Owner draw (business → personal):
+  Date:     2026-07-04
+  Amount:   $340.00
+  From:     Business checking 6104
+  To:       Personal checking 1744
+  Memo:     Business payroll july 3rd and july 4th for Jacob Owner non working day
+  Books:    Fri Jul 3 $170 non-working + Sat Jul 4 $170 business day
+
+TRANSFER B — Set-aside (checking → savings):
+  Date:     2026-07-04
+  Amount:   $275.00
+  From:     Business checking 6104
+  To:       Tax savings 6112
+
+BALANCES AFTER TRANSFERS (from bank screenshots):
+  Business checking 6104:     $151.42
+  Tax savings 6112:           $788.59
+  Business total:             $940.01
+  Personal checking 1744:     $500.85 posted (was $160.85 before $340)
+
+Planned set-aside when envelope allows: $154.35 → savings 6112
+
+================================================================================
+SECTION 3 — PERSONAL FINANCES (account 1744 — separate books)
+================================================================================
+Registers: 07_Personal_Finances/
+
+INCOME (owner draws transferred in):
+  2026-07-03  $170.00  Friday non-working business day
+  2026-07-04  $170.00  Saturday business day
+
+BILLS PENDING (not yet deducted from posted balance):
+  2026-07-03  Cash App charge              $18.00
+  2026-07-04  Phone bill                   $49.00
+  2026-07-04  WiFi bill                    $70.00  (Truist shows $70, not $72)
+  2026-07-04  Truck insurance (2 trucks)  $101.00
+  Pending total: $238.00
+
+PERSONAL CHECKING SUMMARY:
+  Posted balance:           $500.85
+  Estimated after pending:  ~$262.85
+
+================================================================================
+SECTION 4 — JRC-403 JACKIE @ 403 EAST 2ND — CLOSED PAID
+================================================================================
+Job code: JRC-403 | Status: Closed Paid
+
+DECK REBUILD + STAINING — $2,000.00 CASH (paid in full):
+  2026-06-29  Deposit        $1,000.00  Cash — work started
+  2026-07-01  Final balance  $1,000.00  Cash — deck + staining paid in full
+
+PRIOR TEAROUT / VINE WORK (separate scope — NOT deck payment):
+  2026-01-05  Check #5565  $1,250.00  Carpentry/tearout — image on file
+  2026-06-28  Check #5563    $300.00  Curbing 2 — image on file
+  Payee misspelled on checks — intended Jacob Cosentino
+  Prior scope total: $1,550.00
+
+HELPER PAY (receipts on file):
+  2026-06-29  Jesse   $120.00  Half day — band frame
+  2026-06-30  Jesse   $240.00  Full day — deck finish
+  2026-07-01  Wayne   $200.00  Deck staining — FINISHED
+  Helper total: $560.00
+
+NEW LEADS (photos on file — quote stage):
+  1. Lighthouse fix-up
+  2. Deck bench add-on
+  Field log: field_logs/Jackie_Leads_Lighthouse_Deck_Bench_2026-07-05.txt
+
+================================================================================
+SECTION 5 — OTHER JOBS / LEADS
+================================================================================
+
+JRC-315 LILY SASSAFRAS — Fence (Lead):
+  Quote: $10,440.00
+  65% deposit: $6,786.00
+  Off-books tree/stairs cash noted separately
+  File: JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
+
+JRC-042R RAY JOYNER / 42 CUMBERLAND — Active Callback:
+  Shower door callback prep
+  Materials OOP: $80.00 (logged)
+  Field log: field_logs/Ray_JRC-042R_Callback_Prep_2026-07-05.txt
+
+JRC-401 BILLY / 401 EAST 2ND — Closed Paid (deck stair repair)
+JRC-042 RAY — Closed Paid (shower doors — parent of callback)
+
+================================================================================
+SECTION 6 — TAX / YTD REVIEW (Jul 4 — not tax advice)
+================================================================================
+File: 04_FINANCIAL_TRACKING/Setaside_Review/Setaside_Review_2026-07-04.csv
+
+  YTD gross receipts:        $10,310.00
+    Billy $1,500 + Ray $5,000 + Rachel $260
+    + Jackie deck $2,000 cash + Jackie tearout/vine checks $1,550
+
+  YTD materials/expenses:    $2,717.00
+  YTD helper pay:              $960.00
+  Estimated net profit:      $6,633.00  (owner draws NOT deducted)
+
+  25% set-aside target:      $1,658.25
+  Tax savings (6112):          $788.59  (after $275 transfer)
+  Shortfall at 25%:            ~$870.00  (plan when cash allows)
+
+================================================================================
+SECTION 7 — JOB REGISTER SNAPSHOT
+================================================================================
+File: dropbox-records/08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv
+
+  JRC-403   Jackie 403 East 2nd     Closed Paid
+  JRC-315   Lily Sassafras          Lead — fence $10,440
+  JRC-042R  Ray 42 Cumberland       Active Callback — $80 OOP
+  JRC-401   Billy 401 East 2nd      Closed Paid
+
+================================================================================
+SECTION 8 — FIELD LOGS + EVIDENCE (phone session)
+================================================================================
+
+  Owner_Draw_Personal_Bills_2026-07-03_04.txt
+  Owner_Draw_Truist_Bank_Evidence_2026-07-04.txt
+  Jackie_403_Check_Payments_2026-07-04.txt
+  Jackie_403_Payment_Closed_2026-07-04.txt
+  Jackie_Leads_Lighthouse_Deck_Bench_2026-07-05.txt
+  Ray_JRC-042R_Callback_Prep_2026-07-05.txt
+  Jackie_Deck_Rebuild_Field_Log_2026-06-29.txt
+  Jackie_Deck_Rebuild_Finish_Log_2026-06-30.txt
+  Jackie_403_Wayne_Staining_Day_2026-07-01.txt
+
+(Synced to dropbox-records/evidence/ on PC after Sync-JRCBusinessFolders.ps1)
+
+================================================================================
+SECTION 9 — STILL NEED FROM JACOB (not logged yet)
+================================================================================
+
+  [ ] Current envelope cash count
+  [ ] Current Truist checking + tax savings balances (Jul 5+)
+  [ ] Anything else out of envelope or checking since Saturday
+
+  Paste in: 00_START_HERE/PHONE_FIELD_LOG_PASTE.txt → say "log update sync"
+
+================================================================================
+SECTION 10 — PC CURSOR IMPORT CHECKLIST
+================================================================================
+
+  [ ] Open this file on PC (Dropbox 00_START_HERE or GitHub docs/)
+  [ ] Run Sync-JRCBusinessFolders.ps1
+  [ ] Run Refresh-ReadableBusinessReports.ps1
+  [ ] Construction Manager → Office Records Sync
+  [ ] python -m app.dropbox_workspace --log
+  [ ] python -m app.dropbox_workspace --verify-phone
+  [ ] Confirm READABLE/BUSINESS_DASHBOARD.txt matches this export
+
+================================================================================
+END OF EXPORT — SOURCE OF TRUTH: Dropbox dropbox-records (not GitHub)
+Git branch: cursor/owner-draw-logging-5449 | PR #17
+================================================================================

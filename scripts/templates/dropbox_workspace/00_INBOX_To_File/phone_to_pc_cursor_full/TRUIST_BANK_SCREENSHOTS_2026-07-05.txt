@@ -1,0 +1,85 @@
+Truist bank screenshots — analysis for PC Cursor
+Logged: 2026-07-05 ~4:32–4:33 PM (phone photos uploaded to phone Cursor)
+Jacob Cosentino / J & R Construction
+
+================================================================================
+SCREENSHOT 1 — BUSINESS TAB (4:33 PM)
+================================================================================
+
+Account: J AND R CONSTRUCTION — Business
+
+  Total Cash & Savings:     $940.01
+  Business Checking 6104:   $151.42
+  Savings 6112:             $788.59
+
+CONFIRMED: Matches Jul 4 logged balances — no change on Jul 5.
+
+Activity tab visible: Personal 1744 — pending CASH APP*JACOB C... -$19.00 (07/05)
+
+================================================================================
+SCREENSHOT 2 — PERSONAL TAB (4:32 PM)
+================================================================================
+
+Account: Personal 1744
+
+  Cash & Savings balance:   $428.45
+
+Recent activity (pending):
+  07/05/2026  CASH APP*JACOB C...   -$19.00   Pending
+  07/04/2026  CASH APP*JACOB C...   -$49.00   Pending
+
+NOTE: Balance updated from prior log ($500.85 posted Jul 4) — bills clearing.
+
+================================================================================
+SCREENSHOT 3 — PERSONAL 1744 PENDING DETAIL (4:32 PM)
+================================================================================
+
+Posted balance shown:       $428.45
+Pending total (bank):       $29.60
+
+Pending line items visible:
+
+  07/05/2026  CASH APP*JACOB COS...        -$19.00
+  07/04/2026  CASH APP*JACOB COS...        -$49.00
+  07/04/2026  CASH APP*JACOB COS...        -$70.00
+  07/04/2026  CASH APP*JACOB COS...       -$101.00
+  07/05/2026  PAPA JOHN'S #0321...         -$43.46
+  07/04/2026  PAPA JOHN'S #0321...         -$43.46
+  07/04/2026  PAPA JOHN'S #0321...         +$43.46  (refund — nets Jul 4 pair)
+  07/04/2026  SUGAR LIFE 21ST...           ~-$9.68  (amount partially obscured; fits pending total math)
+
+Estimated after all pending clears: ~$398.85 ($428.45 − $29.60)
+
+================================================================================
+RECONCILE TO PRIOR LOG
+================================================================================
+
+Jul 4 logged pending bills (Cash App):
+  Jul 3  $18   — NOT in Jul 5 pending list → mark POSTED
+  Jul 4  $49   — still pending (phone bill)
+  Jul 4  $70   — still pending (WiFi)
+  Jul 4 $101   — still pending (truck insurance)
+
+New personal expenses logged from screenshots:
+  Jul 5  $19   Cash App (new)
+  Jul 5  $43.46  Papa John's
+  Jul 4  $43.46  Papa John's (charge; refund +$43.46 same day on Jul 4)
+  Jul 4   ~$9.68  Sugar Life 21st (estimate from pending total)
+
+Business owner draws UNCHANGED:
+  Fri Jul 3  $170 non-working business day
+  Sat Jul 4  $170 business day
+  Total owner draws still $870
+
+================================================================================
+UPDATED REGISTERS (phone Cursor wrote to dropbox-records)
+================================================================================
+
+  07_Personal_Finances/Personal_Account_Balances.csv
+  07_Personal_Finances/Personal_Expenses_Register.csv
+  04_FINANCIAL_TRACKING/Business_Account_Balances.csv  (Jul 5 confirm row)
+  04_FINANCIAL_TRACKING/Cash_Envelope_Status.csv       (Truist balances confirmed)
+  READABLE/PERSONAL_FINANCE_DASHBOARD.txt
+  READABLE/BUSINESS_DASHBOARD.txt
+
+================================================================================

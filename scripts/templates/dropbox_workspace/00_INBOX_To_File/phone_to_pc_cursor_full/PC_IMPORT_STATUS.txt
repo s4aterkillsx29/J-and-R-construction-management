@@ -1,0 +1,27 @@
+Phone → PC import status
+Updated: 2026-07-05
+
+PHONE CURSOR COMPLETED:
+  [x] Created phone_to_pc_cursor_full inbox folder
+  [x] Analyzed 3 Truist bank screenshots (Jul 5 ~4:32 PM)
+  [x] Documented PC Cursor request from desktop screenshot
+  [x] Updated personal balance $428.45, pending $29.60
+  [x] Confirmed business balances unchanged ($151.42 / $788.59 / $940.01)
+  [x] Added new personal expenses (Jul 5 Cash App $19, Papa John's, Sugar Life)
+  [x] Marked Jul 3 $18 Cash App as Posted
+  [x] Full export copied to this folder
+  [x] log update sync run
+
+PC CURSOR SHOULD VERIFY:
+  [ ] 3 photo .jpg files saved in this folder by Jacob (if not, use this .txt analysis)
+  [ ] Sync-JRCBusinessFolders.ps1 completed
+  [ ] python -m app.dropbox_workspace --verify-phone
+  [ ] Office Records Sync
+  [ ] READABLE dashboards match TRUIST_BANK_SCREENSHOTS_2026-07-05.txt
+
+JACOB NOTES FOR PC (from desktop chat — not business data):
+  - Lily fence + Jackie leads = LEADS only until customers call / Jacob says go
+  - No active jobs waiting deposit except what's in job register
+  - Personal question re: calling old boss Duck for work — Jacob decision, not logged
+
+GIT: cursor/owner-draw-logging-5449 | PR #17
