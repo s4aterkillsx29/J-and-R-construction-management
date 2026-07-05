@@ -12,6 +12,12 @@ PHONE / FIELD LOGS (Dropbox):
   - Write to the job folder or 00_START_HERE field notes
   - Dropbox syncs to office PC — do not use GitHub for logs
 
+OWNER DRAWS ON DROPBOX (required files):
+  - Business: dropbox-records/06_bookkeeping/Owner_Draws_Register.csv
+  - Readable: dropbox-records/READABLE/OWNER_DRAWS_REGISTER.txt
+  - Personal side (transfers to personal checking): 07_Personal_Finances/Personal_Income_Register.csv
+  - Every owner draw row must be in Owner_Draws_Register.csv — personal mirror when money hits personal 1744
+
 DESKTOP AFTER PHONE SESSION:
   1. scripts\Sync-JRCBusinessFolders.ps1
   2. scripts\Refresh-ReadableBusinessReports.ps1
