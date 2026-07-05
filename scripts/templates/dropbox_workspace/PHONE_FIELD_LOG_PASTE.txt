@@ -1,0 +1,34 @@
+PHONE FIELD LOG — PASTE HERE (saves to Dropbox when you save this file)
+Updated: 2026-07-05
+
+Instructions:
+  1. On PHONE: open this file in Dropbox business workspace
+  2. Paste Fri/Sat numbers and notes at the TOP (below the line)
+  3. SAVE — wait for Dropbox to sync (green checkmark)
+  4. On PC: tell Cursor "recheck paste file" or "log update sync"
+
+================================================================================
+PASTE NEW ENTRIES BELOW (newest first)
+================================================================================
+
+(example — delete when you paste real data)
+Fri owner draw: $240 — job: ___
+Sat owner draw: $240 — job: ___
+Envelope cash: $___
+Truist checking 6104: $___
+Truist tax savings 6112: $___
+Wayne stain done: yes, paid $200
+Other Fri/Sat out of envelope or checking: ___
+
+================================================================================
+ALREADY LOGGED ON DROPBOX (do not duplicate unless correcting)
+================================================================================
+
+Owner draws $870 — Owner_Draws_Register.csv
+JRC-403 closed paid — deck $2000 cash, Wayne $200
+Jackie checks $1550 tearout/vine — separate from deck
+Lily fence $10440 / dep $6786
+Ray JRC-042R callback $80 OOP
+Tax $275 done; $154.35 planned when envelope allows
+
+================================================================================

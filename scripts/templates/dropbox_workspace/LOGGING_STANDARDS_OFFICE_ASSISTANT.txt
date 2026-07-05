@@ -17,8 +17,9 @@ LOG UPDATE SYNC — ALWAYS (Jacob's rule)
   Phrases that mean the same thing:
     "log" | "log update sync" | "log sync" | "log save"
 
-  Office PC after mirror sync:
-    scripts\Sync-JRCBusinessFolders.ps1 → live Dropbox Desktop
+  Or on phone: open 00_START_HERE/PHONE_FIELD_LOG_PASTE.txt in Dropbox, paste Fri/Sat notes, SAVE — then PC says recheck paste file after Dropbox syncs.
+
+  Why PC misses phone chat-only logs: 00_START_HERE/WHY_PC_CANNOT_SEE_PHONE_LOGS.txt
 
 ================================================================================
 
