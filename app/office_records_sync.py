@@ -50,8 +50,8 @@ def apply_office_business_standards(conn: sqlite3.Connection) -> List[str]:
         ),
         (
             "std_log_sync_rule",
-            "Log + sync rule",
-            'When Jacob says "log", update Dropbox office CSVs/field logs AND run python -m app.dropbox_workspace --sync.',
+            "Log update sync rule",
+            'When Jacob says log / log update sync: UPDATE office CSVs + field logs, then ALWAYS run python -m app.dropbox_workspace --sync.',
         ),
         ("std_helper_daily_rate", "Helper default ($/8-hr day)", OFFICE_RATES["helper_daily_rate"]),
         (

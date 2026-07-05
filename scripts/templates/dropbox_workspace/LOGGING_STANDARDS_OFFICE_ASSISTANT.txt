@@ -1,5 +1,26 @@
 J & R CONSTRUCTION — LOGGING STANDARDS (OFFICE ASSISTANT + PHONE CURSOR)
-Updated: 2026-07-04
+Updated: 2026-07-05
+
+================================================================================
+LOG UPDATE SYNC — ALWAYS (Jacob's rule)
+================================================================================
+
+  Saying "log" means: UPDATE records + SYNC to Dropbox. Never write-only.
+
+  Cursor / cloud agent — every log session:
+    1. UPDATE — office CSVs + field logs (scripts/templates/dropbox_workspace/)
+    2. SYNC   — python -m app.dropbox_workspace --sync  (or --log)
+    3. SAVE   — commit + push git templates
+
+  Logging is NOT complete until --sync finishes and mirror has latest files.
+
+  Phrases that mean the same thing:
+    "log" | "log update sync" | "log sync" | "log save"
+
+  Office PC after mirror sync:
+    scripts\Sync-JRCBusinessFolders.ps1 → live Dropbox Desktop
+
+================================================================================
 
 Every business log entry should include:
   - Date and time
@@ -22,15 +43,10 @@ DESKTOP AFTER PHONE SESSION:
   1. scripts\Sync-JRCBusinessFolders.ps1
   2. scripts\Refresh-ReadableBusinessReports.ps1
   3. Construction Manager → Office Records Sync
-  4. Tell desktop Cursor: "log"
+  4. Tell desktop Cursor: "log update sync"
 
-CURSOR / CLOUD AGENT — WHEN JACOB SAYS "LOG":
-  Logging is NOT complete until sync runs. Always do BOTH:
-  1. Update office CSVs + field logs (scripts/templates/dropbox_workspace/)
-  2. Run: python -m app.dropbox_workspace --sync
-     → pushes templates to dropbox-business mirror + Office Records Sync to DB
-  3. Commit + push git templates (app code path)
-  On office PC: Dropbox Desktop picks up mirror/synced files after Sync-JRCBusinessFolders.ps1
+CURSOR — LOG UPDATE SYNC (not write-only):
+  python -m app.dropbox_workspace --sync   (alias: --log)
 
 CUSTOMER vs INTERNAL:
   - Customer quotes/invoices: no internal labor rates or helper pay

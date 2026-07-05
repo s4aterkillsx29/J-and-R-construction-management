@@ -650,12 +650,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print(path)
         return 0
 
-    if args[0] in ("--sync", "sync"):
+    if args[0] in ("--sync", "sync", "--log", "log", "log-update-sync"):
         report = sync_dropbox_mirror(base)
         print(format_sync_report(report))
         return 1 if report.get("errors") else 0
 
-    print("Usage: python -m app.dropbox_workspace [--check | --search <query> | --sync]")
+    print("Usage: python -m app.dropbox_workspace [--check | --search <query> | --sync | --log]")
     return 2
 
 
