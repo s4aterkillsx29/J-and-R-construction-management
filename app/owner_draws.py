@@ -174,16 +174,16 @@ def seed_owner_draws_from_office_records(conn: sqlite3.Connection) -> List[int]:
         (
             "2026-07-03",
             170.0,
-            "Owner draw — personal need (no field work)",
-            "Business office full day",
-            "Transferred $340 to personal 1744 on 2026-07-04 (batch with Jul 4 draw).",
+            "Owner draw — Friday non-working business day (no field work)",
+            "Non-working business day",
+            "Paid via $340 Truist batch transfer 2026-07-04 (with Saturday draw). Bank screenshots on file.",
         ),
         (
             "2026-07-04",
             170.0,
-            "Owner draw — personal need (no field work)",
+            "Owner draw — Saturday business day (office/admin)",
             "Business office full day",
-            "Transferred $340 to personal 1744 on 2026-07-04. Truist memo: Business payroll july 3rd and july 4th for Jacob Owner non working day.",
+            "Paid via $340 Truist batch transfer 2026-07-04. Truist memo batches Fri+Sat; books: Fri non-working / Sat business day. Bank screenshots on file.",
         ),
     ]
     ids: List[int] = []

@@ -40,13 +40,14 @@ THE FIX — LOG UPDATE SYNC PIPELINE
 FASTEST PATH FOR FRIDAY/SATURDAY NUMBERS
 ================================================================================
 
-  Paste in PHONE_FIELD_LOG_PASTE.txt (save in Dropbox on phone)
-  OR paste in PC Cursor chat and say "log"
+  LOGGED (Jul 3–4):
+    Friday $170 — non-working business day
+    Saturday $170 — business day
+    Truist $340 transfer + bank evidence on file
 
-  Need:
-    - Fri + Sat owner draw ($? which job?)
+  Still need — paste in PHONE_FIELD_LOG_PASTE.txt (save in Dropbox on phone):
     - Envelope cash count
-    - Truist checking + tax savings balances
-    - Anything else out Fri/Sat
+    - Truist checking + tax savings balances (Jul 5+)
+    - Anything else out since Saturday
 
 ================================================================================

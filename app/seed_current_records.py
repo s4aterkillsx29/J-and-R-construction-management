@@ -126,18 +126,18 @@ def seed():
         '2026-07-03',
         170,
         'Business checking',
-        'Owner draw — personal need (no field work)',
+        'Owner draw — Friday non-working business day (no field work)',
         'Transfer',
-        'Transferred $340 to personal 1744 on 2026-07-04 (batch with Jul 4 draw).',
+        'Paid via $340 Truist batch transfer 2026-07-04 (with Saturday draw). Bank screenshots on file.',
     )
     add_owner_draw(
         db,
         '2026-07-04',
         170,
         'Business checking',
-        'Owner draw — personal need (no field work)',
+        'Owner draw — Saturday business day (office/admin)',
         'Transfer',
-        'Transferred $340 to personal 1744 on 2026-07-04. Truist memo: Business payroll july 3rd and july 4th for Jacob Owner non working day.',
+        'Paid via $340 Truist batch transfer 2026-07-04. Truist memo batches Fri+Sat; books: Fri non-working / Sat business day. Bank screenshots on file.',
     )
 
     for job_id, work_date, hrs, desc in [

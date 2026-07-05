@@ -1,6 +1,6 @@
 J & R CONSTRUCTION — PHONE SESSION VERIFY
 Updated: 2026-07-05
-Last sync: 2026-07-05 20:20 UTC — all critical files OK
+Last sync: 2026-07-05 — Fri/Sat owner draws + bank evidence logged
 
 This file confirms everything from the phone Cursor conversation was WRITTEN to Dropbox files (not chat-only).
 
@@ -14,7 +14,7 @@ VERIFY COMMAND
 CRITICAL FILES (must exist in dropbox-records / 00_START_HERE)
 ================================================================================
 
-  [x] 06_bookkeeping/Owner_Draws_Register.csv — 5 draws incl Jul 3-4 $170
+  [x] 06_bookkeeping/Owner_Draws_Register.csv — 5 draws; Fri non-working + Sat business day
   [x] 05_Helper_Pay_Workers/Payroll_Helper_Register.csv — Jesse + Wayne 403
   [x] 08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv — JRC-403 Closed Paid
   [x] 04_FINANCIAL_TRACKING/.../Income_Deposit_Balance_Register.csv — Jackie checks + deck cash
@@ -23,6 +23,7 @@ CRITICAL FILES (must exist in dropbox-records / 00_START_HERE)
   [x] READABLE/OWNER_DRAWS_REGISTER.txt — $870 total readable
   [x] READABLE/OFFICE_WORK_QUEUE.txt — office tasks status
   [x] PHONE_FIELD_LOG_PASTE.txt — session summary + paste area
+  [x] field_logs/Owner_Draw_Truist_Bank_Evidence_2026-07-04.txt — Truist screenshots logged
   [x] field_logs/ — Jackie, Ray, owner draw logs (in evidence/)
 
 ================================================================================
@@ -39,7 +40,6 @@ PHONE MUST SAVE FILES — NOT CHAT ONLY
 STILL NEED (not in files yet — paste in PHONE_FIELD_LOG_PASTE.txt)
 ================================================================================
 
-  Fri/Sat owner draw $240/day — which job?
   Envelope cash count
   Current Truist balances (Jul 5+)
 

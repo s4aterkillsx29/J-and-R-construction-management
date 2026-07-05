@@ -18,8 +18,8 @@ OWNER DRAWS / PAID MYSELF (all draws — see OWNER_DRAWS_REGISTER.txt)
   2026-06-29  $120.00  403 Jackie — field half day
   2026-06-30  $240.00  403 Jackie — field full day
   2026-07-01  $170.00  403 Jackie — business day (Wayne staining)
-  2026-07-03  $170.00  Personal need — no field work (→ personal 1744 Jul 4)
-  2026-07-04  $170.00  Personal need — no field work (→ personal 1744 Jul 4)
+  2026-07-03  $170.00  Friday — non-working business day (→ personal 1744 Jul 4)
+  2026-07-04  $170.00  Saturday — business day (→ personal 1744 Jul 4)
 
   All-time owner draws total: $870.00
   Office CSV: 06_bookkeeping/Owner_Draws_Register.csv

@@ -275,8 +275,8 @@ def push_mirror_to_live_dropbox() -> List[str]:
 
 
 PHONE_SESSION_CRITICAL = [
-    ("dropbox-records/06_bookkeeping/Owner_Draws_Register.csv", "2026-07-04"),
-    ("dropbox-records/06_bookkeeping/Owner_Draws_Register.csv", "Owner draw — personal need"),
+    ("dropbox-records/06_bookkeeping/Owner_Draws_Register.csv", "Non-working business day"),
+    ("dropbox-records/06_bookkeeping/Owner_Draws_Register.csv", "Saturday business day"),
     ("dropbox-records/05_Helper_Pay_Workers/Payroll_Helper_Register.csv", "Wayne"),
     ("dropbox-records/08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv", "Closed Paid"),
     ("dropbox-records/04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv", "5565"),
