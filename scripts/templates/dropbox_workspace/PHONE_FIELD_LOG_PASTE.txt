@@ -1,8 +1,8 @@
 PHONE FIELD LOG — PASTE HERE (saves to Dropbox when you save this file)
 Updated: 2026-07-05 — Fri/Sat owner draws corrected + bank evidence logged
 
-================================================================================
-PHONE SESSION LOGGED TO DROPBOX FILES (this conversation)
+SEND TO PC CURSOR: open PHONE_TO_PC_CURSOR_FULL_EXPORT.txt (full session export)
+
 ================================================================================
 
 OWNER DRAWS (paid myself) — Owner_Draws_Register.csv:

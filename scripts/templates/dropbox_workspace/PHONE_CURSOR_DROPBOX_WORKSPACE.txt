@@ -32,7 +32,8 @@ PHONE SETUP (Cursor iPhone app) — DO THIS ONCE
 BOOKMARK THESE FILES ON PHONE
 ================================================================================
 
-  00_START_HERE/PHONE_FIELD_LOG_PASTE.txt          — paste Fri/Sat numbers HERE + SAVE
+  00_START_HERE/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt — SEND ALL PHONE ENTRIES TO PC (open this on PC)
+  00_START_HERE/PHONE_FIELD_LOG_PASTE.txt          — paste new numbers HERE + SAVE
   00_START_HERE/WHY_PC_CANNOT_SEE_PHONE_LOGS.txt  — if PC missing data, read this
   00_START_HERE/READABLE/PHONE_SESSION_VERIFY.txt  — what this phone session logged
   00_START_HERE/READABLE/OWNER_DRAWS_REGISTER.txt

@@ -8,6 +8,8 @@ THE PROBLEM (3 different places)
   1. PHONE CLOUD CURSOR (this chat agent)
      Writes to: GitHub templates + cloud mirror (dropbox-business/)
      Does NOT write directly to your PC Dropbox folder.
+     Full export for PC: 00_START_HERE/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt
+     GitHub copy: docs/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt
 
   2. YOUR PC DROPBOX FOLDER
      Path examples:

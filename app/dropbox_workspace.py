@@ -281,7 +281,7 @@ PHONE_SESSION_CRITICAL = [
     ("dropbox-records/08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv", "Closed Paid"),
     ("dropbox-records/04_FINANCIAL_TRACKING/Income_Deposits_Balances/Income_Deposit_Balance_Register.csv", "5565"),
     ("dropbox-records/07_Personal_Finances/Personal_Income_Register.csv", "340"),
-    ("00_START_HERE/PHONE_FIELD_LOG_PASTE.txt", "PHONE FIELD LOG"),
+    ("00_START_HERE/PHONE_TO_PC_CURSOR_FULL_EXPORT.txt", "PC CURSOR IMPORT CHECKLIST"),
     ("00_START_HERE/READABLE/OWNER_DRAWS_REGISTER.txt", "TOTAL: $870"),
     ("00_START_HERE/READABLE/OFFICE_WORK_QUEUE.txt", "JRC-403"),
     ("00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt", "10,440"),
