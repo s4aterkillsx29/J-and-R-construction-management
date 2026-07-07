@@ -149,6 +149,7 @@ def urls() -> dict[str, str]:
         "health": local + "/api/health",
         "connect": lan + "/connect",
         "mobile": lan + "/mobile",
+        "mobile_setup": lan + "/mobile/setup",
         "register": lan + "/register",
         "apply": lan + "/apply",
         "remote_mobile": local + "/remote-mobile",
@@ -366,6 +367,7 @@ def link_set(base: str) -> dict[str, str]:
         "base": base,
         "connect": base + "/connect",
         "mobile": base + "/mobile",
+        "mobile_setup": base + "/mobile/setup",
         "register": base + "/register",
         "apply": base + "/apply",
         "health": base + "/api/health",
@@ -461,7 +463,8 @@ class MobileWindow(tk.Toplevel):
         box.pack(fill="both", expand=True, padx=22, pady=16)
         items = [
             ("Connection Test", links.get("connect", ""), "Use this first to confirm the phone or outside user can reach the program."),
-            ("Mobile App", links.get("mobile", ""), "Phone-friendly J&R Manager screen."),
+            ("iPhone Setup", links.get("mobile_setup", ""), "Step-by-step guide to bookmark the owner/admin mobile dashboard on iPhone."),
+            ("Mobile Dashboard", links.get("mobile", ""), "Phone-friendly J&R Manager owner/admin screen — add to home screen from here."),
             ("Worker Signup", links.get("register", ""), "User requests an account. Admin must approve."),
             ("Job Application", links.get("apply", ""), "Worker/job application and insurance onboarding form."),
         ]
@@ -474,7 +477,7 @@ class MobileWindow(tk.Toplevel):
             entry.pack(side="left", fill="x", expand=True, padx=(6, 8), ipady=5)
             tk.Button(row, text="Open", bg=BUTTON, fg=TEXT, relief="flat", command=lambda l=link: webbrowser.open(l) if l else None).pack(side="right")
             tk.Label(box, text=desc, bg=PANEL, fg=DIM, font=("Segoe UI", 9), anchor="w").pack(fill="x", padx=(180, 0))
-        bottom = "Cloud links stay usable when your PC host is off only when the hosted/cloud server is actually deployed and running." if mode == "cloud" else "If phone fails on same Wi-Fi, run Tools / Repair > Allow Phone Access and restart the local host."
+        bottom = "Cloud links stay usable when your PC host is off only when the hosted/cloud server is actually deployed and running." if mode == "cloud" else "iPhone: use Safari (not DuckDuckGo) for the LAN link. DuckDuckGo often cannot open your PC address. If phone fails on same Wi-Fi, run Tools / Repair > Allow Phone Access and restart the local host."
         tk.Label(self, text=bottom, bg=BG, fg=WARN, font=("Segoe UI", 9, "bold"), wraplength=730, justify="left").pack(anchor="w", padx=22, pady=(0, 14))
 
 
