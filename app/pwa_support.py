@@ -62,7 +62,7 @@ def owner_iphone_bookmark_card(
     <div class='card'><h2>iPhone Quick Access (Owner/Admin)</h2>
       <p>Add <b>J&amp;R Manager</b> to your iPhone home screen for one-tap access to this mobile dashboard.</p>
       <ol>
-        <li>Open this page in <b>Safari</b> (not Chrome).</li>
+        <li>Open this page in <b>Safari</b> (not DuckDuckGo, Chrome, or Firefox).</li>
         <li>Tap <b>Share</b> → <b>Add to Home Screen</b> → name it <b>J&amp;R Manager</b>.</li>
         <li>Open the new icon — it launches straight to <code>/mobile</code> after you sign in.</li>
       </ol>

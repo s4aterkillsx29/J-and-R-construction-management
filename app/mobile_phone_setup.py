@@ -83,6 +83,7 @@ def render_mobile_setup_page(
     </div>
 
     <div class='card'><h2>Step 4 — Add to Home Screen (iPhone bookmark)</h2>
+      <p class='flash warning'><b>Important:</b> Use <b>Safari</b> on iPhone — not DuckDuckGo, Chrome, or Firefox. DuckDuckGo often shows “cannot access that page” for your PC Wi-Fi address.</p>
       <p><b>iPhone (Safari):</b> Share button → <b>Add to Home Screen</b> → name it <b>J&amp;R Manager</b>.</p>
       <p><b>Android (Chrome):</b> Menu ⋮ → <b>Add to Home screen</b> or <b>Install app</b>.</p>
       <p>After that, open <b>J&amp;R Manager</b> from your home screen — it opens straight to the mobile dashboard at <code>/mobile</code>.</p>
@@ -105,6 +106,7 @@ def render_mobile_setup_page(
 
     <div class='card'><h2>Troubleshooting</h2>
       <ul>
+        <li><b>DuckDuckGo says “cannot access”</b> → copy the URL, open <b>Safari</b>, paste and go.</li>
         <li>Connection test fails → PC host not running, wrong Wi-Fi, or firewall blocked.</li>
         <li>Login works on PC but not phone → run Allow Phone Access on PC, restart host.</li>
         <li>Away from shop → deploy cloud host and save Cloud Access URL on PC first.</li>

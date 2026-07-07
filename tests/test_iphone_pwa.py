@@ -87,6 +87,22 @@ class IPhonePwaTests(unittest.TestCase):
             body = resp.get_data(as_text=True)
             self.assertIn("/mobile/setup", body)
             self.assertIn("iPhone Setup Guide", body)
+            self.assertIn("DuckDuckGo", body)
+
+    def test_connect_warns_duckduckgo_user_agent(self):
+        for client in self._client():
+            resp = client.get(
+                "/connect",
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+                        "AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 DuckDuckGo/7"
+                    )
+                },
+            )
+            body = resp.get_data(as_text=True)
+            self.assertIn("Use Safari", body)
+            self.assertIn("DuckDuckGo", body)
 
 
 if __name__ == "__main__":

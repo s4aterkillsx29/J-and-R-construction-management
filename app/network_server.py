@@ -223,8 +223,14 @@ def validate_device_token(token: str) -> bool:
 def client_device_label(user_agent: str = "") -> str:
     ua = user_agent or (request.headers.get("User-Agent", "") if request else "")
     lowered = ua.lower()
+    if "duckduckgo" in lowered:
+        return "iPhone DuckDuckGo"
+    if "crios" in lowered:
+        return "iPhone Chrome"
+    if "fxios" in lowered:
+        return "iPhone Firefox"
     if "iphone" in lowered:
-        return "iPhone browser"
+        return "iPhone Safari" if "safari" in lowered else "iPhone browser"
     if "android" in lowered:
         return "Android browser"
     if "ipad" in lowered:
@@ -3103,6 +3109,9 @@ def mobile_setup():
     port = int(os.environ.get("JRC_PORT", "8765"))
     remote = get_app_setting("remote_public_base_url", "").strip()
     user = current_user()
+    from app.phone_browser_guidance import iphone_browser_warning, iphone_cannot_connect_help
+
+    lan_connect = f"http://{get_lan_ip()}:{port}/connect"
     body = render_mobile_setup_page(
         lan_ip=get_lan_ip(),
         port=port,
@@ -3110,6 +3119,11 @@ def mobile_setup():
         logged_in=bool(user),
         username=user["username"] if user else "",
         role=role_display(user["role"]) if user else "",
+    )
+    body = (
+        iphone_browser_warning(user_agent=request.headers.get("User-Agent", ""), lan_url=lan_connect)
+        + body
+        + iphone_cannot_connect_help()
     )
     return layout("iPhone Setup", body, "mobile", public=True)
 @app.route("/mobile")
@@ -4427,7 +4441,14 @@ def connect_links():
     lan = get_lan_ip()
     port = int(os.environ.get("JRC_PORT", "8765"))
     base = get_app_setting("remote_public_base_url", "").strip() or f"http://{lan}:{port}"
+    from app.phone_browser_guidance import iphone_browser_warning, iphone_cannot_connect_help
+
+    browser_help = iphone_browser_warning(
+        user_agent=request.headers.get("User-Agent", ""),
+        lan_url=f"{base}/connect",
+    )
     body = f"""
+    {browser_help}
     <div class='card'><h2>Connection Test</h2>
       <p>This page confirms the shared host is running and reachable from this device.</p>
       <p><b>Server time:</b> {html.escape(now_display())}<br>
@@ -4443,12 +4464,14 @@ def connect_links():
     </div>
     <div class='card'><h2>If Phone Cannot Connect</h2>
       <ol>
+        <li><b>iPhone:</b> use <b>Safari</b>, not DuckDuckGo — DuckDuckGo often blocks PC addresses on Wi-Fi.</li>
         <li>Make sure this computer and phone are on the same Wi-Fi, VPN, or secure tunnel.</li>
         <li>Make sure the shared host is running from the Start Center.</li>
         <li>Run <b>Allow LAN Firewall Access</b> from the program folder or Start Center if Windows firewall blocks the phone.</li>
         <li>For outside locations, set up a secure tunnel/VPN/cloud host and use HTTPS.</li>
       </ol>
     </div>
+    {iphone_cannot_connect_help()}
     """
     return layout("Connection Test and Mobile Links", body, "mobile")
 @app.route("/api/connection")

@@ -477,7 +477,7 @@ class MobileWindow(tk.Toplevel):
             entry.pack(side="left", fill="x", expand=True, padx=(6, 8), ipady=5)
             tk.Button(row, text="Open", bg=BUTTON, fg=TEXT, relief="flat", command=lambda l=link: webbrowser.open(l) if l else None).pack(side="right")
             tk.Label(box, text=desc, bg=PANEL, fg=DIM, font=("Segoe UI", 9), anchor="w").pack(fill="x", padx=(180, 0))
-        bottom = "Cloud links stay usable when your PC host is off only when the hosted/cloud server is actually deployed and running." if mode == "cloud" else "If phone fails on same Wi-Fi, run Tools / Repair > Allow Phone Access and restart the local host."
+        bottom = "Cloud links stay usable when your PC host is off only when the hosted/cloud server is actually deployed and running." if mode == "cloud" else "iPhone: use Safari (not DuckDuckGo) for the LAN link. DuckDuckGo often cannot open your PC address. If phone fails on same Wi-Fi, run Tools / Repair > Allow Phone Access and restart the local host."
         tk.Label(self, text=bottom, bg=BG, fg=WARN, font=("Segoe UI", 9, "bold"), wraplength=730, justify="left").pack(anchor="w", padx=22, pady=(0, 14))
 
 
