@@ -1259,6 +1259,10 @@ def clean_base_url(value: str) -> str:
 def access_url(base: str, path: str) -> str:
     return (base or "").rstrip("/") + path
 def layout(title: str, body: str, active: str = "dashboard", *, public: bool = False) -> str:
+    from app.pwa_support import PWA_BOOTSTRAP_JS, pwa_head_tags
+
+    pwa_head_tags_html = pwa_head_tags()
+    pwa_bootstrap_js = PWA_BOOTSTRAP_JS
     user = current_user()
     username = user["username"] if user else "Guest"
     role = user["role"] if user else ""
@@ -1283,7 +1287,7 @@ def layout(title: str, body: str, active: str = "dashboard", *, public: bool = F
     srv_port = int(os.environ.get("JRC_PORT", "8765"))
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(title)} - {APP_NAME}</title><link rel="manifest" href="/static/manifest.json"><meta name="theme-color" content="#84cc16"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="J&R Manager">
+<title>{html.escape(title)} - {APP_NAME}</title>{pwa_head_tags_html}
 <style>
 :root{{--bg:#000000;--panel:rgba(10,10,10,.92);--card:rgba(17,17,17,.85);--card-hover:rgba(30,30,30,.9);--glass-border:rgba(132,204,22,.22);--glass-border-light:rgba(163,230,53,.35);--soft:rgba(132,204,22,.08);--text:#f5f5f5;--muted:#a3a3a3;--accent:#84cc16;--accent2:#a3e635;--accent-glow:rgba(132,204,22,.4);--danger:#ef4444;--warn:#facc15;--gold:#bef264;--radius-sm:12px;--radius-md:18px;--radius-lg:24px;--radius-xl:28px;--blur:20px;--shadow:0 8px 32px rgba(0,0,0,.55);--shadow-glow:0 4px 24px rgba(132,204,22,.18)}}
 *{{box-sizing:border-box}}
@@ -1317,7 +1321,7 @@ table{{width:100%;border-collapse:separate;border-spacing:0;background:rgba(255,
 @media(max-width:850px){{.top{{display:block;padding:14px 16px}}.user{{text-align:left;margin-top:10px}}.wrap{{display:block}}.side{{width:auto;display:flex;gap:8px;overflow-x:auto;padding:12px;border-right:0;border-bottom:1px solid var(--glass-border)}}.nav{{white-space:nowrap;margin:0;flex:0 0 auto}}.main{{padding:16px}}.row,.row3{{grid-template-columns:1fr}}.grid{{grid-template-columns:1fr}}.action-grid{{grid-template-columns:1fr}}table{{display:block;overflow-x:auto}}.card{{border-radius:var(--radius-md);padding:16px}}h1{{font-size:1.45rem}}.mobile-actions .btn,.action-grid .btn{{display:flex;margin:6px 0;text-align:center}}}}
 </style></head><body>
 <div class="top"><div><div class="brand">{APP_NAME}</div><div class="sub">Owned and operated by {OWNER} / {BUSINESS_NAME} • {PHONE} • v{APP_VERSION}</div></div><div class="user">{html.escape(username)} {html.escape(role_display(role))}<br><a href="/logout">Logout</a></div></div>
-<div class="wrap"><aside class="side">{nav_html}<hr><div class="sub">Server: {html.escape(get_lan_ip())}:{srv_port}<br>Trusted PC: {html.escape(platform.node())}</div></aside><main class="main">{flash_html}<h1>{html.escape(title)}</h1>{body}<div class="footer">Use on trusted LAN/VPN or properly secured cloud host only. Always use strong passwords and HTTPS for remote access.</div></main></div></body></html>"""
+<div class="wrap"><aside class="side">{nav_html}<hr><div class="sub">Server: {html.escape(get_lan_ip())}:{srv_port}<br>Trusted PC: {html.escape(platform.node())}</div></aside><main class="main">{flash_html}<h1>{html.escape(title)}</h1>{body}<div class="footer">Use on trusted LAN/VPN or properly secured cloud host only. Always use strong passwords and HTTPS for remote access.</div></main></div><script>{pwa_bootstrap_js}</script></body></html>"""
 def get_flashed_messages_safe():
     try:
         from flask import get_flashed_messages
@@ -1351,7 +1355,7 @@ def enforce_global_login_required():
 def protect_admin_and_sensitive_surfaces():
     """Block customers/external users and non-admins from admin-only URLs."""
     path = request.path or ""
-    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/ping", "/register", "/apply", "/emergency-access"}:
+    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/setup", "/mobile/ping", "/register", "/apply", "/emergency-access"}:
         return
     role = session.get("role", "")
     if session.get("user_id") and is_customer_or_external(role):
@@ -3091,6 +3095,23 @@ def upload_file():
     log_event("File Upload", f"Uploaded {dest.name}")
     flash(f"Uploaded {dest.name} to evidence folder.", "success")
     return redirect(url_for("files"))
+@app.route("/mobile/setup")
+def mobile_setup():
+    """Public owner phone onboarding — iPhone bookmark and home-screen setup."""
+    from app.mobile_phone_setup import render_mobile_setup_page
+
+    port = int(os.environ.get("JRC_PORT", "8765"))
+    remote = get_app_setting("remote_public_base_url", "").strip()
+    user = current_user()
+    body = render_mobile_setup_page(
+        lan_ip=get_lan_ip(),
+        port=port,
+        remote_base=remote,
+        logged_in=bool(user),
+        username=user["username"] if user else "",
+        role=role_display(user["role"]) if user else "",
+    )
+    return layout("iPhone Setup", body, "mobile", public=True)
 @app.route("/mobile")
 @login_required("mobile_access")
 def mobile_home():
@@ -3143,12 +3164,25 @@ def mobile_home():
             ) + f"</div><p><a class='btn' href='/mobile/pipeline'>Open Job Pipeline Board</a></p></div>"
         except Exception:
             pipeline_snippet = "<div class='card'><p><a class='btn' href='/mobile/pipeline'>Open Job Pipeline Board</a></p></div>"
+    iphone_card = ""
+    if is_admin_role(role):
+        from app.mobile_phone_setup import mobile_setup_urls
+        from app.pwa_support import owner_iphone_bookmark_card
+
+        remote = get_app_setting("remote_public_base_url", "").strip()
+        setup_urls = mobile_setup_urls(lan_ip=lan_ip, port=port, remote_base=remote)
+        iphone_card = owner_iphone_bookmark_card(
+            mobile_url=setup_urls["mobile"],
+            setup_url=setup_urls["mobile_setup"],
+            esc=html.escape,
+        )
     body=f"""
     <div class='card'><h2>Mobile Access Center</h2><p>This is the phone-friendly home screen for J and R Construction Manager. Use it from a trusted LAN/VPN or secured cloud host.</p>
     <p><b>Phone URL on this network:</b> <code>http://{lan_ip}:{port}/mobile</code></p>
     <p class='muted'>This screen only shows actions your account is allowed to use.</p></div>
+    {iphone_card}
     <div class='grid'>{money_card}<div class='stat'>Active Jobs<b>{active_jobs}</b></div><div class='stat'>Total Jobs<b>{jobs_count}</b></div><div class='stat'>Indexed Files<b>{files_count if 'view_files' in perms else 'Limited'}</b></div></div>
-    <div class='card mobile-actions'><h2>Quick Actions</h2>{('<a class=\'btn\' href=\'/mobile/pipeline\'>Job Pipeline Board</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn\' href=\'/mobile/jobs\'>Mobile Jobs</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/files\'>Mobile Files</a>') if 'view_files' in perms else ''} {('<a class=\'btn btn2\' href=\'/chat\'>Live Chat</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''} {('<a class=\'btn btn2\' href=\'/sharing\'>Shared Items</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''}</div>
+    <div class='card mobile-actions'><h2>Quick Actions</h2><a class='btn' href='/mobile/setup'>iPhone Setup</a> {('<a class=\'btn\' href=\'/mobile/pipeline\'>Job Pipeline Board</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn\' href=\'/mobile/jobs\'>Mobile Jobs</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/files\'>Mobile Files</a>') if 'view_files' in perms else ''} {('<a class=\'btn btn2\' href=\'/chat\'>Live Chat</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''} {('<a class=\'btn btn2\' href=\'/sharing\'>Shared Items</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''}</div>
     {pipeline_snippet}
     <div class='card'><h2>Recent Jobs</h2><table><tr><th>Job</th><th>Status</th>{paid_col}</tr>{jr}</table></div>
     <div class='card'><h2>Mobile Rules</h2><ul><li>Admins and managers can update records based on permissions.</li><li>Workers and viewers are read-only unless an owner/admin grants more access.</li><li>Non-company users only see intentionally shared items.</li></ul></div>
@@ -3239,17 +3273,24 @@ def mobile_files():
     return layout("Mobile Files", body, "mobile")
 @app.route("/static/manifest.json")
 def pwa_manifest():
-    return jsonify({
-        "name": "J and R Construction Manager",
-        "short_name": "J&R Manager",
-        "start_url": "/mobile",
-        "scope": "/",
-        "display": "standalone",
-        "background_color": "#000000",
-        "theme_color": "#84cc16",
-        "description": "Mobile access for J and R Construction Manager jobs, files, and shared sessions.",
-        "icons": []
-    })
+    from app.pwa_support import pwa_manifest_dict
+
+    return jsonify(pwa_manifest_dict())
+def _send_pwa_icon():
+    from app.pwa_support import PWA_ICON_PATH
+
+    if not PWA_ICON_PATH.exists():
+        abort(404)
+    return send_file(PWA_ICON_PATH, mimetype="image/png", max_age=86400)
+@app.route("/static/apple-touch-icon.png")
+def pwa_apple_touch_icon():
+    return _send_pwa_icon()
+@app.route("/static/pwa-icon-192.png")
+def pwa_icon_192():
+    return _send_pwa_icon()
+@app.route("/static/pwa-icon-512.png")
+def pwa_icon_512():
+    return _send_pwa_icon()
 @app.route("/static/service-worker.js")
 def service_worker():
     js = """self.addEventListener('install',event=>self.skipWaiting());\nself.addEventListener('activate',event=>self.clients.claim());\nself.addEventListener('fetch',event=>{});\n"""
@@ -4392,7 +4433,7 @@ def connect_links():
       <p><b>Server time:</b> {html.escape(now_display())}<br>
       <b>Detected server LAN IP:</b> <code>{html.escape(lan)}</code><br>
       <b>Your IP:</b> <code>{html.escape(client_ip())}</code></p>
-      <p><a class='btn' href='/login'>Login</a> <a class='btn btn2' href='/mobile'>Mobile App</a> <a class='btn btn2' href='/register'>Request Account</a> <a class='btn btn2' href='/apply'>Job Application</a></p>
+      <p><a class='btn' href='/mobile/setup'>iPhone Setup Guide</a> <a class='btn btn2' href='/login'>Login</a> <a class='btn btn2' href='/mobile'>Mobile Dashboard</a> <a class='btn btn2' href='/register'>Request Account</a> <a class='btn btn2' href='/apply'>Job Application</a></p>
     </div>
     <div class='card'><h2>Share These Links</h2>
       <p><b>Phone/mobile:</b><br><code>{html.escape(base)}/mobile</code></p>

@@ -38,7 +38,7 @@ REQUIRED_FILES = [
 REQUIRED_DIRS = ['data','exports','evidence','backups','chatgpt_imports','business_standards','logs']
 
 REQUIRED_ROUTES = [
-    '/login','/register','/apply','/applications','/mobile','/mobile/jobs','/mobile/files',
+    '/login','/register','/apply','/applications','/mobile','/mobile/setup','/mobile/jobs','/mobile/files',
     '/connect','/mobile/ping','/api/connection','/api/health','/admin','/admin/devices',
     '/payroll','/job-costs','/bookkeeping','/filekeeping','/health','/backup','/remote-mobile'
 ]
