@@ -32,6 +32,7 @@ SYNC_FILES = (
     "!!! START INSTALL HERE.vbs",
     "install_jr_job_manager_ui.ps1",
     "SYNC_LIVE_INSTALL.bat",
+    "RUN_SYSTEM_TEST_SUITE.bat",
     "LIVE_FULL_UPDATE.vbs",
     "LIVE_UPDATE_REPORT.txt",
 )
