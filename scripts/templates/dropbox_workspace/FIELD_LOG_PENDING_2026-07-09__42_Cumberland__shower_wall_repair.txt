@@ -1,0 +1,38 @@
+J & R CONSTRUCTION — FIELD LOG (PENDING OFFICE SYNC)
+Generated: 2026-07-09 (cloud agent — merge to Dropbox on desktop)
+Target: 01_Jobs/Completed or Active / Ray Joyner / 42 Cumberland
+Also append to: 03_BUSINESS_ADMIN/Daily_Logs/2026-07-09__JR_Construction_Daily_Log.txt
+
+================================================================================
+DATE/TIME: 2026-07-09 (field)
+JOB: Ray Joyner / 42 Cumberland
+CUSTOMER: Ray Joyner
+ADDRESS: 42 Cumberland
+RELATED ORIGINAL JOB: Ray Joyner / 42 Cumberland — Install three shower door units ($5,000 Closed Paid; callback flag ON)
+WHO: Owner (J&R)
+================================================================================
+
+WHAT HAPPENED:
+  - Small shower wall hole repair — filler applied.
+  - Color slightly off from surround white gloss; patch slightly proud of surface.
+  - Blue painter's tape masked adjacent area during prep/repair.
+  - Photos taken on site (before sand/polish).
+
+NEXT STEP (same day if possible):
+  - Quick stop: light sand with 600 grit — minimal removal, edges only; do not sand through filler or expose substrate.
+  - Finish with shower polish to restore gloss.
+  - Text Ray completion photos after sand/polish.
+  - Billing: see owner decision below — confirm cause and whether price was discussed before invoicing.
+
+BILLING NOTES (INTERNAL — owner decision):
+  - Original shower door job is Closed Paid; wall hole repair is OUT OF ORIGINAL SCOPE.
+  - Charge is appropriate IF: (1) hole was not install-caused warranty work, AND (2) Ray was told repair is billable / amount agreed.
+  - If install-related damage: completion text OK; charge only if previously discussed or Ray expects it.
+  - Suggested: state amount in completion text; log payment to Income_Deposit_Balance_Register.csv when received.
+
+DESKTOP SYNC CHECKLIST:
+  1. scripts\Sync-JRCBusinessFolders.ps1
+  2. Copy or merge this file into Ray Joyner job folder field notes
+  3. Append to daily log in dropbox-records
+  4. Construction Manager → Office Records Sync
+  5. If payment received: Income_Deposit_Balance_Register.csv + Tax_Savings_Tracker_2026.csv
