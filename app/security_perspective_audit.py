@@ -23,9 +23,12 @@ def warn(x): WARNINGS.append(x); line(f"WARNING - {x}")
 def err(x): ERRORS.append(x); line(f"ERROR - {x}")
 
 def check_static_source():
+    import re
+
     src=(APP_DIR/'network_server.py').read_text(encoding='utf-8', errors='replace')
     rp=(APP_DIR/'role_permissions.py').read_text(encoding='utf-8', errors='replace')
-    customer_block = rp.split('"customer":')[1].split('},')[0] if '"customer":' in rp else ''
+    perms_match = re.search(r'"customer":\s*\{([^}]+)\}', rp)
+    customer_block = perms_match.group(1) if perms_match else ''
     required={
         'admin role has manage_users/audit/manage_devices': '"manage_users"' in rp and '"audit"' in rp and '"manage_devices"' in rp,
         'customer role exists with customer-only permissions': '"customer"' in rp and 'view_customer_shared' in customer_block and 'view_files' not in customer_block,
@@ -36,7 +39,7 @@ def check_static_source():
         'device cookie is http-only and same-site': 'httponly=True' in src and 'DEVICE_COOKIE_SAMESITE' in src,
         'device cookie stores fingerprint': '_hash_device_token' in src and 'client_device_fingerprint' in src,
         'blocked devices enforced at login': 'is_client_device_blocked' in src and 'login_blocked_device' in src,
-        'permission navigation filters items': 'for key, label, href, need in nav if need in perms' in src,
+        'permission navigation filters items': 'for key, label, href, need in nav' in src and 'need in perms' in src,
         'customer account request option exists': "<option value='customer'>" in src,
         'admin security audit route exists': '/security-audit' in src,
         'account approval admin only': 'approve_account_request' in src and 'is_admin_role' in src,

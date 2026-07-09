@@ -54,10 +54,19 @@ def main() -> int:
         if route in ns_text: ok(f"Expected route found: {route}")
         else: err(f"Expected route missing: {route}")
 
-    # Start Center checks
-    for phrase in ["Login / Dashboard", "Host Monitor", "Cloud Access", "Auto Repair Host", "Dashboard Role Check"]:
-        if phrase in sc_text: ok(f"Start Center item present: {phrase}")
-        else: err(f"Start Center item missing: {phrase}")
+    # Start Center checks (v8 unified shell uses "Open Dashboard" instead of legacy "Login / Dashboard")
+    start_center_items = {
+        "Login / Dashboard": ("Login / Dashboard", "Open Dashboard"),
+        "Host Monitor": ("Host Monitor",),
+        "Cloud Access": ("Cloud Access",),
+        "Auto Repair Host": ("Auto Repair Host",),
+        "Dashboard Role Check": ("Dashboard Role Check",),
+    }
+    for label, phrases in start_center_items.items():
+        if any(p in sc_text for p in phrases):
+            ok(f"Start Center item present: {label}")
+        else:
+            err(f"Start Center item missing: {label}")
 
     for phrase in ["class HostMonitor", "def login_dashboard", "def show_host_monitor", "dashboard_role_check.py"]:
         if phrase in sc_text: ok(f"Start Center support code present: {phrase}")

@@ -235,12 +235,84 @@ def ensure_unified_file_index_schema(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def ensure_unified_business_log_schema(conn: sqlite3.Connection) -> None:
+    """Bridge desktop Office business_log columns (timestamp/entry) to web host columns (log_time/message)."""
+    cols = _columns(conn, "business_log")
+    if not cols:
+        return
+    for name, typedef in (
+        ("timestamp", "TEXT"),
+        ("log_time", "TEXT"),
+        ("category", "TEXT"),
+        ("entry", "TEXT"),
+        ("message", "TEXT"),
+        ("user_id", "INTEGER"),
+        ("username", "TEXT"),
+        ("session_id", "TEXT"),
+    ):
+        _add_col(conn, "business_log", name, typedef, cols)
+        cols = _columns(conn, "business_log")
+    conn.execute(
+        """
+        UPDATE business_log SET
+            timestamp = COALESCE(NULLIF(timestamp, ''), log_time),
+            log_time = COALESCE(NULLIF(log_time, ''), timestamp),
+            entry = COALESCE(NULLIF(entry, ''), message),
+            message = COALESCE(NULLIF(message, ''), entry),
+            category = COALESCE(NULLIF(category, ''), 'General')
+        """
+    )
+    conn.commit()
+
+
+def ensure_unified_workers_schema(conn: sqlite3.Connection) -> None:
+    """Bridge desktop Office workers columns (default_day_rate) to web host columns (default_rate)."""
+    cols = _columns(conn, "workers")
+    if not cols:
+        return
+    for name, typedef in (
+        ("phone", "TEXT"),
+        ("email", "TEXT"),
+        ("address", "TEXT"),
+        ("w9_status", "TEXT DEFAULT 'Needed'"),
+        ("default_day_rate", "REAL DEFAULT 140"),
+        ("default_rate", "REAL DEFAULT 140"),
+        ("classification", "TEXT DEFAULT 'Helper/Worker'"),
+        ("notes", "TEXT"),
+        ("active", "INTEGER DEFAULT 1"),
+        ("created_at", "TEXT"),
+        ("updated_at", "TEXT"),
+    ):
+        _add_col(conn, "workers", name, typedef, cols)
+        cols = _columns(conn, "workers")
+    conn.execute(
+        """
+        UPDATE workers SET
+            default_day_rate = CASE
+                WHEN COALESCE(default_day_rate, 0) = 0 THEN COALESCE(default_rate, 140)
+                ELSE default_day_rate
+            END,
+            default_rate = CASE
+                WHEN COALESCE(default_rate, 0) = 0 THEN COALESCE(default_day_rate, 140)
+                ELSE default_rate
+            END,
+            active = COALESCE(active, 1),
+            w9_status = COALESCE(NULLIF(w9_status, ''), 'Needed'),
+            classification = COALESCE(NULLIF(classification, ''), 'Helper/Worker'),
+            created_at = COALESCE(NULLIF(created_at, ''), datetime('now'))
+        """
+    )
+    conn.commit()
+
+
 def ensure_all_shared_schemas(conn: sqlite3.Connection) -> None:
     ensure_unified_file_sources_schema(conn)
     ensure_unified_source_summaries_schema(conn)
     ensure_unified_jobs_schema(conn)
     ensure_unified_expenses_schema(conn)
     ensure_unified_file_index_schema(conn)
+    ensure_unified_workers_schema(conn)
+    ensure_unified_business_log_schema(conn)
     try:
         from app.role_utils import ensure_role_normalization
         ensure_role_normalization(conn)

@@ -89,12 +89,14 @@ railway*.env
 *IRS*
 *tax*
 *Tax*
+!app/office_ai/tools/office_mgmt_check_tax_savings_plan.py
 *bank*
 *routing*
 *payroll*
 *Payroll*
 *receipt*
 *Receipt*
+!app/office_ai/tools/save_receipt_note.py
 *invoice-private*
 *customer-private*
 

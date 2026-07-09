@@ -1,7 +1,7 @@
 """
-JRC v6.3 Admin Security Final Check
+JRC v8 Admin Security Final Check
 Checks that the owner/admin default password workflow is safe:
-- admin/admin is first-run local setup only
+- admin/ivygrows is first-run local setup only
 - changed admin password is preserved across updates
 - public/cloud/customer default-admin login is blocked
 - password change route requires current password
@@ -15,8 +15,8 @@ EXPORT_DIR = BASE_DIR / "exports"
 NS = Path(__file__).with_name("network_server.py")
 
 REQUIRED_MARKERS = [
-    "DEFAULT_ADMIN_PASSWORD = \"admin\"",
-    "Default admin/admin is a LOCAL FIRST-SETUP fallback only",
+    "DEFAULT_ADMIN_PASSWORD = \"ivygrows\"",
+    "Default local first-setup owner (ivygrows)",
     "default_admin_remote_blocked",
     "mark_admin_password_changed",
     "admin_default_password_changed",
@@ -46,7 +46,7 @@ def run_check():
             errors.append(f"Dangerous old default-admin repair marker still present: {marker[:80]}")
     if "PUBLIC_HOST_MODE or not is_local_setup_request()" not in text:
         errors.append("Default admin login is not clearly blocked outside local setup.")
-    if "password_quality(new_password, admin_change=is_admin_change)" not in text:
+    if "enforce_new_password_policy(new_password, mastery)" not in text and "password_quality(new_password, admin_change=is_admin_change)" not in text:
         errors.append("Admin password change does not appear to use strengthened admin password rules.")
     if "must_change_password=0" not in text:
         warnings.append("Could not confirm password-change flow clears must_change_password.")
@@ -59,7 +59,7 @@ def run_check():
         f"Timestamp: {dt.datetime.now().isoformat(timespec='seconds')}",
         "",
         "Checks performed:",
-        "- Default admin/admin is local first-setup only.",
+        "- Default admin/ivygrows is local first-setup only.",
         "- Remote/customer/cloud default-admin attempts are blocked.",
         "- Changed admin password is preserved across updates.",
         "- Password-change route requires the current password.",
