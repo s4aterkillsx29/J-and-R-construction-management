@@ -26,5 +26,7 @@ Mobile:
 
 ChatGPT / AI:
 - The program can scan files placed in chatgpt_imports.
-- It can later use an intentionally configured API workflow.
+- Office AI (/office-ai, admin only): in-app assistant with Dropbox rules, OpenAI or mock mode.
+- Configure provider keys at /ai — keys stay in local SQLite only, never Dropbox.
+- Money/tax CSV writes require owner approval at /office-ai/approvals.
 - It cannot directly read private ChatGPT Business conversations by itself.

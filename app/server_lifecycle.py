@@ -20,6 +20,9 @@ SHUTDOWN_MARKER = DATA_DIR / "last_server_shutdown.txt"
 _server_started = False
 
 
+_shutdown_done = False
+
+
 def now_iso() -> str:
     return dt.datetime.now().isoformat(timespec="seconds")
 
@@ -95,9 +98,56 @@ def on_server_startup() -> None:
             conn.commit()
     except Exception:
         pass
+    try:
+        from app.mobile_platform.sync_on_online import on_host_online
+
+        on_host_online(BASE_DIR)
+    except Exception:
+        pass
+
+
+def export_log_snapshots() -> None:
+    """Persist recent business/security logs to disk so nothing is lost on crash."""
+    if not DB_PATH.exists():
+        return
+    stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    export_dir = BACKUP_DIR.parent / "exports"
+    export_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        with direct_db() as conn:
+            for table, prefix in (
+                ("business_log", "JRC_Business_Log_Snapshot"),
+                ("security_events", "JRC_Security_Events_Snapshot"),
+                ("host_events", "JRC_Host_Events_Snapshot"),
+            ):
+                try:
+                    rows = conn.execute(f"SELECT * FROM {table} ORDER BY id DESC LIMIT 500").fetchall()
+                except Exception:
+                    continue
+                if not rows:
+                    continue
+                out = export_dir / f"{prefix}_{stamp}.json"
+                payload = [dict(r) for r in rows]
+                out.write_text(
+                    __import__("json").dumps({"exported_at": now_iso(), "table": table, "rows": payload}, indent=2),
+                    encoding="utf-8",
+                )
+    except Exception:
+        pass
+    try:
+        journal = BASE_DIR / "logs" / "install_setup_journal.log"
+        if journal.exists():
+            dest = export_dir / f"JRC_Install_Journal_Snapshot_{stamp}.log"
+            dest.write_text(journal.read_text(encoding="utf-8", errors="replace")[-200_000:], encoding="utf-8")
+    except Exception:
+        pass
 
 
 def on_server_shutdown(graceful: bool = True) -> None:
+    global _shutdown_done
+    if _shutdown_done:
+        return
+    _shutdown_done = True
     SHUTDOWN_MARKER.write_text(f"{now_iso()} graceful={graceful}", encoding="utf-8")
     try:
         from app.data_pipeline import run_master_pipeline_maintenance
@@ -109,6 +159,7 @@ def on_server_shutdown(graceful: bool = True) -> None:
     except Exception:
         pass
     checkpoint_database()
+    export_log_snapshots()
     if not DB_PATH.exists():
         return
     try:

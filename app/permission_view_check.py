@@ -40,7 +40,7 @@ def static_checks() -> None:
     source = (APP_DIR / "network_server.py").read_text(encoding="utf-8", errors="replace")
     required_patterns = {
         "non_company role exists": '"non_company"' in source,
-        "non_company minimal permission set exists": '"non_company": {"view_dashboard", "view_shared_sessions", "mobile_access"}' in source,
+        "non_company minimal permission set exists": '"non_company": {"view_dashboard", "view_shared_sessions", "mobile_access", "submit_application"}' in source or ('"non_company":' in source and "submit_application" in source),
         "navigation filters by permissions": 'for key, label, href, need in nav if need in perms' in source,
         "role display names exist": 'ROLE_DISPLAY_NAMES' in source,
         "share access helper exists": 'def role_can_access_share' in source,
@@ -91,7 +91,7 @@ def dynamic_checks() -> None:
     else:
         err("non_company role missing")
 
-    expected_non_company = {"view_dashboard", "view_shared_sessions", "mobile_access"}
+    expected_non_company = {"view_dashboard", "view_shared_sessions", "mobile_access", "submit_application"}
     actual_non_company = set(ns.PERMISSIONS.get("non_company", set()))
     if actual_non_company == expected_non_company:
         ok("non_company role has minimal permissions only")

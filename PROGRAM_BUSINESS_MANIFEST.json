@@ -1,0 +1,68 @@
+{
+  "version": "1.0",
+  "description": "JRC Manager v8 — program vs business separation rules",
+  "program_root_env": "JRC_INSTALL_DIR",
+  "business_root_env": "JRC_DROPBOX_RECORDS",
+  "program_zones": [
+    "app/",
+    "data/",
+    "logs/",
+    "exports/",
+    "static/",
+    "templates/",
+    "tests/",
+    ".venv/"
+  ],
+  "business_zones": [
+    "01_Jobs/",
+    "04_FINANCIAL_TRACKING/",
+    "06_Bookkeeping_Taxes/",
+    "08_Admin_Standards/",
+    "00_START_HERE/"
+  ],
+  "program_docs_zone": "07_JRC_MANAGER_PROGRAM_FILES/",
+  "forbidden_in_program": [
+    "01_Jobs",
+    "04_FINANCIAL_TRACKING",
+    "Income_Deposit_Balance_Register.csv",
+    "Payroll_Helper_Register.csv"
+  ],
+  "forbidden_in_business_as_source_of_truth": [
+    "jr_business.db",
+    "live_chat",
+    "messenger_messages",
+    "reliability_events"
+  ],
+  "approved_bridges": {
+    "office_records_sync": {
+      "module": "app.office_records_sync",
+      "direction": "bidirectional",
+      "approval": "admin_or_log_event_wizard"
+    },
+    "update_financial_csv": {
+      "module": "app.office_ai.tools.update_csv",
+      "direction": "ai_to_csv",
+      "approval": "owner_queue"
+    },
+    "run_workspace_sync": {
+      "module": "app.office_ai.tools.run_workspace_sync",
+      "direction": "script_invoke",
+      "approval": "owner_queue"
+    },
+    "pdf_bridge": {
+      "module": "app.pdf_bridge",
+      "direction": "app_to_dropbox_pdf",
+      "approval": "owner_queue"
+    },
+    "guardian_report": {
+      "module": "app.reliability.guardian_report",
+      "direction": "program_to_07_exports",
+      "approval": "auto"
+    },
+    "mobile_outbox_processor": {
+      "module": "app.mobile_platform.outbox_processor",
+      "direction": "mobile_to_business",
+      "approval": "auto_files_approval_for_money"
+    }
+  }
+}

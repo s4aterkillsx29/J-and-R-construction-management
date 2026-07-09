@@ -123,7 +123,8 @@ def analyze_logs() -> list[dict]:
         (r"Address already in use|Only one usage of each socket address", "port_in_use", "The local host port is already in use. Auto repair can switch to a nearby free port."),
         (r"PermissionError|Access is denied", "permission_error", "Windows permissions blocked an action. Try running the Start Center normally, then use Allow Phone Access as admin if needed."),
         (r"Connection refused|timed out|No connection could be made", "connection_failed", "The host was not reachable during the test. It may not have started, or the port/firewall is blocking it."),
-        (r"database is locked|sqlite3\.OperationalError", "database_issue", "The database may be busy or locked by another process. Close extra JRC windows and retry."),
+        (r"database is locked|sqlite3\.OperationalError", "database_issue", "The database may be busy or locked by another process. Close extra JRC windows, run Full Troubleshooter (WAL + schema repair), then retry."),
+        (r"no such column|no such table", "schema_mismatch", "Desktop and web share one database — run Full Troubleshooter or restart host to apply unified schema migrations."),
         (r"can't open file|No such file or directory", "missing_file", "A required file path was missing. Reinstall/update from the latest ZIP if this persists."),
     ]
     findings = []
@@ -171,6 +172,49 @@ def main() -> int:
     if not CLOUD_CONNECT.exists():
         CLOUD_CONNECT.write_text(json.dumps({"cloud_base_url": "", "updated_at": now(), "note": "Optional remote/cloud URL for JRC Manager."}, indent=2), encoding="utf-8")
         report["actions"].append("Created default cloud_connect.json placeholder.")
+
+    # Database
+    db_path = DATA_DIR / "jr_business.db"
+    if db_path.exists():
+        try:
+            from app.db_health import ensure_database_healthy, sqlite_session
+
+            ok, msg = ensure_database_healthy(db_path, log_dir=LOG_DIR)
+            report["actions"].append(f"Database health: {msg}")
+            if not ok:
+                report["warnings"].append(f"Database health issue: {msg}")
+                if "malformed" in msg.lower():
+                    try:
+                        from app.db_health import _known_good_db_sources, _restore_from_source
+
+                        notes: list[str] = []
+                        for src in _known_good_db_sources(db_path):
+                            if _restore_from_source(db_path, src, notes):
+                                report["actions"].append("Restored jr_business.db from healthy sibling install.")
+                                ok = True
+                                break
+                        if not ok:
+                            report["warnings"].append(
+                                "Corrupt database could not auto-restore. Close all JRC windows and run tools/Restore-JRC-DatabaseFromSibling.py"
+                            )
+                    except Exception as exc:
+                        report["warnings"].append(f"Corrupt DB auto-restore skipped: {exc}")
+            with sqlite_session(db_path) as conn:
+                from app.schema_migrations import ensure_all_shared_schemas
+
+                ensure_all_shared_schemas(conn)
+                report["actions"].append("Unified shared schema verified for desktop/web.")
+                try:
+                    from app.test_accounts import ensure_test_customer
+
+                    _, detail = ensure_test_customer(conn)
+                    report["actions"].append(detail)
+                except Exception as exc:
+                    report["warnings"].append(f"TestCustomer account: {exc}")
+        except Exception as exc:
+            report["warnings"].append(f"Database repair skipped: {exc}")
+    else:
+        report["actions"].append("No jr_business.db yet — will be created on first host start.")
 
     # Dependency scan.
     deps = {name: module_ok(name) for name in ["flask", "waitress", "reportlab"]}

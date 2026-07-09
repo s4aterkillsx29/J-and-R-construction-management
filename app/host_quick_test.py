@@ -37,16 +37,29 @@ def main() -> int:
     lan = f"http://{lan_ip()}:{PORT}"
     endpoints = [
         local + "/api/health",
+        local + "/login",
         local + "/mobile/ping",
         local + "/api/connection",
         local + "/connect",
         local + "/mobile",
         local + "/chat",
         local + "/api/chat/sessions",
+        local + "/api/mobile/status",
+        local + "/admin/reliability",
+        local + "/admin/command-center",
+        local + "/log-event",
     ]
     results = [check(u) for u in endpoints]
     passed = sum(1 for r in results if r["ok"])
     failed = len(results) - passed
+    health_ok = any(r["ok"] for r in results if r["url"].endswith("/api/health"))
+    login_ok = any(r["ok"] for r in results if r["url"].endswith("/login"))
+    restart_hint = None
+    if health_ok and not login_ok:
+        restart_hint = (
+            "Health responds but /login failed — the host process is likely stale. "
+            "Close the old host window and run RESTART_JRC.bat or START_NETWORK_SERVER.bat."
+        )
     report = {
         "program": "J and R Construction Manager",
         "test": "Host Quick Test",
@@ -54,6 +67,7 @@ def main() -> int:
         "local_base": local,
         "lan_base": lan,
         "summary": {"passed": passed, "failed": failed, "total": len(results)},
+        "restart_hint": restart_hint,
         "results": results,
         "mobile_links": {
             "connection_test": lan + "/connect",
@@ -69,6 +83,8 @@ def main() -> int:
     print("LAN:", lan)
     for r in results:
         print(("PASS" if r["ok"] else "FAIL"), r["url"], r.get("error", r.get("body", ""))[:160])
+    if restart_hint:
+        print("HINT:", restart_hint)
     print("Report:", out)
     return 0 if failed == 0 else 2
 

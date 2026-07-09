@@ -138,7 +138,7 @@ def main() -> int:
         passed, detail = _probe(f"{host}{path}", protected=True)
         ok(f"unauth {path} blocked", passed, detail)
 
-    for path in ("/api/health", "/api/live/ready", "/mobile/ping", "/login", "/register"):
+    for path in ("/api/health", "/api/live/ready", "/mobile/ping", "/login", "/register", "/auth/desktop-bridge"):
         passed, detail = _probe(f"{host}{path}", protected=False)
         ok(f"public {path}", passed, detail)
 

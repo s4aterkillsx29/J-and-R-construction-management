@@ -42,8 +42,11 @@ for %%F in (
   INSTALL_J_AND_R_MANAGER.vbs
   !!! START INSTALL HERE.vbs
   LIVE_FULL_UPDATE.vbs
+  SETUP_DEDICATED_HOST_LAPTOP.bat
+  START_DEDICATED_HOST_SERVER.bat
+  SETUP_OFFICE_LAPTOP.bat
 ) do if exist "%SRC%%%F" copy /Y "%SRC%%%F" "%DST%\" >nul
-if exist "%SRC%scripts\Ensure-DesktopShortcuts.ps1" copy /Y "%SRC%scripts\Ensure-DesktopShortcuts.ps1" "%DST%\scripts\" >nul
+if exist "%SRC%scripts\Ensure-DedicatedHostShortcuts.ps1" copy /Y "%SRC%scripts\Ensure-DedicatedHostShortcuts.ps1" "%DST%\scripts\" >nul
 if exist "%SRC%scripts\Seed-OwnerEmergencyKey.ps1" copy /Y "%SRC%scripts\Seed-OwnerEmergencyKey.ps1" "%DST%\scripts\" >nul
 if exist "%SRC%assets" xcopy /E /Y /I "%SRC%assets\*" "%DST%\assets\" >nul
 exit /b 0

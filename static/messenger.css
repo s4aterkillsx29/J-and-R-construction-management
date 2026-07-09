@@ -1,0 +1,29 @@
+/* JRC Messenger — docked drawer (non-blocking) */
+#jrc-messenger-drawer {
+  position: fixed;
+  right: 0;
+  top: 60px;
+  width: 320px;
+  max-height: 70vh;
+  background: #111827;
+  color: #f5f5f5;
+  border-left: 1px solid #374151;
+  z-index: 9000;
+  display: none;
+  flex-direction: column;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.4);
+}
+#jrc-messenger-drawer.open { display: flex; }
+#jrc-messenger-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 8999;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #84cc16;
+  color: #0a0f1c;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}

@@ -115,6 +115,7 @@ def repair_schema(results):
                 except Exception: pass
             conn.execute("INSERT OR REPLACE INTO account_request_settings (key,value) VALUES ('public_account_requests','enabled')")
             conn.execute("INSERT OR REPLACE INTO account_request_settings (key,value) VALUES ('approval_required','true')")
+            conn.execute("INSERT OR REPLACE INTO app_settings (key,value) VALUES ('public_account_requests','enabled')")
             conn.commit()
             add(results,'FIXED','Auto Repair','Verified/repaired account, permission, session, remembered-device, owner-recovery, payroll, invoice, job-cost, bookkeeping, filekeeping review, alert, and security-event tables.')
     except Exception as exc:
@@ -155,9 +156,13 @@ def run():
     # db checks
     if DB.exists():
         try:
-            with sqlite3.connect(DB) as conn:
-                integrity=conn.execute("PRAGMA integrity_check").fetchone()[0]
-                add(results,"OK" if integrity=='ok' else "ERROR","Database",f"Integrity check: {integrity}")
+            from app.db_health import ensure_database_healthy, sqlite_session
+
+            ok, msg = ensure_database_healthy(DB, log_dir=BASE_DIR / "logs")
+            add(results, "OK" if ok else "WARN", "Database Health", msg)
+            with sqlite_session(DB) as conn:
+                integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+                add(results, "OK" if integrity == "ok" else "ERROR", "Database", f"Integrity check: {integrity}")
                 # ensure important tables exist
                 tables={r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
                 for t in ["users","jobs","expenses","file_index","file_sources","online_sessions","account_requests","permissions_override","security_events","health_events","business_standards","workers","worker_payments","payroll_periods","job_cost_snapshots","invoices","invoice_payments","known_devices","owner_recovery_events","bookkeeping_ledgers","bookkeeping_rules","bookkeeping_runs","filekeeping_reviews","bookkeeping_alerts","job_applications","application_events","customer_user_profiles","customer_job_requests","customer_request_events"]:

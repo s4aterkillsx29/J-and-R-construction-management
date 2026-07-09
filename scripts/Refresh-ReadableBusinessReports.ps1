@@ -90,7 +90,7 @@ $lines += @(
     "--------------------------------------------------------------------------------",
     "PHONE CURSOR QUICK CHECK",
     "--------------------------------------------------------------------------------",
-    "  00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt  ->  `$13,890 fence quote",
+    "  00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt  ->  `$10,440 fence quote (251 LF)",
     "  00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt     ->  full phone setup",
     "",
     "After phone session on desktop:",

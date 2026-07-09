@@ -44,7 +44,6 @@ PERMISSIONS = {
     },
     "worker": {
         "view_dashboard", "view_jobs", "view_files", "view_shared_sessions", "mobile_access",
-        "view_bookkeeping", "view_filekeeping",
     },
     "helper": {
         "view_dashboard", "view_jobs", "view_files", "view_shared_sessions", "mobile_access",

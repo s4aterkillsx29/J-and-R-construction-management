@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import time
 from pathlib import Path
@@ -88,6 +89,11 @@ def log_event(
     line = f"[{_now()}] [{level}] [{category}] {message}"
     with p["journal"].open("a", encoding="utf-8", errors="replace") as f:
         f.write(line + "\n")
+        f.flush()
+        try:
+            os.fsync(f.fileno())
+        except Exception:
+            pass
     state = load_state(base_dir)
     event = {"time": _now(), "level": level, "category": category, "message": message}
     if step:

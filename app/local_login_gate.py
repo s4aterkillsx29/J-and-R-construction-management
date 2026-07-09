@@ -32,6 +32,17 @@ try:
 except Exception:
     pass
 LOG_PATH = LOG_DIR / 'local_login_gate_last.log'
+_last_desktop_login: dict | None = None
+
+def get_last_desktop_login() -> dict | None:
+    """Return the user dict from the most recent successful desktop blocking/login gate sign-in."""
+    return _last_desktop_login
+
+
+def set_last_desktop_login(user: dict | None) -> None:
+    """Remember desktop sign-in for browser SSO bridge."""
+    global _last_desktop_login
+    _last_desktop_login = dict(user) if user else None
 try:
     from app.role_utils import DEFAULT_OWNER_PASSWORD as DEFAULT_ADMIN_PASSWORD
     from app.role_utils import DEFAULT_OWNER_USERNAME as DEFAULT_ADMIN_USERNAME
@@ -48,11 +59,12 @@ HASH_ITERATIONS_LEGACY = (200000,)
 OWNER = 'Jacob Cosentino'
 try:
     from app.ui_theme import BG, PANEL, CARD, BORDER, TEXT, MUTED, ACCENT, INFO, BUTTON, styled_entry, apply_window_icon
-    from app.runtime_utils import open_web_dashboard as launch_web_dashboard
+    from app.runtime_utils import open_web_dashboard as launch_web_dashboard, open_account_request
 except Exception:
     BG = '#0a0f1c'; PANEL = '#111827'; CARD = '#151c2e'; BORDER = '#334155'
     TEXT = '#f5f5f5'; MUTED = '#a3a3a3'; ACCENT = '#84cc16'; INFO = '#a3e635'; BUTTON = '#171717'
     launch_web_dashboard = None
+    open_account_request = None
     def styled_entry(parent, **kwargs):
         return tk.Entry(parent, bg='#0f172a', fg=TEXT, insertbackground=TEXT, relief='flat', font=('Segoe UI', 12), **kwargs)
     def apply_window_icon(window, path): pass
@@ -88,12 +100,21 @@ def role_key(value):
     return normalize_role(value)
 
 def db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout=5000")
     return conn
 
 def ensure_min_schema():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        from app.db_health import repair_install_database
+
+        ok, msg = repair_install_database(BASE_DIR)
+        if not ok:
+            log(f"DB repair before login gate: {msg}")
+    except Exception as exc:
+        log(f"DB repair skipped: {exc}")
     with db() as conn:
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS users (
@@ -300,8 +321,15 @@ def main():
         proc, lp = launch_hidden([PY_CMD, '-m', 'app.start_center'], 'start_center_from_login_gate.log')
         status.set('Opening Start Center.')
     def open_web_dashboard():
+        row = logged_user.get('row')
         if launch_web_dashboard:
-            ok, msg = launch_web_dashboard('/login')
+            if row:
+                ok, msg = launch_web_dashboard(
+                    sso_user_id=int(row['id']),
+                    sso_username=str(row['username']),
+                )
+            else:
+                ok, msg = launch_web_dashboard('/login')
             status.set(msg)
             return
         proc, lp = launch_hidden([PY_CMD, '-m', 'app.network_server'], 'shared_host_from_login_gate.log')
@@ -325,6 +353,18 @@ def main():
             with db() as conn:
                 fresh=conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
             logged_user['row']=dict(fresh)
+    def request_account():
+        if open_account_request:
+            ok, msg = open_account_request()
+            status.set(msg or 'Opening account request form in browser...')
+            return
+        try:
+            from app.runtime_utils import get_saved_port
+            port = get_saved_port()
+        except Exception:
+            port = 8765
+        webbrowser.open(f'http://127.0.0.1:{port}/register')
+        status.set('Opening account request form in browser...')
     def cloud_note():
         messagebox.showinfo('Remote / Cloud Users', 'Customers, workers, and outside users should use the hosted cloud/tunnel URL, not your local installer. Local Login Gate is for this installed PC only.', parent=root)
     def emergency_mastery():
@@ -401,12 +441,21 @@ def main():
             except Exception:
                 pass
         logged_user['row']=dict(user)
+        global _last_desktop_login
+        _last_desktop_login = dict(user)
         record_event(username, role, 'OK', 'Verified local login')
         try:
             from app.install_setup_log import log_event, mark_step, write_setup_report
             log_event(BASE_DIR, 'LoginGate', f'User {username} logged in role={role}')
             mark_step(BASE_DIR, 'post_login', 'ok', f'Logged in as {username}')
             write_setup_report(BASE_DIR)
+        except Exception:
+            pass
+        try:
+            from app.post_verification_update import spawn_post_verification_update
+            ok, pmsg = spawn_post_verification_update(BASE_DIR, dict(user))
+            if ok:
+                status.set(f'Logged in as {username}. {pmsg}')
         except Exception:
             pass
         if username == DEFAULT_ADMIN_USERNAME and password == DEFAULT_ADMIN_PASSWORD and is_default_admin_active():
@@ -416,6 +465,7 @@ def main():
         else:
             status.set(f"Setup verified: {username} ({role}). Choose the next action below.")
         refresh_after_login()
+    tk.Button(btns, text='Request Account', command=request_account, bg='#1e293b', fg=INFO, relief='flat', padx=8, pady=10, font=('Segoe UI',10,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
     tk.Button(btns, text='Open Web UI (Glass Dashboard)', command=open_web_dashboard, bg=INFO, fg='#0c1222', relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
     tk.Button(btns, text='Login / Continue Setup', command=do_login, bg=ACCENT, fg='#04130a', relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(0,6))
     tk.Button(btns, text='Start Center', command=open_start_center, bg=BUTTON, fg=TEXT, relief='flat', padx=12, pady=10, font=('Segoe UI',11,'bold')).pack(side='left', fill='x', expand=True, padx=(6,0))
@@ -427,18 +477,44 @@ def main():
 
 def require_blocking_login(context: str = "JRC Manager") -> bool:
     """Require sign-in before desktop tools run. Returns False if user cancels."""
+    try:
+        from app.desktop_session import get_active_desktop_session
+
+        sess = get_active_desktop_session(BASE_DIR)
+        if sess and sess.get("user"):
+            set_last_desktop_login(dict(sess["user"]))
+            return True
+    except Exception as exc:
+        log(f"Session resume failed: {exc}")
     if tk is None:
         print(f"{context}: Tkinter unavailable — login gate skipped.")
         return True
-    ensure_min_schema()
+    try:
+        ensure_min_schema()
+    except Exception as exc:
+        log(f"Login gate schema/DB error: {exc}")
+        try:
+            from app.db_health import repair_install_database
+
+            ok, msg = repair_install_database(BASE_DIR)
+            if not ok:
+                messagebox.showerror(
+                    "Login Gate Failed",
+                    f"Database error — login could not start.\n\n{exc}\n\nRepair: {msg[:400]}",
+                )
+                return False
+            ensure_min_schema()
+        except Exception as exc2:
+            messagebox.showerror("Login Gate Failed", f"Database malformed or locked.\n\n{exc2}")
+            return False
     result = {"ok": False}
 
     root = tk.Tk()
     root.withdraw()
     win = tk.Toplevel(root)
     win.title(f"Sign In Required — {context}")
-    win.geometry("480x320")
-    win.minsize(420, 280)
+    win.geometry("480x360")
+    win.minsize(420, 320)
     win.configure(bg=BG)
     win.grab_set()
     apply_window_icon(win, BASE_DIR / "assets" / "j_and_r_manager_icon.ico")
@@ -455,6 +531,19 @@ def require_blocking_login(context: str = "JRC Manager") -> bool:
     epass.pack(fill="x")
     status = tk.StringVar(value="PC-rooted security: login required before program use.")
 
+    def request_account_blocking():
+        if open_account_request:
+            open_account_request()
+            status.set("Account request form opened in browser — admin will review.")
+            return
+        try:
+            from app.runtime_utils import get_saved_port
+            port = get_saved_port()
+        except Exception:
+            port = 8765
+        webbrowser.open(f"http://127.0.0.1:{port}/register")
+        status.set("Account request form opened in browser — admin will review.")
+
     def do_login(_event=None):
         username = uvar.get().strip()
         password = pvar.get()
@@ -465,7 +554,15 @@ def require_blocking_login(context: str = "JRC Manager") -> bool:
             status.set("Login failed. Check username and password.")
             return
         record_event(username, role_key(user["role"]), "OK", f"Blocking login OK for {context}")
+        global _last_desktop_login
+        _last_desktop_login = dict(user)
         result["ok"] = True
+        try:
+            from app.desktop_session import create_desktop_session
+
+            create_desktop_session(dict(user), BASE_DIR, source=f"blocking_{context}")
+        except Exception:
+            pass
         win.destroy()
 
     def cancel():
@@ -473,6 +570,27 @@ def require_blocking_login(context: str = "JRC Manager") -> bool:
         win.destroy()
 
     tk.Label(win, textvariable=status, bg=BG, fg=MUTED, wraplength=420).pack(pady=8)
+    req = tk.Frame(win, bg=BG)
+    req.pack(fill="x", padx=20)
+    tk.Label(
+        req,
+        text="No account? Request access — owner/admin reviews and emails you when approved.",
+        bg=BG,
+        fg=MUTED,
+        wraplength=420,
+        justify="left",
+    ).pack(anchor="w", pady=(0, 6))
+    tk.Button(
+        req,
+        text="Request Account (Admin Review)",
+        command=request_account_blocking,
+        bg="#1e293b",
+        fg=INFO,
+        relief="flat",
+        padx=10,
+        pady=6,
+        font=("Segoe UI", 10, "bold"),
+    ).pack(anchor="w", pady=(0, 4))
     btns = tk.Frame(win, bg=BG)
     btns.pack(fill="x", padx=20, pady=8)
     tk.Button(btns, text="Sign In", command=do_login, bg=ACCENT, fg="#04130a", relief="flat", padx=12, pady=8).pack(side="left", expand=True, fill="x", padx=(0, 6))

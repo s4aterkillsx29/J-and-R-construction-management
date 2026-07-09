@@ -14,6 +14,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+# Prevent sitecustomize from touching the live DB before tests set temp paths.
+os.environ.setdefault("JRC_SKIP_STARTUP_REPAIR", "1")
+
 
 class JRCSmokeTests(unittest.TestCase):
     def test_startup_schema_repair_handles_old_file_sources_table(self):
@@ -22,9 +25,12 @@ class JRCSmokeTests(unittest.TestCase):
             data_dir = base / "data"
             data_dir.mkdir(parents=True, exist_ok=True)
             db_path = data_dir / "jr_business.db"
-            with sqlite3.connect(db_path) as conn:
+            conn = sqlite3.connect(db_path)
+            try:
                 conn.execute("CREATE TABLE file_sources (id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT)")
                 conn.commit()
+            finally:
+                conn.close()
 
             old_data = os.environ.get("JRC_DATA_DIR")
             old_db = os.environ.get("JRC_DB_PATH")
@@ -34,11 +40,14 @@ class JRCSmokeTests(unittest.TestCase):
                 import sitecustomize
                 sitecustomize._repair()
 
-                with sqlite3.connect(db_path) as conn:
+                conn = sqlite3.connect(db_path)
+                try:
                     cols = {row[1] for row in conn.execute("PRAGMA table_info(file_sources)").fetchall()}
                     self.assertIn("folder_path", cols)
                     self.assertIn("source_type", cols)
                     self.assertIn("active", cols)
+                finally:
+                    conn.close()
             finally:
                 if old_data is None:
                     os.environ.pop("JRC_DATA_DIR", None)
@@ -79,23 +88,30 @@ class JRCSmokeTests(unittest.TestCase):
                 ns = importlib.reload(ns)
                 ns.init_db()
 
-                client = ns.app.test_client()
-                for endpoint in ["/api/health", "/mobile/ping", "/api/connection", "/connect", "/login"]:
-                    with self.subTest(endpoint=endpoint):
-                        resp = client.get(endpoint)
-                        self.assertLess(resp.status_code, 500, endpoint)
+                with ns.app.app_context():
+                    client = ns.app.test_client()
+                    for endpoint in ["/api/health", "/mobile/ping", "/api/connection", "/connect", "/login"]:
+                        with self.subTest(endpoint=endpoint):
+                            resp = client.get(endpoint)
+                            self.assertLess(resp.status_code, 500, endpoint)
 
-                with sqlite3.connect(db_path) as conn:
+                conn = sqlite3.connect(db_path)
+                try:
                     file_cols = {row[1] for row in conn.execute("PRAGMA table_info(file_sources)").fetchall()}
                     app_cols = {row[1] for row in conn.execute("PRAGMA table_info(job_applications)").fetchall()}
                     self.assertIn("folder_path", file_cols)
                     self.assertIn("insurance_full_legal_name", app_cols)
+                finally:
+                    conn.close()
             finally:
                 for key, value in old_env.items():
                     if value is None:
                         os.environ.pop(key, None)
                     else:
                         os.environ[key] = value
+                import gc
+
+                gc.collect()
 
 
 if __name__ == "__main__":

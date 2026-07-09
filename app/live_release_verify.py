@@ -104,20 +104,49 @@ def verify_database_alignment(base_dir: Path) -> Tuple[List[str], List[str], Dic
     sync_standards_files(base_dir, dropbox)
     notes.append("business_standards/ synced from Dropbox office files")
 
-    rep = run_office_sync(base_dir)
-    stats["office_sync"] = rep
-    for e in rep.get("errors") or []:
-        errors.append(str(e))
-    notes.extend(rep.get("notes") or [])
-
     db_path = base_dir / "data" / "jr_business.db"
+    if not db_path.is_file():
+        errors.append(f"database missing: {db_path}")
+        return notes, errors, stats
+
+    try:
+        from app.db_health import ensure_database_healthy
+
+        ok, health_msg = ensure_database_healthy(db_path, log_dir=base_dir / "logs")
+        notes.append(f"db health: {health_msg}")
+        if not ok:
+            errors.append(f"database unhealthy: {health_msg}")
+            return notes, errors, stats
+    except Exception as exc:
+        errors.append(f"database health check failed: {exc}")
+        return notes, errors, stats
+
+    try:
+        rep = run_office_sync(base_dir)
+        stats["office_sync"] = rep
+        for e in rep.get("errors") or []:
+            errors.append(str(e))
+        notes.extend(rep.get("notes") or [])
+    except sqlite3.DatabaseError as exc:
+        errors.append(f"office sync failed (database): {exc}")
+        return notes, errors, stats
+    except Exception as exc:
+        errors.append(f"office sync failed: {exc}")
+
     if not db_path.is_file():
         errors.append(f"database missing after sync: {db_path}")
         return notes, errors, stats
 
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=15)
     conn.row_factory = sqlite3.Row
     try:
+        from app.db_health import configure_sqlite_connection
+
+        configure_sqlite_connection(conn)
+        qc = conn.execute("PRAGMA quick_check").fetchone()[0]
+        if str(qc).lower() != "ok":
+            errors.append(f"integrity quick_check: {qc}")
+            return notes, errors, stats
         expected = _count_register_jobs(dropbox)
         db_codes = {
             r[0]
@@ -201,14 +230,17 @@ def verify_install_paths() -> Tuple[List[str], List[str]]:
     for p in paths:
         if not p.exists():
             continue
-        n, e, st = verify_database_alignment(p)
         label = p.name or str(p)
         notes.append(f"--- {label} ---")
-        notes.extend(n[:8])
-        if e:
-            errors.extend(f"{label}: {x}" for x in e)
-        else:
-            notes.append(f"{label}: DB aligned ({st.get('db_job_code_count')} job codes)")
+        try:
+            n, e, st = verify_database_alignment(p)
+            notes.extend(n[:8])
+            if e:
+                errors.extend(f"{label}: {x}" for x in e)
+            else:
+                notes.append(f"{label}: DB aligned ({st.get('db_job_code_count', '?')} job codes)")
+        except Exception as exc:
+            errors.append(f"{label}: verify failed: {exc}")
     return notes, errors
 
 

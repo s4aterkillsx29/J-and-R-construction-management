@@ -1,0 +1,8 @@
+{
+  "admin": ["home", "jobs", "capture", "messages", "more", "command_center", "approvals"],
+  "manager": ["home", "jobs", "capture", "messages", "more"],
+  "worker": ["home", "jobs", "capture", "messages"],
+  "helper": ["home", "jobs", "capture", "messages"],
+  "customer": ["home", "jobs", "messages"],
+  "viewer": ["home", "jobs"]
+}

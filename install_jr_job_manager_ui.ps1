@@ -225,7 +225,7 @@ function Invoke-InstallerAuth([bool]$OwnerMaster){
             return $false
         }
         Add-Log "Auth verified for $($auth.username) role=$($auth.role)"
-        $script:StatusLabel.Text = "Step 2 complete — Verified: $($auth.username) ($($auth.role)). Click Install / Update."
+        $script:StatusLabel.Text = "Step 2 complete — Verified: $($auth.username) ($($auth.role)). Install / Update runs automatically."
         Write-SetupJournal $target "Auth" "INFO" "Verified $($auth.username) role=$($auth.role)"
         Mark-SetupStep $target "verify_login" "ok"
         Update-InstallButtonState
@@ -258,9 +258,17 @@ function Open-ExistingSecureLoginCheck(){
     Mark-SetupStep $target "choose_profile" $(if($ownerRadio.Checked){"ok"}else{"ok"})
     Write-SetupJournal $target "Installer" "INFO" $(if($ownerRadio.Checked){"Owner Master profile selected"}else{"Worker client profile selected"})
     if(Invoke-InstallerAuth $ownerRadio.Checked){
-        [System.Windows.Forms.MessageBox]::Show(
-            "Step 2 complete — login verified.`n`nUser: $($script:AuthInfo.username)`nRole: $($script:AuthInfo.role)`n`nNow click Install / Update (Step 3).`n`nCustomers never use this installer — they use Jacob's web link only.",
-            "Authentication Verified","OK","Information") | Out-Null
+        if($ownerRadio.Checked){
+            [System.Windows.Forms.MessageBox]::Show(
+                "Step 2 complete — login verified.`n`nUser: $($script:AuthInfo.username)`nRole: $($script:AuthInfo.role)`n`nInstall / Update (Step 3) starts automatically now.",
+                "Authentication Verified","OK","Information") | Out-Null
+            $script:StatusLabel.Text = "Step 3 — Install / Update running automatically after verification..."
+            $installBtn.PerformClick()
+        } else {
+            [System.Windows.Forms.MessageBox]::Show(
+                "Worker client profile selected.`n`nClick Install Worker Client when ready.`n`nCustomers never use this installer — they use Jacob's web link only.",
+                "Worker Client","OK","Information") | Out-Null
+        }
     } else {
         [System.Windows.Forms.MessageBox]::Show(
             "Step 2 not finished.`n`nOwner PC: verify admin login OR create first owner.`n`nWorker PC: click Install Worker Client (no local login needed).`n`nCustomers: do not install — use web link from Jacob.",
@@ -301,7 +309,7 @@ $customerNote.Font=New-Object System.Drawing.Font("Segoe UI",9,[System.Drawing.F
 $customerNote.AutoSize=$false; $customerNote.Size=New-Object System.Drawing.Size(820,34)
 $customerNote.Location=New-Object System.Drawing.Point(28,132); $form.Controls.Add($customerNote)
 $stepGuide=New-Object System.Windows.Forms.Label
-$stepGuide.Text="Step 1: Choose profile below   |   Step 2: Verify Login   |   Step 3: Install / Update   |   Step 4: Setup wizard opens"
+$stepGuide.Text="Step 1: Choose profile   |   Step 2: Verify Login → auto Install/Update (Owner)   |   Step 4: Setup wizard"
 $stepGuide.ForeColor=[System.Drawing.Color]::FromArgb(163,230,53)
 $stepGuide.AutoSize=$true; $stepGuide.Location=New-Object System.Drawing.Point(28,168); $form.Controls.Add($stepGuide)
 $panel=New-Object System.Windows.Forms.Panel

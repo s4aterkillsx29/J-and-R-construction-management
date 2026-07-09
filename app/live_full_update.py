@@ -68,6 +68,10 @@ def sync_tree(src: Path, dst: Path) -> List[str]:
         app_dst.mkdir(parents=True, exist_ok=True)
         for py in app_src.glob("*.py"):
             shutil.copy2(py, app_dst / py.name)
+        for sub in app_src.iterdir():
+            if sub.is_dir() and sub.name not in ("__pycache__",):
+                shutil.copytree(sub, app_dst / sub.name, dirs_exist_ok=True)
+                notes.append(f"Synced app/{sub.name}/")
         notes.append(f"Synced {len(list(app_src.glob('*.py')))} app modules")
     scripts_src = src / "scripts"
     scripts_dst = dst / "scripts"

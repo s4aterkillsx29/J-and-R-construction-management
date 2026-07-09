@@ -319,24 +319,9 @@ def setup_pc_profile(
 
 def pre_start_host_check(base_dir: Optional[Path] = None) -> Tuple[bool, str]:
     """Returns (proceed, message) before starting local host."""
-    root = Path(base_dir or BASE_DIR)
-    remote_ok, remote_url, remote_data = remote_host_is_running(root)
-    local_ok = local_host_is_running()
+    from app.host_role_registry import pre_start_host_allowed
 
-    if local_ok:
-        return True, "Local host is already running on this PC."
-
-    if remote_ok and remote_url:
-        version = remote_data.get("version", "?")
-        return False, (
-            f"Another JRC host is already running at:\n{remote_url}\n\n"
-            f"Version: {version}\n\n"
-            "Only one host should run at a time.\n"
-            "• Office laptop: use Connect to Remote Host instead of starting here.\n"
-            "• Switching hosts: stop the remote host first, then start on this PC."
-        )
-
-    return True, "OK to start local host on this PC."
+    return pre_start_host_allowed(base_dir)
 
 
 def main(argv: Optional[List[str]] = None) -> int:

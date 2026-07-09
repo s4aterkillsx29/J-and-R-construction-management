@@ -230,7 +230,7 @@ def run_phase_verification(base_dir: Path | None = None) -> tuple[int, Path]:
     try:
         import subprocess
 
-        for mod in ("app.account_request_verification_check", "app.file_access_security", "app.ui_dashboard_final_check"):
+        for mod in ("app.account_request_verification_check", "app.file_access_security", "app.ui_dashboard_final_check", "app.device_shutdown_final_check", "app.office_ai_verification_check", "app.business_sources_security_audit"):
             proc = subprocess.run(
                 [sys.executable, "-m", mod, str(base)],
                 cwd=str(base),
@@ -244,6 +244,30 @@ def run_phase_verification(base_dir: Path | None = None) -> tuple[int, Path]:
                 for ln in (proc.stdout or "").splitlines():
                     if "ERROR" in ln:
                         lines.append(f"    {ln.strip()}")
+        # Re-apply single owner admin before disk isolation scan (QA audits may reactivate test users)
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "app.consolidate_owner_admin", "--deactivate-only"],
+                cwd=str(base),
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+        except Exception:
+            pass
+        proc = subprocess.run(
+            [sys.executable, "-m", "app.disk_data_isolation_audit", str(base)],
+            cwd=str(base),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        lines.append(f"  app.disk_data_isolation_audit: exit {proc.returncode}")
+        if proc.returncode != 0:
+            errors += 1
+            for ln in (proc.stdout or "").splitlines():
+                if "ERROR" in ln or "ERRORS:" in ln:
+                    lines.append(f"    {ln.strip()}")
         lines.append("")
     except Exception as exc:
         lines.append(f"  security checks failed: {exc}")

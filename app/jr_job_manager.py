@@ -14,6 +14,13 @@ import smtplib
 from email.mime.text import MIMEText
 from dataclasses import dataclass
 from pathlib import Path
+
+try:
+    from app.win11_compat import enable_win_dpi_awareness
+    enable_win_dpi_awareness()
+except Exception:
+    pass
+
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
@@ -50,7 +57,7 @@ except Exception:
     REPORTLAB_OK = False
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.13.0 Densus Owner-Approval Edition"
+APP_VERSION = "8.1.0 Unified Office Edition"
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -75,7 +82,7 @@ try:
         ENTRY_BG,
         configure_ttk,
     )
-    from app.runtime_utils import open_web_dashboard
+    from app.runtime_utils import open_web_dashboard, open_account_request
 except Exception:
     DARK_BG = "#0a0f1c"
     PANEL_BG = "#111827"
@@ -89,6 +96,7 @@ except Exception:
     ENTRY_BG = "#0f172a"
     configure_ttk = None
     open_web_dashboard = None
+    open_account_request = None
 
 TAX_CATEGORIES = [
     "Materials & Supplies",
@@ -169,10 +177,31 @@ class Database:
         DATA_DIR.mkdir(exist_ok=True)
         EXPORT_DIR.mkdir(exist_ok=True)
         EVIDENCE_DIR.mkdir(exist_ok=True)
-        self.conn = sqlite3.connect(path)
+        try:
+            from app.db_health import ensure_database_healthy
+
+            ensure_database_healthy(path, log_dir=BASE_DIR / "logs")
+        except Exception:
+            pass
+        from app.db_health import configure_sqlite_connection
+
+        self.conn = sqlite3.connect(path, timeout=15)
         self.conn.row_factory = sqlite3.Row
+        configure_sqlite_connection(self.conn)
         self.init_schema()
+        try:
+            from app.schema_migrations import ensure_all_shared_schemas
+
+            ensure_all_shared_schemas(self.conn)
+        except Exception:
+            pass
         self.seed_defaults()
+
+    def close(self) -> None:
+        try:
+            self.conn.close()
+        except Exception:
+            pass
 
     def init_schema(self):
         cur = self.conn.cursor()
@@ -434,6 +463,11 @@ class DarkApp(tk.Tk):
     def __init__(self):
         super().__init__()
         try:
+            from app.win11_compat import bootstrap_tk_window
+            bootstrap_tk_window(self)
+        except Exception:
+            pass
+        try:
             from app.data_pipeline import require_master_local_storage
             require_master_local_storage()
         except SystemExit:
@@ -446,12 +480,28 @@ class DarkApp(tk.Tk):
         self.configure(bg=DARK_BG)
         self.db = Database(DB_PATH)
         self.withdraw()
-        login = LoginDialog(self, self.db)
-        self.wait_window(login)
-        if not login.result:
-            self.destroy()
-            raise SystemExit
-        self.current_user = login.result
+        resumed = None
+        try:
+            from app.office_app_session import resume_user_from_desktop_session, sync_document_templates
+
+            sync_document_templates()
+            resumed = resume_user_from_desktop_session(self.db)
+        except Exception:
+            pass
+        if resumed:
+            self.current_user = resumed
+        else:
+            login = LoginDialog(self, self.db)
+            self.wait_window(login)
+            if not login.result:
+                self.destroy()
+                raise SystemExit
+            self.current_user = login.result
+            try:
+                from app.local_login_gate import set_last_desktop_login
+                set_last_desktop_login(login.result)
+            except Exception:
+                pass
         self.deiconify()
         self.selected_job_id = None
         self.selected_customer_id = None
@@ -465,7 +515,15 @@ class DarkApp(tk.Tk):
         if not open_web_dashboard:
             messagebox.showwarning("Unavailable", "Web dashboard helper could not load.")
             return
-        ok, msg = open_web_dashboard("/login")
+        user = getattr(self, "current_user", None) or {}
+        if user.get("id") and user.get("username"):
+            ok, msg = open_web_dashboard(
+                "/",
+                sso_user_id=int(user["id"]),
+                sso_username=str(user["username"]),
+            )
+        else:
+            ok, msg = open_web_dashboard("/login")
         if not ok:
             messagebox.showinfo("Web Dashboard", msg)
 
@@ -635,6 +693,8 @@ class DarkApp(tk.Tk):
         row.pack(fill="x", pady=6)
         ttk.Button(row, text="New Estimate from Selected Job", style="Accent.TButton", command=lambda: self.document_window("Estimate")).pack(side="left", padx=4)
         ttk.Button(row, text="New Invoice from Selected Job", style="Accent.TButton", command=lambda: self.document_window("Invoice")).pack(side="left", padx=4)
+        ttk.Button(row, text="Write Draft (Standards Template)", command=self.open_standards_draft).pack(side="left", padx=4)
+        ttk.Button(row, text="Open Document Templates Folder", command=self.open_document_templates).pack(side="left", padx=4)
         ttk.Button(row, text="Open Exports Folder", command=self.open_exports).pack(side="left", padx=4)
         list_card = self.card(wrap, "Document History")
         list_card.pack(fill="both", expand=True, padx=4, pady=4)
@@ -1367,6 +1427,35 @@ class DarkApp(tk.Tk):
             self.db.log(c, e); win.destroy(); self.refresh_all()
         ttk.Button(frm, text="Save Log Entry", style="Accent.TButton", command=save).grid(row=2, column=0, columnspan=2, pady=10)
 
+    def open_standards_draft(self):
+        doc_type = "invoice"
+        job_slug = ""
+        if self.selected_job_id:
+            j = self.db.one("SELECT job_name FROM jobs WHERE id=?", (self.selected_job_id,))
+            if j:
+                job_slug = j["job_name"] or ""
+                doc_type = "invoice"
+        try:
+            from app.document_standards_writer import launch_standards_document
+
+            ok, msg = launch_standards_document(BASE_DIR, doc_type, job_slug)
+            if ok:
+                self.db.log("Documents", f"Standards draft opened: {msg[:200]}")
+                messagebox.showinfo("Standards Draft", msg)
+            else:
+                messagebox.showwarning("Draft", msg)
+        except Exception as exc:
+            messagebox.showerror("Draft error", str(exc))
+
+    def open_document_templates(self):
+        try:
+            from app.document_standards_writer import ensure_document_templates
+
+            folder = ensure_document_templates(BASE_DIR)
+            os.startfile(str(folder))  # type: ignore[attr-defined]
+        except Exception as exc:
+            messagebox.showerror("Templates", str(exc))
+
     def document_window(self, doc_type):
         if not self.selected_job_id:
             messagebox.showinfo("Select", "Select a job first on the Jobs tab.")
@@ -1825,7 +1914,18 @@ def _autosave_loop(app):
 
 def _on_close(app):
     _save_session(app)
-    app.db.log('Session', 'Program closed; session auto-saved.')
+    try:
+        from app.office_app_session import checkpoint_database
+        from app.desktop_session import touch_desktop_session
+
+        checkpoint_database(app.db)
+        touch_desktop_session(BASE_DIR)
+    except Exception:
+        pass
+    try:
+        app.db.log('Session', 'Program closed; session auto-saved and database checkpointed.')
+    except Exception:
+        pass
     app.destroy()
 
 _orig_app_init = DarkApp.__init__
@@ -2440,14 +2540,28 @@ def _v26_login_init(self, parent, db):
     self.password = ttk.Entry(hero, width=34, show='*'); self.password.grid(row=4, column=1, padx=22, pady=6)
     trusted = db.get_setting('trusted_admin_device_id', '') == get_device_id()
     tk.Label(hero, text=('Trusted owner laptop recognized.' if trusted else 'This device is not the original owner/admin laptop.'), bg=CARD_BG, fg=ACCENT if trusted else WARNING, wraplength=440, font=('Segoe UI', 9, 'bold')).grid(row=5, column=0, columnspan=2, sticky='w', padx=22, pady=(10,4))
-    tk.Label(hero, text='Default first login: admin / admin. Change it in Owner/Admin settings.', bg=CARD_BG, fg=MUTED, wraplength=440, font=('Segoe UI', 9)).grid(row=6, column=0, columnspan=2, sticky='w', padx=22, pady=(0,12))
-    btns = tk.Frame(hero, bg=CARD_BG); btns.grid(row=7, column=0, columnspan=2, sticky='ew', padx=22, pady=(6,20))
+    tk.Label(hero, text='Default first login: admin / admin. Change it in Owner/Admin settings.', bg=CARD_BG, fg=MUTED, wraplength=440, font=('Segoe UI', 9)).grid(row=6, column=0, columnspan=2, sticky='w', padx=22, pady=(0,8))
+    req = tk.Frame(hero, bg=CARD_BG)
+    req.grid(row=7, column=0, columnspan=2, sticky='ew', padx=22, pady=(0,8))
+    tk.Label(req, text='No account yet? Request access — admin reviews and emails you when approved.', bg=CARD_BG, fg=MUTED, wraplength=440, font=('Segoe UI', 9)).pack(anchor='w')
+    def _request_account():
+        if open_account_request:
+            open_account_request()
+        else:
+            import webbrowser
+            webbrowser.open('http://127.0.0.1:8765/register')
+    tk.Button(req, text='Request Account (Admin Review)', command=_request_account, bg='#1e293b', fg=ACCENT, relief='flat', padx=10, pady=6, font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(6,0))
+    btns = tk.Frame(hero, bg=CARD_BG); btns.grid(row=8, column=0, columnspan=2, sticky='ew', padx=22, pady=(6,20))
     ttk.Button(btns, text='Forgot Password', command=self.forgot_password).pack(side='left')
     ttk.Button(btns, text='Cancel', command=self.cancel).pack(side='right', padx=5)
     ttk.Button(btns, text='Login', style='Accent.TButton', command=self.login).pack(side='right', padx=5)
     hero.columnconfigure(1, weight=1)
     self.username.insert(0, 'admin'); self.password.focus_set(); self.bind('<Return>', lambda e: self.login())
     self.update_idletasks(); self.geometry(f"+{parent.winfo_screenwidth()//2 - self.winfo_width()//2}+{parent.winfo_screenheight()//2 - self.winfo_height()//2}")
+    try:
+        self.geometry(f"{max(self.winfo_width(), 520)}x{max(self.winfo_height(), 460)}+{parent.winfo_screenwidth()//2 - max(self.winfo_width(), 520)//2}+{parent.winfo_screenheight()//2 - max(self.winfo_height(), 460)//2}")
+    except Exception:
+        pass
 
 
 def _v26_forgot_password(self):

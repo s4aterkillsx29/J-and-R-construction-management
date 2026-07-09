@@ -1,0 +1,76 @@
+J & R CONSTRUCTION — iPHONE CURSOR BOOKMARK SETUP
+Updated: July 7, 2026 | Jacob Cosentino
+
+Finish this ONCE on your iPhone in the Cursor app.
+
+================================================================================
+STEP 1 — OPEN THE RIGHT WORKSPACE
+================================================================================
+1. Open Dropbox app → wait for sync (green check).
+2. Open Cursor iPhone app → sign in.
+3. Open folder / workspace:
+     JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
+     then the INNER folder with the same name.
+4. Do NOT open GitHub repo for business work.
+
+VERIFY: Open this file in Cursor file tree:
+  00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
+SUCCESS = you see $10,440 Lily Sassafras fence quote.
+FAIL = wrong folder or file missing → fix workspace first.
+
+================================================================================
+STEP 2 — BOOKMARK (PIN) THESE FILES IN CURSOR
+================================================================================
+In Cursor iPhone, open each file below, then use the bookmark / star / pin
+control (top of file or file menu — label varies by Cursor version).
+
+Pin these 5 files:
+
+  1. 00_START_HERE/IPHONE_CURSOR_BOOKMARK_SETUP.txt     (this file)
+  2. 00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt
+  3. 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
+  4. 00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt
+  5. 00_START_HERE/IPHONE_PHOTO_RECEIPT_UPLOAD_GUIDE.txt
+
+Optional folder shortcut:
+  00_INBOX_To_File/iPhone_Uploads/   (drop receipt photos here)
+
+After pinning, your Bookmarks / Pinned list should show all 5 files.
+Tap any bookmark to open without browsing the full tree.
+
+================================================================================
+STEP 3 — QUICK PHONE COMMANDS (paste in Cursor chat)
+================================================================================
+  "Open BUSINESS_DASHBOARD and show active jobs"
+  "Log this receipt" + attach photo
+  "Open Lily 315 fence quote"
+  "log sync"  (when back at office desktop — runs full pipeline)
+
+================================================================================
+STEP 4 — JRC MANAGER MOBILE (Wi-Fi / Tailscale — optional)
+================================================================================
+  Office host: http://100.95.109.11:8765/mobile
+  Dedicated host: http://100.74.112.42:8765/mobile
+  Test ping: .../mobile/ping  (should return plain text OK)
+
+Same Wi-Fi as host OR Tailscale on phone.
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+  Bookmarks empty after update
+    → Re-pin the 5 files (Cursor updates sometimes clear pins)
+
+  File not found
+    → Open INNER business folder, not Dropbox root or GitHub
+
+  Desktop not updated after phone edits
+    → On office PC say "log sync" or run tools/Log-WorkspaceSync.ps1
+
+  Verify from office PC:
+    python -m app.phone_cursor_workspace --verify
+    (in JRC-Construction-Office / local-jrc-app-repo)
+
+================================================================================
+END
+================================================================================

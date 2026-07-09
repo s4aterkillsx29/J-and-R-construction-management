@@ -25,7 +25,8 @@ ALLOWED_TABLES: Set[str] = {
     "account_request_settings", "known_devices", "security_events", "health_events",
     "troubleshooting_actions", "host_events", "data_refresh_runs", "data_conflicts",
     "change_queue", "debit_payment_requests", "business_funds_ledger", "admin_withdrawals",
-    "online_sessions", "mobile_devices", "ai_sources", "cloud_profiles", "record_locks",
+    "online_sessions", "mobile_devices", "ai_sources", "office_ai_sessions", "office_ai_messages",
+    "office_ai_pending_actions", "office_ai_usage_log", "cloud_profiles", "record_locks",
     "owner_recovery_events",
 }
 

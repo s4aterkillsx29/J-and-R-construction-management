@@ -45,7 +45,7 @@ except Exception:
     is_jrc_server = None
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.13.0 Densus Owner-Approval Edition"
+APP_VERSION = "8.1.0 Unified Office Edition"
 BUSINESS = "J & R Construction"
 OWNER = "Jacob Cosentino"
 DEFAULT_PORT = int(os.environ.get("JRC_PORT", "8765"))
@@ -497,7 +497,8 @@ def read_local_sessions() -> list[dict]:
         return []
     try:
         import sqlite3
-        cutoff = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 15 * 60))
+        from app.desktop_session import IDLE_MINUTES
+        cutoff = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - IDLE_MINUTES * 60))
         with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
@@ -533,6 +534,7 @@ class AdminServerPanel(tk.Frame):
         self.expanded = False
         self._sessions: list[dict] = []
         self._wrap = 520
+        self._transitioning = False
         self.status_var = tk.StringVar(value="Server: checking...")
 
         head = tk.Frame(self, bg=PANEL)
@@ -559,6 +561,8 @@ class AdminServerPanel(tk.Frame):
         for label, cmd in (
             ("Start", self.parent.start_host),
             ("Stop", self.parent.stop_host),
+            ("Restart", self.restart_host),
+            ("Logs", self.show_logs),
             ("Admin", self.open_admin_web),
             ("Accounts", self.open_admin_accounts),
         ):
@@ -610,7 +614,48 @@ class AdminServerPanel(tk.Frame):
             ).pack(side="left", padx=2, pady=2)
 
         self.after(900, self.refresh)
-        self.after(5000, self._loop)
+        self._schedule_poll()
+
+    def _schedule_poll(self):
+        try:
+            if not self.winfo_exists():
+                return
+            from app.host_role_registry import get_poll_interval_ms
+
+            ms = get_poll_interval_ms(BASE_DIR, transitioning=self._transitioning)
+            self.after(ms, self._loop)
+        except Exception:
+            self.after(30000, self._loop)
+
+    def restart_host(self):
+        self._transitioning = True
+        self.status_var.set("Server: restarting...")
+        def worker():
+            try:
+                from app.server_control import restart_server
+
+                result = restart_server(BASE_DIR)
+                msg = result.get("message", "Restart finished")
+            except Exception as exc:
+                msg = str(exc)
+            def finish():
+                self._transitioning = False
+                self.set_status(msg)
+                self.refresh()
+            self.after(0, finish)
+        threading.Thread(target=worker, daemon=True).start()
+
+    def show_logs(self):
+        try:
+            from app.server_control import tail_logs
+
+            text = tail_logs(60)
+            messagebox.showinfo("Host Log (tail)", text[:3500] or "No log output yet.")
+        except Exception as exc:
+            messagebox.showwarning("Host Log", str(exc))
+
+    def set_status(self, msg: str) -> None:
+        self.parent.set_status(msg)
 
     def set_wraplength(self, width: int) -> None:
         self._wrap = max(180, width)
@@ -629,27 +674,43 @@ class AdminServerPanel(tk.Frame):
         try:
             if self.winfo_exists():
                 self.refresh()
-                self.after(5000, self._loop)
+                self._schedule_poll()
         except Exception:
             pass
 
     def refresh(self):
-        running = is_host_running()
-        cloud = get_cloud_base_url()
-        sessions: list[dict] = []
-        if running:
-            try:
-                with urllib.request.urlopen(urls()["local"] + "/api/local-host-admin", timeout=1.0) as resp:
-                    data = json.loads(resp.read().decode("utf-8", "ignore"))
-                    sessions = data.get("sessions") or []
-            except Exception:
+        try:
+            from app.server_control import get_sessions, get_status
+
+            st = get_status(BASE_DIR)
+            running = bool(st.get("running"))
+            cloud = st.get("cloud_url") or get_cloud_base_url()
+            sessions = get_sessions(BASE_DIR) if running else read_local_sessions()
+        except Exception:
+            running = is_host_running()
+            cloud = get_cloud_base_url()
+            sessions = []
+            if running:
+                try:
+                    with urllib.request.urlopen(urls()["local"] + "/api/local-host-admin", timeout=1.0) as resp:
+                        data = json.loads(resp.read().decode("utf-8", "ignore"))
+                        sessions = data.get("sessions") or []
+                except Exception:
+                    sessions = read_local_sessions()
+            else:
                 sessions = read_local_sessions()
-        else:
-            sessions = read_local_sessions()
         self._sessions = sessions
         mode = "CLOUD" if cloud and not running else ("RUNNING" if running else "STOPPED")
+        role_hint = ""
+        try:
+            from app.host_role_registry import host_role_display
+
+            role_hint = host_role_display(BASE_DIR) + "\n"
+        except Exception:
+            pass
         self.status_var.set(
             f"Server: {mode} | Port {PORT} | Active users: {len(sessions)}\n"
+            f"{role_hint}"
             f"LAN: {lan_ip()} | Cloud: {cloud or 'not set'}"
         )
         self.session_box.delete(0, "end")
@@ -732,13 +793,18 @@ class StartCenter(tk.Tk):
             pass
         self.after(700, self._run_startup_setup_if_needed)
         self.after(1200, self._show_dedicated_host_welcome)
+        self.after(60000, self._check_session_idle)
+        self._bind_session_activity()
 
     def _define_sections(self):
         return {
             "daily": ("Home", [
                 ("Open Dashboard", "Your role-based home — all features in one place.", self.open_dashboard, "primary"),
-                ("Open Office", "Desktop jobs, invoices, payroll, files.", self.open_office, "info"),
+                ("Open Office", "Desktop jobs, invoices, payroll, files — uses your active login.", self.open_office, "info"),
+                ("Office AI", "Owner/admin in-app assistant — same Dropbox rules as Cursor.", self.open_office_ai, "primary"),
                 ("Web Dashboard", "Browser UI — same login, unified dashboard.", self.open_web_dashboard, "info"),
+                ("Write Document (Standards)", "Open a JRC template draft for editing.", self.write_standards_document, "info"),
+                ("Sign Out", "End your active session (30 min idle also signs you out).", self.sign_out, "warn"),
             ]),
             "hosting": ("Hosting & mobile", [
                 ("Start Host Server (Easy)", "Dedicated laptop: one window — keep open for 24/7 LAN host.", self.start_dedicated_host_easy, "primary"),
@@ -775,7 +841,7 @@ class StartCenter(tk.Tk):
             "developer": ("Developer & admin", [
                 ("Full Live Update", "Sync files, verify packages, run all checks, log and save LIVE_UPDATE_REPORT.txt.", self.run_live_full_update, "primary"),
                 ("Office Records Sync", "Import JRC job register + payroll from dropbox-records; merge exports to office CSVs.", self.run_office_records_sync, "primary"),
-                ("Phone Cursor Dropbox Setup", "Deploy 00_START_HERE files for iPhone Cursor + verify $13,890 Lily quote.", self.run_phone_cursor_dropbox_setup, "primary"),
+                ("Phone Cursor Dropbox Setup", "Deploy 00_START_HERE files for iPhone Cursor + verify $10,440 Lily quote.", self.run_phone_cursor_dropbox_setup, "primary"),
                 ("Phase Verification", "Run all phase checks; saves PHASE_VERIFICATION_REPORT.txt.", self.run_phase_verification, "info"),
                 ("Developer Tools Console", "Every QA, repair, and admin script — full bells and whistles.", self.developer_tools_window, "info"),
                 ("Account Database Editor", "Users, roles, passwords, sessions — /admin/database/accounts.", self.open_admin_accounts, "primary"),
@@ -800,6 +866,25 @@ class StartCenter(tk.Tk):
         self.status_var.set(msg)
         self.update_idletasks()
 
+    def _refresh_guardian_chip(self) -> None:
+        try:
+            from app.reliability.guardian_store import connect, latest_status
+
+            conn = connect()
+            try:
+                st = latest_status(conn)
+            finally:
+                conn.close()
+            colors = {"green": INFO, "yellow": "#fbbf24", "red": "#f87171", "off": MUTED, "paused": MUTED}
+            self._guardian_chip.config(text=f"Guardian: {st}", fg=colors.get(st, INFO))
+        except Exception:
+            self._guardian_chip.config(text="Guardian: —", fg=MUTED)
+        self.after(60000, self._refresh_guardian_chip)
+
+    def _open_guardian_admin(self) -> None:
+        self.open_admin_web_panel()
+        self.set_status("Open Admin → Reliability Guardian (/admin/reliability) when host is running.")
+
     def _build(self):
         shell = tk.Frame(self, bg=BG)
         shell.pack(fill="both", expand=True)
@@ -817,8 +902,9 @@ class StartCenter(tk.Tk):
         tk.Label(head_inner, text=f"v{APP_VERSION}", fg=DIM, bg=PANEL, font=("Segoe UI", 9)).pack(anchor="w")
         try:
             from app.data_pipeline import mode_label as pipeline_mode_label
-            from app.host_laptop_roles import host_role_label
-            pipeline_txt = pipeline_mode_label() + " | " + host_role_label(BASE_DIR)
+            from app.host_role_registry import host_role_display
+
+            pipeline_txt = pipeline_mode_label() + " | " + host_role_display(BASE_DIR)
         except Exception:
             pipeline_txt = "Data pipeline: standard local"
         self._head_pipeline = tk.Label(
@@ -835,7 +921,12 @@ class StartCenter(tk.Tk):
             justify="left",
         )
         self._head_sub.pack(anchor="w", pady=(8, 0))
-
+        self._guardian_chip = tk.Label(
+            head_inner, text="Guardian: …", fg=INFO, bg=PANEL, font=("Segoe UI", 9, "bold"), cursor="hand2"
+        )
+        self._guardian_chip.pack(anchor="w", pady=(6, 0))
+        self._guardian_chip.bind("<Button-1>", lambda _e: self._open_guardian_admin())
+        self.after(2000, self._refresh_guardian_chip)
         self._admin_dock = tk.Frame(shell, bg=BG)
         self._admin_dock.pack(fill="x", padx=16, pady=(0, 8))
         self.admin_panel = AdminServerPanel(self._admin_dock, self)
@@ -1061,6 +1152,98 @@ class StartCenter(tk.Tk):
                 "Could not find INSTALL_J_AND_R_MANAGER.vbs or install_jr_job_manager_ui.ps1 in the program folder.",
             )
 
+    def _session_user(self) -> dict | None:
+        try:
+            from app.desktop_session import session_user_dict
+
+            return session_user_dict(BASE_DIR)
+        except Exception:
+            try:
+                from app.local_login_gate import get_last_desktop_login
+
+                return get_last_desktop_login()
+            except Exception:
+                return None
+
+    def _bind_session_activity(self) -> None:
+        def _touch(_event=None) -> None:
+            try:
+                from app.desktop_session import touch_desktop_session
+
+                touch_desktop_session(BASE_DIR)
+            except Exception:
+                pass
+
+        for seq in ("<Button>", "<Key>"):
+            try:
+                self.bind_all(seq, _touch, add="+")
+            except Exception:
+                pass
+
+    def _check_session_idle(self) -> None:
+        try:
+            from app.desktop_session import IDLE_MINUTES, get_active_desktop_session
+
+            if get_active_desktop_session(BASE_DIR, touch=False):
+                self.after(60000, self._check_session_idle)
+                return
+            messagebox.showwarning(
+                "Session Ended",
+                f"Your session ended after {IDLE_MINUTES} minutes of inactivity.\n\nSign in again when you restart the program.",
+            )
+            self.destroy()
+        except Exception:
+            self.after(60000, self._check_session_idle)
+
+    def sign_out(self) -> None:
+        if not messagebox.askyesno("Sign Out", "End your active session and close the program?"):
+            return
+        try:
+            from app.desktop_session import revoke_desktop_session
+
+            revoke_desktop_session(BASE_DIR, "User signed out")
+        except Exception:
+            pass
+        self.set_status("Signed out.")
+        self.destroy()
+
+    def _open_browser_with_session(self, path: str = "/") -> None:
+        """Open web UI using active desktop session (SSO) when available."""
+        if launch_web_dashboard is None:
+            messagebox.showwarning("Unavailable", "Web dashboard helper could not load.")
+            return
+        user = self._session_user()
+        if user and user.get("id") and user.get("username"):
+            ok, msg = launch_web_dashboard(
+                path,
+                sso_user_id=int(user["id"]),
+                sso_username=str(user["username"]),
+            )
+        else:
+            ok, msg = launch_web_dashboard(path if path else "/login")
+        self.set_status(msg)
+        if not ok:
+            messagebox.showinfo("Web Dashboard", msg)
+
+    def _run_post_verification_update_if_needed(self):
+        """After account verification — sync/install/update without separate manual step."""
+        try:
+            from app.local_login_gate import get_last_desktop_login
+            from app.post_verification_update import spawn_post_verification_update
+            from app.startup_setup import evaluate_setup_state
+
+            action, _ = evaluate_setup_state(BASE_DIR)
+            if action in ("need_installer", "need_venv"):
+                return
+            user = get_last_desktop_login()
+            ok, msg = spawn_post_verification_update(BASE_DIR, user)
+            if ok:
+                self.set_status(msg)
+            elif "recently" not in msg.lower() and "Worker client" not in msg:
+                self.set_status(msg)
+        except Exception as exc:
+            self.set_status(f"Post-verification update skipped: {exc}")
+
     def _run_startup_setup_if_needed(self):
         try:
             from app.startup_setup import evaluate_setup_state, maybe_run_startup_setup
@@ -1081,12 +1264,12 @@ class StartCenter(tk.Tk):
 
     def _show_dedicated_host_welcome(self):
         try:
-            from app.host_laptop_roles import is_dedicated_host_install, load_host_settings
-            if not is_dedicated_host_install(BASE_DIR):
+            from app.host_role_registry import dismiss_dedicated_welcome, should_show_dedicated_welcome
+
+            if not should_show_dedicated_welcome(BASE_DIR):
                 return
+            from app.host_laptop_roles import load_host_settings
             settings = load_host_settings(BASE_DIR)
-            if settings.get("dedicated_host_welcome_shown"):
-                return
             readme = BASE_DIR / "DEDICATED_HOST_README.txt"
             if not readme.exists():
                 if messagebox.askyesno(
@@ -1112,13 +1295,30 @@ class StartCenter(tk.Tk):
                 "  START JRC Host Server (24-7)\n\n"
                 f"LAN URL for office/phones:\n  {lan}\n\n"
                 "Local login here: jrc_host\n"
-                "Jacob owner login: ivygrows (from office browser)\n\n"
+                "Jacob owner login: admin / ivygrows (from office browser)\n\n"
                 "See DEDICATED_HOST_README.txt in the program folder.",
             )
-            from app.host_laptop_roles import save_host_settings
-            save_host_settings({"dedicated_host_welcome_shown": True}, BASE_DIR)
+            dismiss_dedicated_welcome(BASE_DIR)
         except Exception:
             pass
+
+    def open_dashboard(self):
+        """Open cloud dashboard if configured; otherwise embedded web or browser SSO."""
+        cloud = get_cloud_base_url()
+        if cloud:
+            webbrowser.open(link_set(cloud)["base"] + "/")
+            self.set_status("Opened cloud dashboard/login route. Role controls dashboard after sign-in.")
+            return
+        user = self._session_user()
+        if user and user.get("id"):
+            try:
+                from app.desktop_shell import open_embedded_path, prefers_embedded
+
+                if prefers_embedded() and open_embedded_path(BASE_DIR, user, "/"):
+                    return
+            except Exception:
+                pass
+        self._open_browser_with_session("/")
 
     def start_dedicated_host_easy(self):
         """Launch START_DEDICATED_HOST_SERVER.bat — simplest daily host start."""
@@ -1185,7 +1385,7 @@ class StartCenter(tk.Tk):
             return False
         """Start local server if needed and verify the login page first.
         Login is less fragile than the full mobile endpoint chain, so this is used
-        for setup and default admin/admin access.
+        for setup and default owner login (admin / ivygrows).
         """
         if is_login_ready():
             return True
@@ -1220,15 +1420,6 @@ class StartCenter(tk.Tk):
             return
         self.open_local_login_gate()
 
-    def open_dashboard(self):
-        """Open cloud dashboard if configured; otherwise use local login gate and Office."""
-        cloud = get_cloud_base_url()
-        if cloud:
-            webbrowser.open(link_set(cloud)["base"] + "/")
-            self.set_status("Opened cloud dashboard/login route. Role controls dashboard after sign-in.")
-            return
-        self.open_local_login_gate()
-
     def login_dashboard(self):
         cloud = get_cloud_base_url()
         if cloud:
@@ -1252,9 +1443,47 @@ class StartCenter(tk.Tk):
         self.set_status("Opening local web login. Account role controls the dashboard after login.")
         webbrowser.open(urls()["local"] + "/login")
 
+    def _is_admin_session(self) -> bool:
+        user = self._session_user()
+        if not user:
+            return False
+        try:
+            from app.role_utils import is_admin_role, normalize_role
+
+            return is_admin_role(normalize_role(user.get("role", "")))
+        except Exception:
+            return False
+
+    def open_office_ai(self):
+        if not self._is_admin_session():
+            messagebox.showwarning("Office AI", "Office AI is available to owner/admin accounts only.")
+            return
+        self._open_browser_with_session("/office-ai")
+
+    def write_standards_document(self):
+        if not self._is_admin_session():
+            messagebox.showwarning("Documents", "Document standards writing is for owner/admin use.")
+            return
+        try:
+            from app.document_standards_writer import launch_standards_document
+
+            ok, msg = launch_standards_document(BASE_DIR, "invoice", "")
+            self.set_status(msg[:120])
+            if not ok:
+                messagebox.showwarning("Document Draft", msg)
+        except Exception as exc:
+            messagebox.showerror("Document Draft", str(exc))
+
     def open_office(self):
-        self.set_status("Opening Office app in the background...")
-        proc, log, err = launch_hidden([PYW_CMD, "-m", "app.jr_job_manager"], "desktop_app_last.log")
+        if not self._session_user():
+            messagebox.showwarning("Sign in required", "Sign in to Start Center first — Open Office will use the same session.")
+            return
+        self.set_status("Opening Office app (same login session)...")
+        proc, log, err = launch_hidden(
+            [PYW_CMD, "-m", "app.jr_job_manager"],
+            "desktop_app_last.log",
+            {"JRC_USE_DESKTOP_SESSION": "1"},
+        )
         if err:
             messagebox.showwarning("Office did not launch", f"{err}\n\nLog: {log}")
         self._watch_process(proc, log, "Office app", "Office app launched. If nothing appears, open Logs from Files / Logs.")
@@ -1285,7 +1514,7 @@ class StartCenter(tk.Tk):
             self.set_status(f"Local web app is running. Login is ready. Mobile quick test: {'passed' if ok else 'needs attention'}.")
             messagebox.showinfo(
                 "Local Web App Running",
-                f"Login is ready now. Use admin/admin for first setup if unchanged.\n\nLogin:\n{urls()['local']}/login\n\nMobile quick test:\n{quick_test_summary(checks)}\n\nPhone connection test:\n{urls()['connect']}"
+                f"Login is ready now. Use admin / ivygrows for first setup if unchanged.\n\nLogin:\n{urls()['local']}/login\n\nMobile quick test:\n{quick_test_summary(checks)}\n\nPhone connection test:\n{urls()['connect']}"
             )
             return
         set_runtime_port(find_available_port(PORT), "Auto-selected by Start Center before launching local host.")
@@ -1387,7 +1616,7 @@ class StartCenter(tk.Tk):
         messagebox.showinfo(
             "Remote Host Connected",
             f"Host is running:\n{url}\n\nVersion: {data.get('version', '?')}\n\n"
-            "Sign in as ivygrows (owner) for full admin.\n"
+            "Sign in as admin (password ivygrows) for full owner admin.\n"
             "Dedicated laptop local operator uses jrc_host on that PC only.",
         )
 
@@ -1451,8 +1680,9 @@ class StartCenter(tk.Tk):
             if hasattr(self, "_head_pipeline"):
                 try:
                     from app.data_pipeline import mode_label as pipeline_mode_label
-                    from app.host_laptop_roles import host_role_label as hrl
-                    self._head_pipeline.config(text=pipeline_mode_label() + " | " + hrl(BASE_DIR))
+                    from app.host_role_registry import host_role_display as hrd
+
+                    self._head_pipeline.config(text=pipeline_mode_label() + " | " + hrd(BASE_DIR))
                 except Exception:
                     pass
             messagebox.showinfo("Host Laptop Setup Complete", "\n".join(lines))
@@ -1722,7 +1952,7 @@ class StartCenter(tk.Tk):
                 log,
                 "Phone Cursor Dropbox Setup",
                 "On phone: open JRC_COMPLETE_BUSINESS_FOLDER workspace.\n"
-                "Verify: Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt ($13,890 quote).\n"
+                "Verify: Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt ($10,440 quote).\n"
                 "Log: logs/phone_cursor_sync_last.log",
             )
             return
@@ -1824,14 +2054,7 @@ class StartCenter(tk.Tk):
 
     def open_web_dashboard(self):
         """Start web server if needed and open the glass browser UI."""
-        if launch_web_dashboard is None:
-            messagebox.showwarning("Unavailable", "Web dashboard helper could not load.")
-            return
-        self.set_status("Finding a free port and opening Web Dashboard...")
-        ok, msg = launch_web_dashboard("/login")
-        self.set_status(msg)
-        if not ok:
-            messagebox.showinfo("Web Dashboard", msg + "\n\nIf the page fails, another program may have been using port 8765 — JRC will try 8766, 8767, etc.")
+        self._open_browser_with_session("/")
 
     def primary_live_server(self):
         self.set_status("Opening Primary Live Server readiness page. Use this for the recommended 24/7 cloud setup.")
@@ -2125,40 +2348,29 @@ class StartCenter(tk.Tk):
 
 def main() -> None:
     try:
-        from app.desktop_shortcuts import ensure_desktop_shortcuts_async, read_installer_source
+        _apply_ui_action_guards(StartCenter)
+        from app.startup_bootstrap import run_program_startup
 
-        ensure_desktop_shortcuts_async(BASE_DIR, read_installer_source(BASE_DIR))
-    except Exception:
-        pass
-    try:
-        from app.startup_setup import launch_ensure_venv_hidden, evaluate_setup_state
-
-        action, _ = evaluate_setup_state(BASE_DIR)
-        if action == "need_venv":
-            launch_ensure_venv_hidden(BASE_DIR)
-    except Exception:
-        pass
-    try:
-        from app.install_live_sync import sync_from_master_if_available
-
-        sync_from_master_if_available(BASE_DIR)
-    except Exception:
-        pass
-    try:
-        from app.local_login_gate import require_blocking_login
-
-        if not require_blocking_login("Start Center"):
-            return
+        run_program_startup()
     except Exception as exc:
         try:
-            from app.install_setup_log import log_event
-
-            log_event(BASE_DIR, "LoginGate", f"Start Center gate failed: {exc}", level="ERROR", step="login_gate")
+            messagebox.showerror(APP_NAME, f"Startup failed: {exc}")
         except Exception:
-            pass
-        messagebox.showerror(APP_NAME, f"Login required but gate failed: {exc}")
-        return
-    StartCenter().mainloop()
+            print(f"Startup failed: {exc}", file=sys.stderr)
+
+
+def _apply_ui_action_guards(cls) -> None:
+    try:
+        from app.ui_actions import PRIORITY_ACTIONS, action_guard
+
+        for name in PRIORITY_ACTIONS:
+            if hasattr(cls, name):
+                method = getattr(cls, name)
+                bg = name.startswith(("run_", "start_"))
+                wrapped = action_guard(name.replace("_", " ").title(), background=bg)(method)
+                setattr(cls, name, wrapped)
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":

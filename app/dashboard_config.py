@@ -25,6 +25,8 @@ def build_nav_items(role: str, perms: set[str], *, is_admin: bool, densus_access
         items.append(("apply", "Apply to Work", "/apply", "view_dashboard"))
     if "view_admin" in perms:
         items.append(("admin", "Admin Hub", "/admin", "view_admin"))
+    if "configure_ai" in perms and is_admin:
+        items.append(("office-ai", "Office AI", "/office-ai", "configure_ai"))
     if is_admin and densus_access:
         items.append(("densus", "Security Monitor", "/admin/densus", "view_admin"))
     elif is_admin:
@@ -82,12 +84,15 @@ def dashboard_tiles(role: str, perms: set[str], *, densus_access: bool = False) 
         people.append(("Customers", "/customers", "Customer records", ""))
         people.append(("Customer Requests", "/customers/requests", "Inbound customer work", "btn2"))
     if "view_workers" in perms:
-        people.append(("Workers / Helpers", "/workers", "Helper roster", "btn2"))
+        people.append(("Workers / Helpers", "/payroll", "Helper roster and payroll", "btn2"))
     if "manage_users" in perms:
         people.append(("User Accounts", "/admin", "Login accounts and roles", "btn2"))
     add("People", "Customers, workers, and accounts.", people)
 
     admin: List[Tile] = []
+    if "configure_ai" in perms and role == "admin":
+        admin.append(("Office AI", "/office-ai", "In-app office assistant (owner/admin only)", ""))
+        admin.append(("AI Settings", "/ai", "Provider keys and sources", "btn2"))
     if "view_admin" in perms:
         admin.append(("Admin Hub", "/admin", "Users, sessions, pending logins", ""))
         admin.append(("Review Login Requests", "/admin#pending-requests", "Approve/deny /register", "btn2"))
@@ -104,6 +109,7 @@ def dashboard_tiles(role: str, perms: set[str], *, densus_access: bool = False) 
     if "backup" in perms:
         admin.append(("Data & Backups", "/data", "Export and backup", "btn2"))
     if "audit" in perms:
+        admin.append(("Payment Admin", "/admin/payments", "Request payment, lock user, ledger", "btn2"))
         admin.append(("Troubleshooter", "/health", "System verification", "btn2"))
         admin.append(("Setup / Verification", "/setup-status", "System check + security audit", "btn2"))
     add("Admin & Setup", "Owner setup, security, and hosting.", admin)

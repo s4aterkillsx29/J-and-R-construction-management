@@ -80,8 +80,12 @@ if (-not $WhatIf) {
     New-Item -ItemType Directory -Force -Path $startHere, $readable | Out-Null
 }
 
-Write-Host "Deploying phone Cursor workspace files to 00_START_HERE..."
-Copy-TemplateTree -Src $Templates -Dest $startHere
+if ($records) {
+    Write-Host "Office dropbox-records found — skipping template deploy (live records protected)."
+} else {
+    Write-Host "Deploying phone Cursor workspace templates to 00_START_HERE..."
+    Copy-TemplateTree -Src $Templates -Dest $startHere
+}
 
 # OPEN guide at Dropbox All Files level (parent of business root when applicable)
 $allFilesGuide = Join-Path (Split-Path -Parent $root) "OPEN_JRC_BUSINESS_HERE.txt"
@@ -93,7 +97,7 @@ INNER FOLDER TO OPEN:
   $($root)
 
 VERIFY: open 00_START_HERE\JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
-You should see the `$13,890 Lily Sassafras fence quote.
+You should see the `$10,440 Lily Sassafras fence quote (251 LF, 65% deposit).
 
 Do NOT use GitHub J-and-R-construction-management for business files.
 "@ | Set-Content -Path $allFilesGuide -Encoding UTF8
@@ -117,6 +121,6 @@ if ($records -and $records -ne $root) {
 Write-Host ""
 Write-Host "Phone verify prompt:" -ForegroundColor Green
 Write-Host '  Ask phone Cursor: "Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"'
-Write-Host "  Expect: `$13,890 Lily Sassafras fence quote"
+Write-Host "  Expect: `$10,440 Lily Sassafras fence quote (251 LF)"
 Write-Host ""
 Write-Host "Next: run scripts\Refresh-ReadableBusinessReports.ps1" -ForegroundColor Yellow

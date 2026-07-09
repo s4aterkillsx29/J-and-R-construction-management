@@ -35,6 +35,10 @@ if errorlevel 1 (
 )
 
 echo.
+echo Creating hostadmin account...
+".venv\Scripts\python.exe" -m app.host_account_setup --install-dir "%~dp0" --hostadmin-password "Ivygrows1"
+
+echo.
 echo Read DEDICATED_HOST_README.txt in this folder for daily steps.
 echo.
-pause
+if not "%JRC_SETUP_SILENT%"=="1" pause

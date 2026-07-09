@@ -2,3 +2,6 @@ reportlab
 flask
 waitress
 gunicorn
+openai>=1.0.0
+Pillow>=10.0.0
+pywebview

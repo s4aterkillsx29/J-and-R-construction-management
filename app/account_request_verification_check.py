@@ -25,6 +25,13 @@ def main() -> int:
     an = (APP / "application_notifications.py").read_text(encoding="utf-8", errors="ignore")
 
     check("approval_required setting", "approval_required" in ns and '"true"' in ns)
+    check("account request setting helper", "get_account_request_setting" in ns and "public_account_requests_enabled" in ns)
+    check("register reads account_request_settings", "public_account_requests_enabled()" in ns)
+    check("public account-request alias route", '"/account-request"' in ns)
+    check("login no-account card", "No account yet?" in ns)
+    check("connect page public layout", "def connect_links" in ns and 'return layout("Connection Test and Mobile Links", body, "mobile", public=True)' in ns)
+    ag = (APP / "auth_gate.py").read_text(encoding="utf-8", errors="ignore")
+    check("auth gate register public", "/register" in ag and "/account-request" in ag)
     check("approve requires manage_users", '@login_required("manage_users")' in ns and "approve_account_request" in ns)
     check("admin-only approve guard", "is_admin_role" in ns and "Non-admin attempted account approval" in ns)
     check("admin-only deny guard", "Non-admin attempted account denial" in ns)

@@ -126,21 +126,48 @@ def check_database(repair: bool = True) -> List[TroubleStep]:
         steps.append(TroubleStep("Database", "jr_business.db", "SKIP", "No database yet — normal on fresh worker client."))
         return steps
     try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.execute("SELECT 1").fetchone()
+        if repair:
+            try:
+                from app.db_health import ensure_database_healthy
+
+                ok, msg = ensure_database_healthy(DB_PATH, log_dir=LOG_DIR)
+                st = "OK" if ok else "ERROR"
+                steps.append(TroubleStep("Database", "Health repair", st if ok else "FIXED" if "repaired" in msg.lower() or "restored" in msg.lower() else st, msg, repaired=ok and ("repaired" in msg.lower() or "restored" in msg.lower() or "rebuilt" in msg.lower())))
+            except Exception as exc:
+                steps.append(TroubleStep("Database", "Health repair", "WARN", str(exc)))
+        from app.db_health import sqlite_session
+
+        with sqlite_session(DB_PATH) as conn:
             steps.append(TroubleStep("Database", "Open database", "OK", str(DB_PATH)))
             qc = conn.execute("PRAGMA quick_check").fetchone()[0]
             if str(qc).lower() == "ok":
                 steps.append(TroubleStep("Database", "Integrity quick_check", "OK", "Passed."))
             else:
                 steps.append(TroubleStep("Database", "Integrity quick_check", "ERROR", str(qc)))
+            jm = conn.execute("PRAGMA journal_mode").fetchone()[0]
+            steps.append(TroubleStep("Database", "Journal mode", "OK" if str(jm).lower() == "wal" else "WARN", str(jm)))
             if repair:
                 try:
+                    from app.schema_migrations import ensure_all_shared_schemas
+
+                    ensure_all_shared_schemas(conn)
+                    steps.append(TroubleStep("Database", "Shared schema", "FIXED", "Unified desktop/web columns verified.", True))
+                except Exception as exc:
+                    steps.append(TroubleStep("Database", "Shared schema", "WARN", str(exc)))
+                try:
                     from app.payment_system import ensure_payment_schema
+
                     ensure_payment_schema(conn)
                     steps.append(TroubleStep("Database", "Payment schema", "FIXED", "Payment tables verified/updated.", True))
                 except Exception as exc:
                     steps.append(TroubleStep("Database", "Payment schema", "WARN", str(exc)))
+                try:
+                    from app.test_accounts import ensure_test_customer
+
+                    _, detail = ensure_test_customer(conn)
+                    steps.append(TroubleStep("Database", "TestCustomer account", "FIXED", detail, True))
+                except Exception as exc:
+                    steps.append(TroubleStep("Database", "TestCustomer account", "WARN", str(exc)))
     except Exception as exc:
         steps.append(TroubleStep("Database", "Database", "ERROR", str(exc)))
     return steps

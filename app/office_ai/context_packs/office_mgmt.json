@@ -1,0 +1,1 @@
+{"name":"office_mgmt","description":"Office management brief and triage","sources":["generate_office_brief","read_dashboard"]}

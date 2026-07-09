@@ -177,7 +177,7 @@ def run_setup(copy_db: bool = True, office_db: str = "") -> int:
     print(f"  3. On office laptop, save remote URL: http://{lan}:8765")
     print("     (Start Center -> Host Laptop Setup -> paste that URL)")
     print()
-    print("Local login on THIS laptop: jrc_host / jrc_host")
+    print("Local login on THIS laptop: hostadmin (or jrc_host)")
     print("Owner login from office:    ivygrows at the LAN URL above")
     print()
     return 0

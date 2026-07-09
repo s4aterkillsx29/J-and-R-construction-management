@@ -25,17 +25,19 @@ PHONE SETUP (Cursor iPhone app) — DO THIS ONCE
 5. VERIFY setup is correct — ask phone Cursor:
    "Open 00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"
 
-   SUCCESS = you see the $13,890 Lily Sassafras fence quote.
+   SUCCESS = you see the $10,440 Lily Sassafras fence quote (251 LF, 65% deposit).
    FAIL = file not found or it talks about GitHub → workspace is wrong folder.
 
 ================================================================================
-BOOKMARK THESE FILES ON PHONE
+BOOKMARK THESE FILES ON PHONE (see IPHONE_CURSOR_BOOKMARK_SETUP.txt)
 ================================================================================
 
+  00_START_HERE/IPHONE_CURSOR_BOOKMARK_SETUP.txt   (pin setup steps)
   00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt   (this file)
   00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
   00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt
-  00_START_HERE/LOGGING_STANDARDS_OFFICE_ASSISTANT.txt
+  00_START_HERE/IPHONE_PHOTO_RECEIPT_UPLOAD_GUIDE.txt
+  00_INBOX_To_File/iPhone_Uploads/   (drop photos here from phone)
 
 ================================================================================
 DAILY WORKFLOW

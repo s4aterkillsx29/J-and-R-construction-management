@@ -29,6 +29,15 @@ if not exist "data\install_profile.json" (
   exit /b 1
 )
 
+REM Single-instance guard — prevents "database is locked" from duplicate JRC processes
+if exist "%~dp0tools\PRESTART_HOST_SERVER.bat" (
+  call "%~dp0tools\PRESTART_HOST_SERVER.bat"
+) else if exist "%~dp0..\tools\PRESTART_HOST_SERVER.bat" (
+  call "%~dp0..\tools\PRESTART_HOST_SERVER.bat"
+) else if exist "%~dp0PRESTART_HOST_SERVER.bat" (
+  call "%~dp0PRESTART_HOST_SERVER.bat"
+)
+
 echo Starting server on port %JRC_PORT% ...
 echo Local admin on this PC: jrc_host / jrc_host
 echo Owner from other devices: admin at the LAN URL below

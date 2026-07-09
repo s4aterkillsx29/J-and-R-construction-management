@@ -309,16 +309,53 @@ def ensure_server_running(port: int | None = None, timeout: float = 25.0) -> tup
     return False, port, login_url
 
 
-def open_web_dashboard(path: str = "/login") -> tuple[bool, str]:
-    ok, port, login_url = ensure_server_running()
+def open_web_dashboard(
+    path: str = "/login",
+    *,
+    sso_user_id: int | None = None,
+    sso_username: str | None = None,
+) -> tuple[bool, str]:
+    """Open browser UI. When desktop user is known, bridge SSO so browser is already signed in."""
+    ok, port, _login_url = ensure_server_running()
     if not path.startswith("/"):
         path = "/" + path
+
+    if sso_user_id and sso_username:
+        try:
+            from app.desktop_sso import mint_desktop_sso_token
+
+            token = mint_desktop_sso_token(int(sso_user_id), str(sso_username))
+            dest = path if path not in ("/login", "", "/setup-complete") else "/"
+            from urllib.parse import quote
+
+            url = local_url(
+                f"/auth/desktop-bridge?token={quote(token)}&next={quote(dest)}",
+                port,
+            )
+            webbrowser.open(url)
+            if ok:
+                return True, f"Opened browser with active sign-in for {sso_username}"
+            detail = endpoint_status_text(port)
+            return False, (
+                f"Server did not verify all local-host endpoints on port {port}. "
+                f"Opened SSO bridge for {sso_username}.\n\n{detail}"
+            )
+        except Exception as exc:
+            url = local_url(path, port)
+            webbrowser.open(url)
+            return ok, f"SSO bridge unavailable ({exc}). Opened {url} — sign in manually."
+
     url = local_url(path, port)
     webbrowser.open(url)
     if ok:
         return True, f"Opened {url}"
     detail = endpoint_status_text(port)
     return False, f"Server did not verify all local-host endpoints on port {port}. Opened {url}.\n\n{detail}"
+
+
+def open_account_request() -> tuple[bool, str]:
+    """Open public account-request form in browser."""
+    return open_web_dashboard("/register")
 
 
 def cli_open_web() -> int:

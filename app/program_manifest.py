@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-APP_VERSION = "7.13.0 Densus Owner-Approval Edition"
+APP_VERSION = "8.1.0 Unified Office Edition"
 
 REQUIRED_PACKAGES = ("flask", "waitress", "reportlab", "gunicorn")
 
@@ -56,11 +56,19 @@ CORE_APP_FILES = (
     "app/emergency_access.py",
     "app/emergency_routes.py",
     "app/startup_setup.py",
+    "app/startup_bootstrap.py",
+    "app/desktop_session.py",
+    "app/db_health.py",
+    "app/post_verification_update.py",
     "app/install_setup_log.py",
     "app/admin_developer_suite.py",
     "app/admin_db_editor.py",
     "app/live_full_update.py",
     "app/program_manifest.py",
+    "app/program_shell.py",
+    "app/program_paths.py",
+    "app/ui_actions.py",
+    "app/pdf_bridge.py",
 )
 
 VERIFY_SCRIPTS = (

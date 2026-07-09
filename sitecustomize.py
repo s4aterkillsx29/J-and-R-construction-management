@@ -155,17 +155,35 @@ def _repair() -> None:
         return
 
     try:
-        conn = sqlite3.connect(db_path)
+        from app.db_health import configure_sqlite_connection
+
+        conn = sqlite3.connect(db_path, timeout=15)
         try:
-            conn.execute("PRAGMA busy_timeout=5000")
+            configure_sqlite_connection(conn)
             _ensure_file_sources(conn)
             _ensure_job_applications(conn)
+            try:
+                from app.schema_migrations import ensure_all_shared_schemas
+
+                ensure_all_shared_schemas(conn)
+            except Exception:
+                pass
             conn.commit()
             _log(base, f"Startup schema repair checked OK: {db_path}")
         finally:
             conn.close()
+            ck = None
+            try:
+                ck = sqlite3.connect(db_path, timeout=5)
+                ck.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except Exception:
+                pass
+            finally:
+                if ck is not None:
+                    ck.close()
     except Exception as exc:
         _log(base, f"Startup schema repair warning: {exc}")
 
 
-_repair()
+if os.environ.get("JRC_SKIP_STARTUP_REPAIR", "").strip().lower() not in ("1", "true", "yes"):
+    _repair()

@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "business_source_policy": {
+    "source_of_truth": "dropbox-records via dropbox_workspace.resolve_dropbox_records",
+    "register_marker": "08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv",
+    "writes_allowed_under": "dropbox-records only",
+    "program_reads_allowed": "app/, scripts/, docs/, tools/ (read-only, admin configure_ai)",
+    "llm_egress": "admin-only; financial CSV writes require approval"
+  },
+  "tiers": {
+    "core": [
+      {"label": "Office assistant rule", "relative": ".cursor/rules/jrc-office-assistant.mdc", "workspace": true},
+      {"label": "Daily logging rule", "relative": ".cursor/rules/jrc-daily-logging.mdc", "workspace": true},
+      {"label": "Logging checklist", "relative": "dropbox-records/00_START_HERE/LOGGING_EVENT_CHECKLIST.txt", "workspace": true},
+      {"label": "Office access point", "relative": "dropbox-records/08_Admin_Standards/CURSOR_OFFICE_ACCESS_POINT.txt", "workspace": true}
+    ],
+    "session": [
+      {"label": "Business dashboard", "relative": "dropbox-records/00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt", "workspace": true},
+      {"label": "Current to-do", "relative": "dropbox-records/00_START_HERE/READABLE/CURRENT_TO_DO.txt", "workspace": true},
+      {"label": "Cash on hand", "relative": "dropbox-records/00_START_HERE/READABLE/CASH_ON_HAND_CURRENT.txt", "workspace": true}
+    ],
+    "task": [
+      {"label": "Document generation standards", "relative": "dropbox-records/08_Admin_Standards/DOCUMENT_GENERATION_STANDARDS.txt", "workspace": true},
+      {"label": "File naming standards", "relative": "dropbox-records/08_Admin_Standards/FILE_NAMING_STANDARDS.txt", "workspace": true},
+      {"label": "Job relation register", "relative": "dropbox-records/08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv", "workspace": true},
+      {"label": "Helper overhead rule", "relative": "dropbox-records/08_Admin_Standards/HELPER_WORK_OVERHEAD_RULE.txt", "workspace": true},
+      {"label": "Data isolation policy", "relative": "dropbox-records/07_JRC_MANAGER_PROGRAM_FILES/DATA_ISOLATION_BY_USER_TYPE.txt", "workspace": true}
+    ],
+    "security": [
+      {"label": "Logging standards office assistant", "relative": "dropbox-records/00_START_HERE/LOGGING_STANDARDS_OFFICE_ASSISTANT.txt", "workspace": true},
+      {"label": "Folder maintenance guide", "relative": "dropbox-records/08_Admin_Standards/FOLDER_MAINTENANCE_GUIDE.txt", "workspace": true}
+    ],
+    "developer": [
+      {"label": "JRC manager dev rule", "relative": ".cursor/rules/jrc-manager-dev.mdc", "workspace": true},
+      {"label": "JRC manager dev start", "relative": "JRC_MANAGER_DEV_START.txt", "workspace": true},
+      {"label": "Office AI roadmap", "relative": "dropbox-records/07_JRC_MANAGER_PROGRAM_FILES/JRC_Office_AI_Roadmap_2026-06-29.txt", "workspace": true}
+    ]
+  },
+  "approval_required_tools": [
+    "update_financial_csv",
+    "run_workspace_sync",
+    "generate_customer_pdf",
+    "write_program_source"
+  ],
+  "auto_execute_tools": [
+    "read_dashboard",
+    "read_job_register",
+    "read_job_folder",
+    "search_chatgpt_imports",
+    "search_business_records",
+    "read_logging_checklist",
+    "read_standards_file",
+    "read_financial_register",
+    "read_security_policies",
+    "read_program_structure",
+    "read_program_source",
+    "list_program_modules",
+    "append_daily_log",
+    "save_receipt_note",
+    "verify_business_sources"
+  ]
+}

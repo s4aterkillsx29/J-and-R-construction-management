@@ -30,7 +30,7 @@ except Exception as exc:
     print("Flask is required. Run INSTALL_JR_JOB_MANAGER.bat first.")
     raise
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "7.13.0 Densus Owner-Approval Edition"
+APP_VERSION = "8.1.0 Unified Office Edition"
 BUSINESS_NAME = "J & R Construction"
 OWNER = "Jacob Cosentino"
 PHONE = "(910) 712-0936"
@@ -47,7 +47,7 @@ DB_PATH = Path(os.environ.get("JRC_DB_PATH", str(DATA_DIR / "jr_business.db"))).
 SERVER_SECRET_PATH = DATA_DIR / "server_secret.key"
 DEVICE_ID_PATH = DATA_DIR / "trusted_device_id.txt"
 SERVER_SETTINGS_PATH = DATA_DIR / "network_server_settings.json"
-SESSION_TIMEOUT_MINUTES = int(os.environ.get("JRC_SESSION_TIMEOUT_MINUTES", "120"))
+SESSION_TIMEOUT_MINUTES = int(os.environ.get("JRC_SESSION_TIMEOUT_MINUTES", "30"))
 PUBLIC_HOST_MODE = os.environ.get("JRC_PUBLIC_HOST_MODE", "0") == "1"
 CLOUD_PRIMARY_MODE = os.environ.get("JRC_CLOUD_PRIMARY_MODE", "0") == "1" or PUBLIC_HOST_MODE
 REQUIRE_STRONG_DEFAULT_PASSWORD_CHANGE = True
@@ -174,7 +174,7 @@ def mark_admin_password_changed(conn=None) -> None:
         target.commit()
 def log_security_event(event_type: str, username: str = "", message: str = "", level: str = "INFO") -> None:
     try:
-        with direct_db() as conn:
+        with managed_db() as conn:
             conn.execute("""CREATE TABLE IF NOT EXISTS security_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, event_time TEXT, level TEXT, event_type TEXT,
                 username TEXT, ip_address TEXT, user_agent TEXT, message TEXT
@@ -322,7 +322,11 @@ def apply_user_role_change(conn: sqlite3.Connection, user: sqlite3.Row, new_role
     return False, "Invalid account type."
   if new_role == old_role:
     return True, "unchanged"
-  if int(user["owner_account"] or 0) or user["username"] == DEFAULT_ADMIN_USERNAME:
+  try:
+      owner_flag = int(user["owner_account"] or 0)
+  except (IndexError, KeyError, TypeError):
+      owner_flag = 0
+  if owner_flag or user["username"] == DEFAULT_ADMIN_USERNAME:
     if new_role != "admin":
       return False, "Owner account must remain Owner / Admin."
   if new_role == "admin" and old_role != "admin":
@@ -371,13 +375,30 @@ def safe_under_base(path: Path, allowed_roots: List[Path]) -> bool:
         return False
 def db() -> sqlite3.Connection:
     if "db" not in g:
-        conn = sqlite3.connect(DB_PATH)
+        from app.db_health import configure_sqlite_connection
+
+        conn = sqlite3.connect(DB_PATH, timeout=15)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("PRAGMA busy_timeout=5000")
+        configure_sqlite_connection(conn)
         g.db = conn
     return g.db
+
+
+def direct_db() -> sqlite3.Connection:
+    from app.db_health import configure_sqlite_connection
+
+    conn = sqlite3.connect(DB_PATH, timeout=15)
+    conn.row_factory = sqlite3.Row
+    configure_sqlite_connection(conn)
+    return conn
+
+
+def managed_db():
+    from app.db_health import sqlite_session
+
+    return sqlite_session(DB_PATH)
+
+
 def table_exists(conn: sqlite3.Connection, name: str) -> bool:
     row = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
@@ -386,16 +407,26 @@ def table_exists(conn: sqlite3.Connection, name: str) -> bool:
     return row is not None
 
 
-def direct_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("PRAGMA busy_timeout=5000")
-    return conn
 def init_db() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with direct_db() as conn:
+    log_dir = BASE_DIR / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        from app.db_health import ensure_database_healthy
+
+        ok, msg = ensure_database_healthy(DB_PATH, log_dir=log_dir)
+        if not ok:
+            (log_dir / "init_db_health.log").write_text(
+                f"{now_iso()} init_db: {msg}\n", encoding="utf-8", errors="replace"
+            )
+    except Exception as exc:
+        try:
+            (log_dir / "init_db_health.log").write_text(
+                f"{now_iso()} init_db health check failed: {exc}\n", encoding="utf-8", errors="replace"
+            )
+        except Exception:
+            pass
+    with managed_db() as conn:
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS customers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -849,6 +880,49 @@ def init_db() -> None:
             created_at TEXT,
             updated_at TEXT
         );
+        CREATE TABLE IF NOT EXISTS office_ai_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            username TEXT,
+            title TEXT DEFAULT 'Office chat',
+            provider TEXT DEFAULT 'openai',
+            model TEXT DEFAULT 'gpt-4o',
+            created_at TEXT,
+            updated_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS office_ai_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT,
+            tool_calls_json TEXT,
+            created_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS office_ai_pending_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER,
+            user_id INTEGER,
+            username TEXT,
+            tool_name TEXT NOT NULL,
+            args_json TEXT,
+            preview_text TEXT,
+            status TEXT DEFAULT 'Pending',
+            decided_by TEXT,
+            decision_note TEXT,
+            created_at TEXT,
+            decided_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS office_ai_usage_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            username TEXT,
+            provider TEXT,
+            model TEXT,
+            prompt_tokens INTEGER DEFAULT 0,
+            completion_tokens INTEGER DEFAULT 0,
+            cost_estimate REAL DEFAULT 0,
+            created_at TEXT
+        );
         CREATE TABLE IF NOT EXISTS mobile_devices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -1084,6 +1158,11 @@ def init_db() -> None:
                     (label, label, stype, path, path, now_iso()),
                 )
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("chatgpt_source_mode", "Import/export folder and optional API key only; private ChatGPT Business conversations are not directly readable."))
+        conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("office_ai_enabled", "1"))
+        conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("office_ai_default_provider", "groq"))
+        conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("office_ai_model", "llama-3.3-70b-versatile"))
+        conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("office_ai_use_fallback", "1"))
+        conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("office_ai_fallback_chain", "groq,gemini,ollama,openai,mock"))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("mobile_mode", "Browser/PWA mobile companion over the shared host URL."))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("remote_mobile_policy", "Remote mobile access must use a secure tunnel/VPN or HTTPS cloud host. Do not expose the laptop directly to the public internet."))
         conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", ("remote_public_base_url", ""))
@@ -1093,6 +1172,7 @@ def init_db() -> None:
         conn.execute("INSERT OR REPLACE INTO account_request_settings (key, value) VALUES (?, ?)", ("public_account_requests", "enabled"))
         conn.execute("INSERT OR REPLACE INTO account_request_settings (key, value) VALUES (?, ?)", ("default_requested_role", "worker"))
         conn.execute("INSERT OR REPLACE INTO account_request_settings (key, value) VALUES (?, ?)", ("approval_required", "true"))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("public_account_requests", "enabled"))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("owner_recovery_policy", "Transparent owner-only emergency recovery from trusted local host device; every use is logged."))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("device_tracking_policy", "Users are identified by username, role, IP address, browser/device details, and a first-party remembered-device cookie only when the user checks the remember-this-device box. Remembered device consent expires after 90 days and must be verified again by login. No hidden access or device control is used."))
         conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("device_cookie_samesite", DEVICE_COOKIE_SAMESITE))
@@ -1123,6 +1203,12 @@ def init_db() -> None:
                 conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", ("dropbox_folder", dropbox_path))
         except Exception:
             pass
+        try:
+            from app.test_accounts import ensure_test_customer
+
+            ensure_test_customer(conn, hash_password=hash_password)
+        except Exception:
+            pass
         conn.commit()
 
 def log_event(category: str, message: str, level: str = "INFO") -> None:
@@ -1133,14 +1219,27 @@ def log_event(category: str, message: str, level: str = "INFO") -> None:
     except Exception:
         username = user_id = sid = None
     try:
-        conn = db() if hasattr(g, "db") else direct_db()
+        owns_conn = False
+        try:
+            from flask import has_request_context
+
+            if has_request_context() and "db" in g:
+                conn = g.db
+            else:
+                conn = direct_db()
+                owns_conn = True
+        except Exception:
+            conn = direct_db()
+            owns_conn = True
         conn.execute("INSERT INTO business_log (log_time, category, message, user_id, username, session_id) VALUES (?, ?, ?, ?, ?, ?)",
                      (now_iso(), category, message, user_id, username, sid))
         conn.commit()
+        if owns_conn:
+            conn.close()
     except Exception:
         pass
 def health_event(level: str, component: str, message: str, fixed: int = 0) -> None:
-    with direct_db() as conn:
+    with managed_db() as conn:
         conn.execute("INSERT INTO health_events (event_time, level, component, message, fixed) VALUES (?, ?, ?, ?, ?)",
                      (now_iso(), level, component, message, fixed))
         conn.commit()
@@ -1151,15 +1250,17 @@ def host_event(level: str, host_mode: str, message: str) -> None:
     except Exception:
         username = None
         ip = None
-    with direct_db() as conn:
+    with managed_db() as conn:
         conn.execute("INSERT INTO host_events (event_time, level, host_mode, message, ip_address, username) VALUES (?, ?, ?, ?, ?, ?)",
                      (now_iso(), level, host_mode, message, ip, username))
         conn.commit()
 def cleanup_stale_sessions() -> int:
     cutoff = (dt.datetime.now() - dt.timedelta(minutes=SESSION_TIMEOUT_MINUTES)).isoformat(timespec="seconds")
-    with direct_db() as conn:
-        cur = conn.execute("UPDATE online_sessions SET active=0, revoke_reason=? WHERE active=1 AND last_seen < ?",
-                           (f"Auto-expired after {SESSION_TIMEOUT_MINUTES} minutes", cutoff))
+    with managed_db() as conn:
+        cur = conn.execute(
+            "UPDATE online_sessions SET active=0, revoked=1, revoke_reason=? WHERE active=1 AND last_seen < ?",
+            (f"Auto-expired after {SESSION_TIMEOUT_MINUTES} minutes", cutoff),
+        )
         conn.commit()
         return cur.rowcount or 0
 def get_user_permissions(user_id: int, role: str) -> set:
@@ -1248,6 +1349,23 @@ def get_app_setting(key: str, default: str = "") -> str:
         return row["value"] if row and row["value"] is not None else default
     except Exception:
         return default
+
+
+def get_account_request_setting(key: str, default: str = "") -> str:
+    """Read account-request policy from account_request_settings, then app_settings."""
+    try:
+        row = db().execute("SELECT value FROM account_request_settings WHERE key=?", (key,)).fetchone()
+        if row and row["value"] is not None:
+            return str(row["value"])
+    except Exception:
+        pass
+    return get_app_setting(key, default)
+
+
+def public_account_requests_enabled() -> bool:
+    return get_account_request_setting("public_account_requests", "enabled").strip().lower() == "enabled"
+
+
 def set_app_setting(key: str, value: str) -> None:
     db().execute("INSERT OR REPLACE INTO app_settings (key,value) VALUES (?,?)", (key, value or ""))
     db().commit()
@@ -1337,6 +1455,14 @@ app.config.update(
     MAX_CONTENT_LENGTH=200 * 1024 * 1024,
 )
 
+
+@app.teardown_appcontext
+def _close_request_db(exc: Optional[BaseException] = None) -> None:
+    conn = g.pop("db", None)
+    if conn is not None:
+        conn.close()
+
+
 @app.before_request
 def enforce_global_login_required():
     """Every user including admin must sign in before any program page."""
@@ -1351,12 +1477,12 @@ def enforce_global_login_required():
 def protect_admin_and_sensitive_surfaces():
     """Block customers/external users and non-admins from admin-only URLs."""
     path = request.path or ""
-    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/ping", "/register", "/apply", "/emergency-access"}:
+    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/ping", "/register", "/account-request", "/apply", "/emergency-access", "/auth/desktop-bridge"}:
         return
     role = session.get("role", "")
     if session.get("user_id") and is_customer_or_external(role):
         blocked = (
-            "/admin", "/hosting", "/cloud", "/owner-recovery", "/data", "/ai",
+            "/admin", "/hosting", "/cloud", "/owner-recovery", "/data", "/ai", "/office-ai",
             "/payroll", "/expenses", "/bookkeeping", "/job-costs", "/jobs", "/files",
             "/business", "/invoices", "/applications", "/customers", "/filekeeping",
         )
@@ -1537,11 +1663,134 @@ def login_start():
     <div class='card'><h2>Login First</h2>
       <p>Use this page before opening any dashboard. The installer does not collect passwords; login happens here inside the secured app.</p>
       <p><a class='btn' href='/login'>Open Login Screen</a> <a class='btn btn2' href='/setup-status'>Setup Status</a></p>
-      <p class='muted'>Default first setup account: <b>ivygrows / ivygrows</b> (localhost only). Change it after you sign in.</p>
+      <p class='muted'>Owner login: <b>admin / ivygrows</b> (change after first sign-in).</p>
     </div>
     <div class='card'><h2>Dashboard After Login</h2><p>After successful login, JRC Manager sends each account to the right dashboard: owner/admin, manager, worker, viewer, customer, or non-company external.</p></div>
     """
     return layout("Login First", body, "")
+
+
+def _establish_authenticated_session(user, *, remember_device: bool = False, login_source: str = "web"):
+    """Create Flask session + online_sessions row after successful auth."""
+    username = user["username"]
+    sid = str(uuid.uuid4())
+    ua = request.headers.get("User-Agent", "")
+    existing_token = get_client_device_token()
+    token = existing_token or (make_client_device_token() if remember_device else "")
+    if token and is_client_device_blocked(token):
+        log_security_event("login_blocked_device", username, "Blocked remembered device attempted login", "WARN")
+        flash("This device has been blocked by an administrator.", "error")
+        return redirect(url_for("login"))
+    trust_status = record_known_device(user["id"], user["username"], token, ua, remember_device)
+    fingerprint = _hash_device_token(token) if token and remember_device else ""
+    session.clear()
+    session.permanent = True
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
+    normalized_role = normalize_role_for_session(user["role"])
+    session["role"] = normalized_role
+    session["sid"] = sid
+    db().execute(
+        "UPDATE users SET last_login=?, last_ip_address=?, last_user_agent=? WHERE id=?",
+        (now_iso(), client_ip(), ua, user["id"]),
+    )
+    db().execute(
+        """INSERT INTO online_sessions
+           (session_id,user_id,username,role,ip_address,user_agent,trusted_device_id,
+            client_device_fingerprint,client_device_label,device_trust_status,
+            login_time,last_seen,active,revoked,revoke_reason)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,0,NULL)""",
+        (
+            sid,
+            user["id"],
+            user["username"],
+            normalized_role,
+            client_ip(),
+            ua,
+            get_device_id(),
+            fingerprint,
+            client_device_label(ua),
+            trust_status,
+            now_iso(),
+            now_iso(),
+        ),
+    )
+    if normalized_role != (user["role"] or ""):
+        db().execute("UPDATE users SET role=? WHERE id=?", (normalized_role, user["id"]))
+    db().commit()
+    try:
+        from app.master_owner import register_master_owner_device, owner_login_trust_level
+
+        register_master_owner_device(user["username"], db())
+        trust = owner_login_trust_level(user["username"], client_ip())
+        log_security_event(
+            "owner_login_trust",
+            username,
+            f"Admin login trust level: {trust}",
+            "OK" if trust == "master" else "INFO",
+        )
+    except Exception:
+        pass
+    log_event(
+        "Login",
+        f"User {username} logged in from {client_ip()} on {client_device_label(ua)} ({login_source})",
+    )
+    log_security_event(
+        "login_success",
+        username,
+        f"Login successful via {login_source}; device {trust_status}",
+        "OK",
+    )
+    try:
+        from app.auth_gate import record_pc_verification
+
+        record_pc_verification(db(), user["id"], username, client_ip(), ua)
+    except Exception:
+        pass
+    return sid, token, trust_status
+
+
+@app.route("/auth/desktop-bridge")
+def desktop_sso_bridge():
+    """Localhost-only: consume one-time desktop token and open an active browser session."""
+    init_db()
+    if not is_local_setup_request():
+        log_security_event(
+            "desktop_sso_remote_blocked",
+            "",
+            f"Desktop SSO bridge blocked from {client_ip()}",
+            "WARN",
+        )
+        flash("Desktop sign-in bridge works only on this PC.", "error")
+        return redirect(url_for("login"))
+    token = (request.args.get("token") or "").strip()
+    nxt = (request.args.get("next") or "/").strip()
+    if not nxt.startswith("/") or nxt.startswith("//"):
+        nxt = "/"
+    try:
+        from app.desktop_sso import consume_desktop_sso_token
+
+        user = consume_desktop_sso_token(token)
+    except Exception as exc:
+        log_security_event("desktop_sso_error", "", str(exc), "ERROR")
+        user = None
+    if not user:
+        log_security_event("desktop_sso_failed", "", "Invalid or expired desktop SSO token", "WARN")
+        flash("Desktop sign-in link expired. Sign in below or open Web Dashboard again from the program.", "warning")
+        return redirect(url_for("login"))
+    _establish_authenticated_session(user, remember_device=True, login_source="desktop_sso")
+    log_security_event(
+        "desktop_sso_login",
+        user["username"],
+        "Browser session opened from desktop program sign-in",
+        "OK",
+    )
+    resp = redirect(nxt)
+    token_dev = get_client_device_token() or make_client_device_token()
+    set_secure_device_cookie(resp, token_dev)
+    flash(f"Signed in as {user['username']} — browser session matches your program login.", "success")
+    return resp
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -1564,39 +1813,12 @@ def login():
                     log_security_event("default_admin_remote_blocked", username, "Blocked non-localhost attempt to use first-setup owner login", "ERROR")
                     flash("First-setup owner login works only on this PC at localhost during initial setup. Use your changed password or emergency mastery access.", "error")
                     return redirect(url_for("login"))
-            sid = str(uuid.uuid4())
-            ua = request.headers.get("User-Agent", "")
-            trust_status = record_known_device(user["id"], user["username"], token, ua, remember_device)
-            fingerprint = _hash_device_token(token) if token and remember_device else ""
-            session.clear()
-            session.permanent = True
-            session["user_id"] = user["id"]
-            session["username"] = user["username"]
-            normalized_role = normalize_role_for_session(user["role"])
-            session["role"] = normalized_role
-            session["sid"] = sid
-            db().execute("UPDATE users SET last_login=?, last_ip_address=?, last_user_agent=? WHERE id=?", (now_iso(), client_ip(), ua, user["id"]))
-            db().execute("INSERT INTO online_sessions (session_id,user_id,username,role,ip_address,user_agent,trusted_device_id,client_device_fingerprint,client_device_label,device_trust_status,login_time,last_seen,active) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)",
-                         (sid, user["id"], user["username"], normalized_role, client_ip(), ua, get_device_id(), fingerprint, client_device_label(ua), trust_status, now_iso(), now_iso()))
-            if normalized_role != (user["role"] or ""):
-                db().execute("UPDATE users SET role=? WHERE id=?", (normalized_role, user["id"]))
-            db().commit()
-            try:
-                from app.master_owner import register_master_owner_device, owner_login_trust_level
-                register_master_owner_device(user["username"], db())
-                trust = owner_login_trust_level(user["username"], client_ip())
-                log_security_event("owner_login_trust", username, f"Admin login trust level: {trust}", "OK" if trust == "master" else "INFO")
-            except Exception:
-                pass
-            log_event("Login", f"User {username} logged in from {client_ip()} on {client_device_label(ua)}"); log_security_event("login_success", username, f"Login successful; device {trust_status}", "OK")
-            try:
-                from app.auth_gate import record_pc_verification
-                record_pc_verification(db(), user["id"], username, client_ip(), ua)
-            except Exception:
-                pass
+            remember_device = request.form.get("remember_device") == "1"
+            _establish_authenticated_session(user, remember_device=remember_device, login_source="web_form")
             if username == DEFAULT_ADMIN_USERNAME and password == DEFAULT_ADMIN_PASSWORD and is_default_admin_password_active():
                 flash("First-setup login active (ivygrows / ivygrows). Change this password now before sharing access.", "warning")
-            resp = redirect(request.args.get("next") or url_for("setup_complete"))
+            resp = redirect(request.args.get("next") or url_for("dashboard"))
+            token = get_client_device_token() or (make_client_device_token() if remember_device else "")
             if remember_device and token:
                 set_secure_device_cookie(resp, token)
             else:
@@ -1639,6 +1861,7 @@ def login():
     body = """
     <div class="card card-narrow">
       <h2>Sign in</h2>
+      <p class="muted">Already have an approved username and password? Sign in below.</p>
       <form method="post">
         <p><label>Username</label><input name="username" autocomplete="username" autofocus></p>
         <p><label>Password</label><input name="password" type="password" autocomplete="current-password"></p>
@@ -1648,23 +1871,29 @@ def login():
         </p>
         <button>Login</button>
       </form>
+    </div>
+    <div class="card card-narrow">
+      <h2>No account yet?</h2>
+      <p class="muted">You do <b>not</b> need an existing login to request access. Fill out the form — Jacob will approve or deny, and you will get an email when you can sign in.</p>
+      <p><a class="btn" href="/register">Request Login Account</a> <a class="btn btn2" href="/apply">Apply for Work (full form)</a></p>
+      <p class="muted">Share this link with helpers, customers, or subcontractors: <code>/register</code></p>
+    </div>
+    <div class="card card-narrow">
       <p class="muted">After login, the program automatically opens the correct dashboard for your account type: owner/admin, manager, worker, viewer, customer, or non-company external user.</p>
-      <p class="muted">First-time owner setup (this PC only): <b>ivygrows / ivygrows</b>. Change it immediately after login.</p>
-      <p><a class="btn btn2" href="/apply">Apply for work (full employee application)</a></p>
-      <p><a class="btn btn2" href="/register">Request login account</a></p>
-      <p><a class="btn btn2" href="/owner-recovery">Owner emergency recovery</a></p>
-      <p><a class="btn btn2" href="/emergency-access">Emergency owner access (mastery key)</a></p>
+      <p class="muted">Owner login: <b>admin / ivygrows</b>. Change your password after first sign-in. Dedicated host laptop local operator: <b>jrc_host / jrc_host</b>.</p>
+      <p><a class="btn btn2" href="/owner-recovery">Owner emergency recovery</a> <a class="btn btn2" href="/emergency-access">Emergency owner access (mastery key)</a></p>
       <p class="muted">Sign-in is required for every user before any dashboard, jobs, or admin tools. Public pages: login, register, apply, emergency access only.</p>
     </div>"""
     return layout("Login", body, "", public=True)
 @app.route("/register", methods=["GET", "POST"])
+@app.route("/account-request", methods=["GET", "POST"])
 def public_account_request():
     init_db()
-    if get_app_setting("public_account_requests", "enabled") != "enabled":
+    if not public_account_requests_enabled():
         body = """<div class='card card-wide'><h2>Account Requests Paused</h2>
         <p class='muted'>Public account requests are temporarily disabled by the administrator. Contact Jacob / J &amp; R Construction to request access.</p>
         <p><a class='btn' href='/login'>Back to login</a></p></div>"""
-        return layout("Request Access", body, "")
+        return layout("Request Access", body, "", public=True)
     if request.method == "POST":
         ip = client_ip()
         username = request.form.get("username", "").strip().lower()
@@ -1764,8 +1993,9 @@ def role_command_center(role: str, perms: set[str]) -> str:
     if role == "admin":
         return grid("Owner Command Center", "Daily order: requests, active jobs, money, files, users, then verification tools only when needed.", [
             ("Jobs", "/jobs", ""), ("Customer Requests", "/customers/requests", "btn2"),
-            ("Worker Applications", "/applications", "btn2"), ("Job Costs", "/job-costs", "btn2"),
-            ("Files", "/files", "btn2"), ("Users / Admin", "/admin", "btn2"),
+            ("Worker Applications", "/applications", "btn2"), ("Payroll", "/payroll", "btn2"),
+            ("Job Costs", "/job-costs", "btn2"), ("Payment Admin", "/admin/payments", "btn2"),
+            ("Office AI", "/office-ai", "btn2"), ("Files", "/files", "btn2"), ("Users / Admin", "/admin", "btn2"),
         ])
     if role == "manager":
         return grid("Manager Command Center", "Manage daily operations without owner-only security and deployment tools.", [
@@ -1837,7 +2067,7 @@ def change_password():
                     log_security_event("password_changed", user["username"], "User changed own password", "INFO")
                 db().commit()
                 flash("Password changed. The default admin login is now disabled for this business database." if user["username"] == DEFAULT_ADMIN_USERNAME else "Password changed.", "success")
-                return redirect(url_for("setup_complete"))
+                return redirect(url_for("dashboard"))
     from app.densus_policy import password_policy_summary
     policy_note = password_policy_summary()
     body = f"""
@@ -1874,6 +2104,9 @@ def owner_security_status():
 @app.route("/setup-complete")
 @login_required("view_dashboard")
 def setup_complete():
+    """Legacy landing — send users straight to the full role dashboard."""
+    if get_app_setting("owner_setup_complete", "0") == "1":
+        return redirect(url_for("dashboard"))
     user = current_user()
     role = user["role"] if user else "viewer"
     body = f"""
@@ -2069,6 +2302,10 @@ def scan_sources() -> Dict[str, int]:
 @app.route("/files")
 @login_required("view_files")
 def files():
+    from app.file_access_security import filter_indexed_files_for_role, role_may_see_file_source_paths
+
+    user = current_user()
+    role = session.get("role") or (user["role"] if user else "viewer")
     q = request.args.get("q", "").strip()
     rows = []
     if q:
@@ -2076,9 +2313,16 @@ def files():
         rows = db().execute("SELECT fi.*, fs.label FROM file_index fi LEFT JOIN file_sources fs ON fs.id=fi.source_id WHERE fi.file_name LIKE ? OR fi.keywords LIKE ? OR fi.analysis LIKE ? ORDER BY fi.modified_at DESC LIMIT 300", (like, like, like)).fetchall()
     else:
         rows = db().execute("SELECT fi.*, fs.label FROM file_index fi LEFT JOIN file_sources fs ON fs.id=fi.source_id ORDER BY fi.modified_at DESC LIMIT 300").fetchall()
+    rows = filter_indexed_files_for_role(role, rows)
     trs = ''.join(f"<tr><td>{html.escape(r['file_name'])}</td><td>{html.escape(r['label'] or '')}</td><td>{html.escape(r['extension'] or '')}</td><td>{r['size'] or 0}</td><td>{html.escape(r['keywords'] or '')}</td><td>{html.escape(r['analysis'] or '')}</td><td><a href='/files/open/{r['id']}'>Open</a></td></tr>" for r in rows)
     sources = db().execute("SELECT * FROM file_sources ORDER BY label").fetchall()
-    src_rows = ''.join(f"<tr><td>{s['id']}</td><td>{html.escape(s['label'])}</td><td>{html.escape(s['source_type'] or '')}</td><td>{html.escape(s['folder_path'])}</td><td>{'Active' if s['active'] else 'Off'}</td></tr>" for s in sources)
+    show_paths = role_may_see_file_source_paths(role)
+    src_rows = ''.join(
+        f"<tr><td>{s['id']}</td><td>{html.escape(s['label'])}</td><td>{html.escape(s['source_type'] or '')}</td>"
+        f"<td>{html.escape(s['folder_path'] if show_paths else 'Internal source — owner/manager only')}</td>"
+        f"<td>{'Active' if s['active'] else 'Off'}</td></tr>"
+        for s in sources
+    )
     body = f"""
     <div class="card"><h2>Source Refresh</h2><a class="btn" href="/files/refresh">Refresh and Analyze Files</a><p class="muted">Sources can include local Dropbox folders, program evidence, exports, and ChatGPT import files.</p></div>
     <div class="card"><h2>Upload Evidence / Business File</h2><form method="post" action="/files/upload" enctype="multipart/form-data"><div class="row"><input type="file" name="file"><button>Upload to Evidence Folder</button></div></form><p class="muted">Managers and admins can upload files. Viewers and workers are read-only.</p></div>
@@ -2227,7 +2471,11 @@ def _admin_user_role_cell(user_row: sqlite3.Row) -> str:
     uid = int(user_row["id"])
     current = normalize_role_for_session(user_row["role"] or "viewer")
     display = role_display(current)
-    if int(user_row["owner_account"] or 0) or user_row["username"] == DEFAULT_ADMIN_USERNAME:
+    try:
+        owner_flag = int(user_row["owner_account"] or 0)
+    except (IndexError, KeyError, TypeError):
+        owner_flag = 0
+    if owner_flag or user_row["username"] == DEFAULT_ADMIN_USERNAME:
         return f"<b>{html.escape(display)}</b><br><span class='muted'>Owner — fixed</span>"
     opts = role_select_options(current, exclude=("admin",))
     return (
@@ -2313,7 +2561,14 @@ def _admin_command_center_html() -> str:
         <a class="btn btn2" href="/admin/dropbox"><b>Dropbox Sync</b><br><span class="muted" style="font-size:12px">Office records alignment</span></a>
         <a class="btn btn2" href="/admin/densus"><b>Densus Monitor</b><br><span class="muted" style="font-size:12px">Owner-approved — sessions + download</span></a>
         <a class="btn btn2" href="/admin/database/accounts"><b>Account DB</b><br><span class="muted" style="font-size:12px">Roles + permission overrides</span></a>
+        <a class="btn btn2" href="/admin/remote-pc"><b>Remote Host PC</b><br><span class="muted" style="font-size:12px">Full admin access · WOL · RDP · RustDesk · verify</span></a>
         <a class="btn btn2" href="/hosting"><b>Hosting / Mobile</b><br><span class="muted" style="font-size:12px">LAN + cloud setup</span></a>
+        <a class="btn btn2" href="/admin/payments"><b>Payment Admin</b><br><span class="muted" style="font-size:12px">Request payment, lock user, ledger</span></a>
+        <a class="btn btn2" href="/office-ai"><b>Office AI</b><br><span class="muted" style="font-size:12px">In-app assistant — Dropbox rules</span></a>
+        <a class="btn btn2" href="/ai"><b>AI Settings</b><br><span class="muted" style="font-size:12px">Provider keys + sources</span></a>
+        <a class="btn btn2" href="/admin/database"><b>All DB Tables</b><br><span class="muted" style="font-size:12px">Full database editor</span></a>
+        <a class="btn btn2" href="/payroll"><b>Payroll Register</b><br><span class="muted" style="font-size:12px">Helper pay entries</span></a>
+        <a class="btn btn2" href="/bookkeeping"><b>Bookkeeping</b><br><span class="muted" style="font-size:12px">Tax and ledger tools</span></a>
         <a class="btn btn2" href="/connect"><b>Connection Test</b><br><span class="muted" style="font-size:12px">Phone / remote check</span></a>
         <a class="btn btn2" href="/business"><b>Business Hub</b><br><span class="muted" style="font-size:12px">Command center</span></a>
         <a class="btn btn2" href="/health"><b>System Check</b><br><span class="muted" style="font-size:12px">Verify before live use</span></a>
@@ -2346,7 +2601,7 @@ def _admin_command_center_html() -> str:
 def admin():
     online_cut = (dt.datetime.now() - dt.timedelta(minutes=15)).isoformat(timespec="seconds")
     online = db().execute("SELECT * FROM online_sessions WHERE active=1 AND revoked=0 AND last_seen >= ? ORDER BY last_seen DESC", (online_cut,)).fetchall()
-    users = db().execute("SELECT id, username, display_name, role, active, must_change_password, created_at, last_login, last_ip_address, email, phone FROM users ORDER BY username").fetchall()
+    users = db().execute("SELECT id, username, display_name, role, active, must_change_password, created_at, last_login, last_ip_address, email, phone, owner_account FROM users ORDER BY username").fetchall()
     pending = db().execute("SELECT * FROM account_requests WHERE status='Pending' ORDER BY created_at DESC").fetchall()
     reg_url = url_for('public_account_request', _external=True)
     security = db().execute("SELECT * FROM security_events ORDER BY id DESC LIMIT 12").fetchall() if db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name='security_events'").fetchone() else []
@@ -2375,7 +2630,7 @@ def admin():
     )
     security_rows = ''.join(f"<tr><td>{html.escape(r['event_time'] or '')}</td><td>{html.escape(r['level'] or '')}</td><td>{html.escape(r['event_type'] or '')}</td><td>{html.escape(r['username'] or '')}</td><td>{html.escape(r['ip_address'] or '')}</td><td>{html.escape((r['message'] or '')[:120])}</td></tr>" for r in security)
     if not online:
-        online_rows = _admin_empty_row(7, "No users online in the last 15 minutes.")
+        online_rows = _admin_empty_row(7, f"No users online in the last {SESSION_TIMEOUT_MINUTES} minutes.")
     if not users:
         user_rows = _admin_empty_row(7, "No users in database yet.")
     if not pending:
@@ -2663,7 +2918,7 @@ def admin_fix_launchers():
 def run_health_checks() -> List[Tuple[str, str, str]]:
     results = []
     try:
-        with direct_db() as conn:
+        with managed_db() as conn:
             conn.execute("SELECT 1").fetchone()
             results.append(("OK", "Database", "SQLite database opened successfully."))
             admin = conn.execute("SELECT * FROM users WHERE username='admin'").fetchone()
@@ -3254,21 +3509,6 @@ def pwa_manifest():
 def service_worker():
     js = """self.addEventListener('install',event=>self.skipWaiting());\nself.addEventListener('activate',event=>self.clients.claim());\nself.addEventListener('fetch',event=>{});\n"""
     return Response(js, mimetype='application/javascript')
-@app.route("/ai", methods=["GET", "POST"])
-@login_required("configure_ai")
-def ai_sources():
-    if request.method == "POST":
-        db().execute("INSERT INTO ai_sources (label,source_type,folder_path,api_enabled,status,notes,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)",
-                     (request.form.get("label"), request.form.get("source_type"), request.form.get("folder_path"), 1 if request.form.get("api_enabled") == "on" else 0, request.form.get("status") or "Configured", request.form.get("notes"), now_iso(), now_iso()))
-        db().commit(); flash("AI/ChatGPT source saved.", "success"); return redirect(url_for("ai_sources"))
-    rows = db().execute("SELECT * FROM ai_sources ORDER BY id DESC").fetchall()
-    trs = ''.join(f"<tr><td>{html.escape(r['label'] or '')}</td><td>{html.escape(r['source_type'] or '')}</td><td>{html.escape(r['folder_path'] or '')}</td><td>{'Yes' if r['api_enabled'] else 'No'}</td><td>{html.escape(r['status'] or '')}</td><td>{html.escape(r['notes'] or '')}</td></tr>" for r in rows)
-    body = f"""
-    <div class='card'><h2>ChatGPT / AI Source Rules</h2><p><b>Safe rule:</b> This app can scan ChatGPT export/import files and can later use an API key you intentionally configure. It cannot directly read private ChatGPT Business conversations or workspace files by itself.</p></div>
-    <div class='card'><h2>Add Source</h2><form method='post'><div class='row3'><p><label>Label</label><input name='label' value='ChatGPT Business Export'></p><p><label>Type</label><select name='source_type'><option>chatgpt-import-folder</option><option>openai-api-planned</option><option>manual-export</option></select></p><p><label>Folder / Endpoint Note</label><input name='folder_path' value='{html.escape(str(CHATGPT_IMPORTS_DIR))}'></p></div><p><label>Notes</label><textarea name='notes'></textarea></p><p><label><input type='checkbox' name='api_enabled'> API enabled later after owner config</label></p><button>Save Source</button></form></div>
-    <div class='card'><h2>Configured Sources</h2><table><tr><th>Label</th><th>Type</th><th>Folder/Endpoint</th><th>API</th><th>Status</th><th>Notes</th></tr>{trs}</table></div>
-    """
-    return layout("ChatGPT / AI Sources", body, "ai")
 @app.route("/api/mobile/dashboard")
 @login_required("mobile_access")
 def api_mobile_dashboard():
@@ -3315,20 +3555,23 @@ def api_mobile_pipeline():
 @app.route("/api/mobile/files")
 @login_required("mobile_access")
 def api_mobile_files():
+    from app.file_access_security import filter_indexed_files_for_role
+
     user = current_user()
     role = normalize_role_for_session(user["role"] if user else "viewer")
     perms = get_user_permissions(user["id"], role)
     if is_customer_or_external(role) or "view_files" not in perms:
         return jsonify([])
-    rows = db().execute("SELECT id,file_name,extension,size,modified_at,analysis FROM file_index ORDER BY modified_at DESC LIMIT 100").fetchall()
-    return jsonify([dict(r) for r in rows])
+    rows = db().execute("SELECT id,file_name,file_path,extension,size,modified_at,analysis FROM file_index ORDER BY modified_at DESC LIMIT 100").fetchall()
+    rows = filter_indexed_files_for_role(role, rows)
+    return jsonify([{k: r[k] for k in r.keys() if k != "file_path"} for r in rows])
 @app.route("/api/data_status")
 @login_required("audit")
 def api_data_status():
     return jsonify(data_status_snapshot())
 def ensure_bookkeeping_schema() -> None:
     """Auto-repair bookkeeping/filekeeping tables and columns."""
-    with direct_db() as conn:
+    with managed_db() as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS bookkeeping_ledgers (
             id INTEGER PRIMARY KEY AUTOINCREMENT, entry_date TEXT, entry_type TEXT, category TEXT,
             job_id INTEGER, source_table TEXT, source_id INTEGER, description TEXT,
@@ -3421,7 +3664,7 @@ def reconcile_bookkeeping(conn: sqlite3.Connection, username: str = 'system') ->
     return snap
 def ensure_payroll_schema() -> None:
     """Auto-repair payroll/accounting columns for older databases."""
-    with direct_db() as conn:
+    with managed_db() as conn:
         def columns(table: str) -> set[str]:
             return {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
         conn.execute("""CREATE TABLE IF NOT EXISTS payroll_periods (
@@ -3458,7 +3701,7 @@ def ensure_payroll_schema() -> None:
         conn.commit()
 def ensure_job_application_schema() -> None:
     """Auto-repair job application, worker onboarding, and insurance information tables."""
-    with direct_db() as conn:
+    with managed_db() as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS job_applications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             created_at TEXT,
@@ -3528,13 +3771,13 @@ def ensure_job_application_schema() -> None:
         conn.commit()
     from app.application_notifications import ensure_notification_columns
 
-    with direct_db() as conn:
+    with managed_db() as conn:
         ensure_notification_columns(conn)
 
 
 def log_application_event(application_id: int, event_type: str, message: str, username: str = "") -> None:
     try:
-        with direct_db() as conn:
+        with managed_db() as conn:
             conn.execute("INSERT INTO application_events(event_time,application_id,event_type,username,ip_address,message) VALUES(?,?,?,?,?,?)",
                          (now_iso(), application_id, event_type, username or session.get('username',''), client_ip(), message))
             conn.commit()
@@ -3754,6 +3997,13 @@ def bookkeeping_export():
             w.writerow([r['entry_date'],r['entry_type'],r['category'],r['job_name'],r['source_table'],r['source_id'],r['description'],r['debit'],r['credit'],r['status'],r['receipt_status'],r['notes']])
     flash(f"Bookkeeping ledger exported: {out.name}", "success")
     return redirect(url_for("bookkeeping"))
+@app.route("/workers")
+@login_required("view_workers")
+def workers_redirect():
+    """Legacy dashboard link — Workers / Helpers tile formerly pointed here."""
+    return redirect(url_for("payroll"))
+
+
 @app.route("/payroll", methods=["GET", "POST"])
 @login_required("view_workers")
 def payroll():
@@ -4409,7 +4659,7 @@ def connect_links():
       </ol>
     </div>
     """
-    return layout("Connection Test and Mobile Links", body, "mobile")
+    return layout("Connection Test and Mobile Links", body, "mobile", public=True)
 @app.route("/api/connection")
 def api_connection():
     port = int(os.environ.get("JRC_PORT", "8765"))
@@ -4460,10 +4710,35 @@ def api_revoke_session(sid: str):
     return jsonify({"ok": True, "session_id": sid})
 
 
+@app.route("/api/host/prepare-shutdown", methods=["POST"])
+def api_host_prepare_shutdown():
+    """Local-only: checkpoint DB, archive sessions/logs, and prepare for safe host stop."""
+    ip = (request.remote_addr or "").strip()
+    if ip not in {"127.0.0.1", "::1"}:
+        abort(403)
+    try:
+        from app.server_lifecycle import on_server_shutdown
+
+        on_server_shutdown(graceful=True)
+        log_event("Host", "Graceful shutdown prepared — database checkpointed and logs archived")
+        return jsonify({"ok": True, "message": "Shutdown prepared", "time": now_iso()})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @app.route("/api/health")
 def api_health():
     return jsonify({"app": APP_NAME, "version": APP_VERSION, "status": "ok", "time": now_iso(), "lan_ip": get_lan_ip(), "mode": "public" if PUBLIC_HOST_MODE else "local_lan", "session_timeout_minutes": SESSION_TIMEOUT_MINUTES})
 def main():
+    try:
+        from app.process_lifecycle import prepare_for_new_host, startup_cleanup
+
+        startup_cleanup()
+        stopped = prepare_for_new_host()
+        if stopped:
+            print(f"Stopped {len(stopped)} duplicate host process(es) before startup.")
+    except Exception as exc:
+        print(f"Warning: process cleanup skipped: {exc}")
     init_db()
     try:
         from app.server_lifecycle import on_server_startup, register_shutdown_handlers
@@ -4618,6 +4893,21 @@ except Exception as _emergency_route_exc:
     print(f"Warning: Emergency routes not loaded: {_emergency_route_exc}", file=sys.stderr)
 
 try:
+    from app.remote_pc_routes import register_remote_pc_routes
+
+    register_remote_pc_routes(
+        app,
+        login_required=login_required,
+        layout=layout,
+        get_app_setting=get_app_setting,
+        set_app_setting=set_app_setting,
+        now_iso=now_iso,
+        log_event=log_event,
+    )
+except Exception as _remote_pc_exc:
+    print(f"Warning: Remote PC routes not loaded: {_remote_pc_exc}", file=sys.stderr)
+
+try:
     from app.live_chat import register_live_chat_routes
 
     register_live_chat_routes(
@@ -4633,6 +4923,212 @@ try:
     )
 except Exception as _live_chat_exc:
     print(f"Warning: Live chat routes not loaded: {_live_chat_exc}", file=sys.stderr)
+
+try:
+    from app.office_ai.routes import register_office_ai_routes
+
+    register_office_ai_routes(
+        app,
+        db_fn=db,
+        login_required=login_required,
+        layout=layout,
+        current_user=current_user,
+        log_event=log_event,
+        CHATGPT_IMPORTS_DIR=CHATGPT_IMPORTS_DIR,
+    )
+except Exception as _office_ai_exc:
+    print(f"Warning: Office AI routes not loaded: {_office_ai_exc}", file=sys.stderr)
+
+try:
+    from app.reliability.register_routes import register_reliability_routes
+
+    register_reliability_routes(
+        app,
+        login_required=login_required,
+        layout=layout,
+        base_dir=BASE_DIR,
+    )
+except Exception as _rel_exc:
+    print(f"Warning: Reliability routes not loaded: {_rel_exc}", file=sys.stderr)
+
+try:
+    from app.messenger.register_routes import register_messenger_routes
+
+    register_messenger_routes(
+        app,
+        db_fn=db,
+        login_required=login_required,
+        layout=layout,
+        current_user=current_user,
+        normalize_role=normalize_role_for_session,
+    )
+except Exception as _msg_exc:
+    print(f"Warning: Messenger routes not loaded: {_msg_exc}", file=sys.stderr)
+
+try:
+    from app.mobile_platform.register_routes import register_mobile_platform_routes
+
+    register_mobile_platform_routes(
+        app,
+        db_fn=db,
+        login_required=login_required,
+        current_user=current_user,
+        base_dir=BASE_DIR,
+    )
+except Exception as _mob_exc:
+    print(f"Warning: Mobile platform routes not loaded: {_mob_exc}", file=sys.stderr)
+
+try:
+    from app.routes.log_events import register_log_event_routes
+
+    register_log_event_routes(
+        app,
+        login_required=login_required,
+        layout=layout,
+        base_dir=BASE_DIR,
+    )
+except Exception as _log_exc:
+    print(f"Warning: Log event routes not loaded: {_log_exc}", file=sys.stderr)
+
+try:
+    from app.register_server_control_routes import register_server_control_routes
+
+    register_server_control_routes(
+        app,
+        login_required=login_required,
+        layout=layout,
+        base_dir=BASE_DIR,
+        APP_VERSION=APP_VERSION,
+    )
+except Exception as _srv_exc:
+    print(f"Warning: Server control routes not loaded: {_srv_exc}", file=sys.stderr)
+
+
+def _api_admin_host_windows_power(action: str):
+    """Schedule Windows reboot or shutdown (fallback if server_control patch not loaded)."""
+    import subprocess
+
+    payload = request.get_json(silent=True) or {}
+    sec = max(0, min(int(payload.get("delay_seconds", 60 if action == "reboot" else 45)), 600))
+    flag = "/r" if action == "reboot" else "/s"
+    label = "restart" if action == "reboot" else "shutdown"
+    comment = f"JRC dedicated host {label}"
+    try:
+        proc = subprocess.run(
+            ["shutdown", flag, "/t", str(sec), "/f", "/c", comment],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return jsonify(
+            {
+                "ok": proc.returncode == 0,
+                "action": action,
+                "message": f"Windows {label} in {sec}s" if proc.returncode == 0 else f"{label} failed",
+                "delay_seconds": sec,
+                "output": (proc.stdout or proc.stderr or "").strip(),
+                "cancel": "shutdown /a",
+            }
+        )
+    except Exception as exc:
+        return jsonify({"ok": False, "action": action, "message": str(exc), "delay_seconds": sec})
+
+
+@app.route("/api/admin/host/reboot-windows", methods=["POST"])
+@login_required("view_admin")
+def api_admin_host_reboot_windows():
+    """Schedule Windows restart on dedicated host (fallback if server_control patch not loaded)."""
+    return _api_admin_host_windows_power("reboot")
+
+
+@app.route("/api/admin/host/shutdown-windows", methods=["POST"])
+@login_required("view_admin")
+def api_admin_host_shutdown_windows():
+    """Schedule Windows shutdown on dedicated host (fallback if server_control patch not loaded)."""
+    return _api_admin_host_windows_power("shutdown")
+
+
+@app.route("/api/admin/host/repair-database", methods=["POST"])
+@login_required("view_admin")
+def api_admin_host_repair_database():
+    """Repair locked jr_business.db without loading server_control patch."""
+    try:
+        from app.server_control import repair_database_lock
+
+        return jsonify(repair_database_lock(BASE_DIR))
+    except Exception as exc:
+        return jsonify({"ok": False, "message": str(exc)})
+
+
+def _resolve_office_patch_dir():
+    from pathlib import Path
+
+    for raw in (
+        r"\\100.95.109.11\JRC-HOST-SETUP\HOST_APP_PATCH",
+        r"\\192.168.50.59\JRC-HOST-SETUP\HOST_APP_PATCH",
+        r"\\JRCONST\JRC-HOST-SETUP\HOST_APP_PATCH",
+    ):
+        p = Path(raw)
+        try:
+            if p.is_dir():
+                return p
+        except OSError:
+            continue
+    return None
+
+
+@app.route("/api/admin/host/bootstrap-remote", methods=["POST"])
+@login_required("view_admin")
+def api_admin_host_bootstrap_remote():
+    """Run FIX_HOST_REMOTE_PATHS + WiFi stable from office share on this host."""
+    try:
+        from app.server_control import bootstrap_remote_paths
+
+        return jsonify(bootstrap_remote_paths(BASE_DIR))
+    except Exception as exc:
+        return jsonify({"ok": False, "message": str(exc)})
+
+
+@app.route("/api/admin/host/apply-office-patch", methods=["POST"])
+@login_required("view_admin")
+def api_admin_host_apply_office_patch():
+    """Copy server_control patch from office share onto this host install."""
+    import shutil
+
+    notes: list[str] = []
+    try:
+        patch_dir = _resolve_office_patch_dir()
+        if not patch_dir:
+            return jsonify(
+                {
+                    "ok": False,
+                    "message": "Office patch share not found (LAN or Tailscale)",
+                    "notes": notes,
+                }
+            )
+        app_dir = BASE_DIR / "app"
+        for name in (
+            "server_control.py",
+            "register_server_control_routes.py",
+            "network_server.py",
+            "remote_pc_control.py",
+            "remote_pc_routes.py",
+        ):
+            src = patch_dir / name
+            if src.is_file():
+                shutil.copy2(src, app_dir / name)
+                notes.append(f"patched {name}")
+        return jsonify(
+            {
+                "ok": bool(notes),
+                "message": "Restart JRC server to load new API routes" if notes else "No patch files copied",
+                "notes": notes,
+                "patch_dir": str(patch_dir),
+            }
+        )
+    except Exception as exc:
+        return jsonify({"ok": False, "message": str(exc), "notes": notes})
 
 if __name__ == "__main__":
     main()

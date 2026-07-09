@@ -16,6 +16,7 @@ def main() -> int:
     ok: list[str] = []
 
     sc = (APP / "start_center.py").read_text(encoding="utf-8", errors="replace")
+    sb = (APP / "startup_bootstrap.py").read_text(encoding="utf-8", errors="replace")
     ns = (APP / "network_server.py").read_text(encoding="utf-8", errors="replace")
     dc = (APP / "dashboard_config.py").read_text(encoding="utf-8", errors="replace")
 
@@ -26,7 +27,7 @@ def main() -> int:
 
     checks = {
         "Start Center scrollable canvas": "tk.Canvas" in sc and "yscrollcommand" in sc,
-        "Start Center blocking login": "require_blocking_login" in sc,
+        "Start Center blocking login": "require_blocking_login" in sb or "startup_bootstrap" in sc,
         "Web action-grid CSS": ".action-grid" in ns and "grid-template-columns:repeat(auto-fit" in ns,
         "Unified dashboard tiles module": "render_dashboard_sections" in dc and "dashboard_tiles" in dc,
         "Admin command center": "Owner Admin Command Center" in ns,

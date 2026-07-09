@@ -6,7 +6,7 @@ import sqlite3
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Tuple
+from typing import Iterable, List, Tuple
 
 BASE = Path(__file__).resolve().parents[1]
 
@@ -123,6 +123,28 @@ def path_under_allowed_roots(file_path: Path, allowed_roots: List[Path]) -> bool
     return False
 
 
+def role_may_see_file_source_paths(role: str) -> bool:
+    return normalize_role(role) in ADMIN_MANAGER_ROLES
+
+
+def filter_indexed_files_for_role(role: str, rows: Iterable) -> List:
+    """Drop sensitive indexed files from listings for non-admin/manager roles."""
+    out = []
+    for r in rows:
+        fp = ""
+        try:
+            fp = r["file_path"] if isinstance(r, dict) else r["file_path"]
+        except (KeyError, TypeError, IndexError):
+            try:
+                fp = r[1] if len(r) > 1 else ""
+            except Exception:
+                fp = ""
+        allowed, _ = role_may_open_indexed_file(role, str(fp or ""))
+        if allowed:
+            out.append(r)
+    return out
+
+
 def verify_file_access_security(base_dir: Path | None = None) -> int:
     """Static + light dynamic checks for phase verification."""
     base = Path(base_dir or BASE).resolve()
@@ -167,6 +189,11 @@ def verify_file_access_security(base_dir: Path | None = None) -> int:
         "customer blocked from index",
         not role_may_open_indexed_file("customer", r"C:\biz\quote.pdf")[0],
     )
+    sample = filter_indexed_files_for_role(
+        "worker",
+        [{"file_path": r"C:\biz\Payroll_Helper_Register.csv"}, {"file_path": r"C:\biz\jobsite_photo.jpg"}],
+    )
+    check("worker file list filters payroll", len(sample) == 1 and "photo" in sample[0]["file_path"])
 
     with tempfile.TemporaryDirectory() as tmp:
         base_test = Path(tmp)

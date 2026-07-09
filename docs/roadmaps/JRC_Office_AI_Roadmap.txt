@@ -1,0 +1,102 @@
+================================================================================
+J & R CONSTRUCTION MANAGER — IN-APP OFFICE AI ROADMAP (FUTURE UPDATE)
+Owner: Jacob Cosentino | (910) 712-0936
+Prepared: June 29, 2026 | Phase 1 foundation implemented in app/office_ai/
+================================================================================
+
+PURPOSE
+-------
+Build Jacob's own AI inside J & R Construction Manager — sourced from Cursor rules,
+Dropbox standards, ChatGPT exports, and program data. Same office behavior as the
+Cursor assistant. Easy to extend (one module, many providers, clear tools).
+
+REMINDER TRIGGER
+----------------
+When ready to extend, tell Cursor:
+  "Follow JRC_Office_AI_Roadmap_2026-06-29.txt — continue Phase 2."
+
+Dev mirror: local-jrc-app-repo/docs/roadmaps/JRC_Office_AI_Roadmap.txt
+
+================================================================================
+DESIGN GOALS
+================================================================================
+1. Dropbox is source of truth — chat is not the record.
+2. Hybrid autonomy: auto-write simple logs; owner approves money/tax/job-status.
+3. Multi-source knowledge — tiered context loader.
+4. Multi-provider — OpenAI first; Anthropic, Cursor SDK, Gemini, Ollama later.
+5. Easy to work on — app/office_ai/ package, one file per tool/provider.
+6. Security first — admin-only Phase 1; API keys never in Dropbox logs.
+
+================================================================================
+PHASE STATUS
+================================================================================
+Phase 0 — Document + dashboard reminder .............. DONE (June 29, 2026)
+Phase 1 — Foundation (package, UI, OpenAI, tools) .... DONE (June 29, 2026)
+Phase 2 — Cursor parity (Anthropic, Cursor SDK, full logging pipeline)
+Phase 3 — Multi-platform + mobile PWA chat
+Phase 4 — Limited worker AI (narrow scope)
+Phase 5 — Learning loop (RAG / few-shot from approved actions)
+
+================================================================================
+ROUTES (PHASE 1)
+================================================================================
+  /office-ai              Main chat (admin only)
+  /office-ai/approvals    Pending write actions with diff preview
+  /ai                     Provider keys, sources, test connection
+  /api/office-ai/chat     POST message JSON API
+  /api/office-ai/approve/<id>  Approve or deny pending action
+
+Distinct from Live Chat (/chat) — team messaging, not LLM.
+
+================================================================================
+HYBRID AUTONOMY
+================================================================================
+AUTO (no approval):
+  - Append daily log note
+  - Save receipt path note to job folder
+  - Read dashboard, job register, job folder, chatgpt imports search
+
+REQUIRES OWNER APPROVAL:
+  - Financial CSV changes (payroll, income, tax, helper overhead)
+  - Full workspace sync
+  - PDF generation / send drafts
+  - User/role changes
+
+================================================================================
+KNOWLEDGE TIERS (context_loader.py)
+================================================================================
+  Core     — .cursor/rules, LOGGING_EVENT_CHECKLIST, CURSOR_OFFICE_ACCESS_POINT
+  Session  — BUSINESS_DASHBOARD, CURRENT_TO_DO, CASH_ON_HAND, daily log tail
+  Task     — DOCUMENT_GENERATION_STANDARDS, job register, job workups
+  Historical — chatgpt_imports/, file_index search
+  Program  — jr_business.db read-only (jobs, pending requests)
+
+================================================================================
+PROVIDERS (phased)
+================================================================================
+  Phase 1: OpenAI (gpt-4o-mini default)
+  Phase 2: Anthropic, Cursor SDK
+  Phase 3: Gemini, Azure OpenAI, Ollama
+  Phase 4: Groq, Together, Mistral (thin adapters)
+
+Config: app_settings keys office_ai_* — encrypted API keys in SQLite only.
+
+================================================================================
+SUCCESS CRITERIA (PHASE 1)
+================================================================================
+  - "Log helper pay JRC-315" → daily log auto + approval card for payroll CSV
+  - "What's open on Lily fence?" → reads dashboard + job folder
+  - Provider/model configurable at /ai
+  - office_ai_verification_check PASS in phase verification
+
+================================================================================
+RELATIONSHIP TO CURSOR IDE
+================================================================================
+  Cursor IDE     — build program + office chat in IDE (full MCP)
+  JRC Office AI  — daily business ops inside manager (curated tools, safer)
+
+They complement each other. Same rules loaded from .cursor/rules and dropbox-records.
+
+================================================================================
+END — JRC Office AI Roadmap | June 29, 2026
+================================================================================

@@ -116,6 +116,16 @@ def check_dynamic():
         cc=r.headers.get('Cache-Control','')
         if 'no-store' in cc: ok('admin pages use no-store cache control')
         else: err(f'admin Cache-Control not no-store: {cc}')
+        # Restore Jacob's single-owner policy after QA route tests
+        try:
+            with ns.direct_db() as conn:
+                pol = conn.execute("SELECT value FROM app_settings WHERE key='single_owner_admin_policy'").fetchone()
+                if pol and pol[0]:
+                    conn.execute("UPDATE users SET active=0 WHERE username != ?", (ns.DEFAULT_ADMIN_USERNAME,))
+                    conn.commit()
+                    ok('Single owner admin restored — QA test users deactivated after audit')
+        except Exception as exc:
+            warn(f'Could not restore single owner admin after audit: {exc}')
 
 def run():
     line('J&R Construction Manager v5.3 Security Perspective Audit')

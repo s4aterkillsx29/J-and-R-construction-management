@@ -83,6 +83,9 @@ foreach ($dest in @($AppDataInstall, $OwnerInstall)) {
     $appDst = Join-Path $dest "app"
     New-Item -ItemType Directory -Force -Path $appDst | Out-Null
     Copy-Item (Join-Path $Src "app\*.py") $appDst -Force
+    Get-ChildItem (Join-Path $Src "app") -Directory | Where-Object { $_.Name -ne '__pycache__' } | ForEach-Object {
+        Copy-Item $_.FullName (Join-Path $appDst $_.Name) -Recurse -Force
+    }
     foreach ($f in @("VERSION.txt","requirements.txt","ensure_venv.bat","setup_runtime_env.bat","Launch-JRC-Manager.bat","SYNC_LIVE_INSTALL.bat","LIVE_FULL_UPDATE.vbs")) {
         $fp = Join-Path $Src $f
         if (Test-Path $fp) { Copy-Item $fp $dest -Force }
@@ -97,14 +100,23 @@ foreach ($dest in @($AppDataInstall, $OwnerInstall)) {
     }
 }
 
-# Desktop shortcuts
+# Desktop shortcuts + crisp icons
+$iconScript = Join-Path $Src "scripts\generate_shortcut_icons.py"
+if (Test-Path $iconScript) {
+    Write-Host "Regenerating high-resolution shortcut icons..."
+    & $Py $iconScript
+}
 if (Test-Path (Join-Path $Src "scripts\Ensure-DesktopShortcuts.ps1")) {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Src "scripts\Ensure-DesktopShortcuts.ps1") -InstallDir $OwnerInstall 2>$null
+    if (Test-Path $AppDataInstall) {
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Src "scripts\Ensure-DesktopShortcuts.ps1") -InstallDir $AppDataInstall 2>$null
+    }
 }
 
-# Phone Cursor + Dropbox workspace (00_START_HERE files)
+# Phone Cursor + Dropbox workspace (00_START_HERE files) — use office tools when available
+$OfficeTools = "c:\Users\enrag\projects\JRC-Construction-Office\tools"
 foreach ($script in @("Sync-JRCBusinessFolders.ps1", "Refresh-ReadableBusinessReports.ps1")) {
-    $sp = Join-Path $Src "scripts\$script"
+    $sp = if (Test-Path (Join-Path $OfficeTools $script)) { Join-Path $OfficeTools $script } else { Join-Path $Src "scripts\$script" }
     if (Test-Path $sp) {
         Write-Host "Running $script ..."
         & powershell -NoProfile -ExecutionPolicy Bypass -File $sp 2>&1 | ForEach-Object { Write-Host $_ }

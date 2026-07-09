@@ -30,14 +30,20 @@ $publicDesktop = Join-Path $env:Public "Desktop"
 $startMenu = Join-Path ([Environment]::GetFolderPath("StartMenu")) "Programs\J and R Construction"
 New-Item -ItemType Directory -Force -Path $startMenu | Out-Null
 
-function Ensure-Icons($root) {
+function Ensure-Icons($root, [switch]$Force) {
     $gen = Join-Path $root "scripts\generate_shortcut_icons.py"
     $icon = Join-Path $root "assets\jrc_manager_app.ico"
-    if ((Test-Path -LiteralPath $icon) -or -not (Test-Path -LiteralPath $gen)) { return }
+    $needsGen = $Force
+    if (-not $needsGen -and (Test-Path -LiteralPath $icon)) {
+        $len = (Get-Item -LiteralPath $icon).Length
+        if ($len -lt 8000) { $needsGen = $true; Write-JrcLog "Regenerating icons (existing ICO only $len bytes - too small for crisp display)." }
+    }
+    if (-not $needsGen -and (Test-Path -LiteralPath $icon)) { return }
+    if (-not (Test-Path -LiteralPath $gen)) { return }
     $py = Join-Path $root ".venv\Scripts\python.exe"
     try {
         if (Test-Path -LiteralPath $py) { & $py $gen | Out-Null } else { py -3 $gen | Out-Null }
-        Write-JrcLog "Generated shortcut icons."
+        Write-JrcLog "Generated high-resolution shortcut icons."
     } catch {
         Write-JrcLog "Icon generation skipped: $($_.Exception.Message)"
     }
@@ -89,7 +95,7 @@ function Remove-LegacyShortcuts($locations) {
     }
 }
 
-Ensure-Icons $InstallDir
+Ensure-Icons $InstallDir -Force
 Remove-LegacyShortcuts @($desktop, $publicDesktop, $startMenu)
 
 $iconApp = Join-Path $InstallDir "assets\jrc_manager_app.ico"

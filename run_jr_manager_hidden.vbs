@@ -12,7 +12,7 @@ If FSO.FileExists(EnsurePs1) Then
 End If
 Pyw = Base & "\.venv\Scripts\pythonw.exe"
 Py = Base & "\.venv\Scripts\python.exe"
-ModuleArgs = "-m app.start_center"
+ModuleArgs = "-m app.program_shell"
 If FSO.FileExists(Pyw) Then
   WshShell.CurrentDirectory = Base
   WshShell.Run Chr(34) & Pyw & Chr(34) & " " & ModuleArgs, 0, False
