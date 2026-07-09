@@ -12,7 +12,7 @@ for %%D in (
 
 echo.
 echo Live sync complete for all install locations found.
-echo Restart J and R Construction Manager to load v7.8.0.
+echo Restart J and R Construction Manager to load v8.1.0.
 pause
 exit /b 0
 
