@@ -222,6 +222,26 @@ def run_live_update(source_dir: Path | None = None, sync: bool = True) -> Tuple[
     lines.append(f"Developer status: {dev_report.name}")
     lines.append("")
 
+    # Share links + cloud_connect.json + Dropbox guest-link docs (office / host profile)
+    lines.append("SHARE LINKS SYNC")
+    try:
+        from app.share_links_sync import run_share_links_sync
+
+        sl = run_share_links_sync(probe=True, write_dropbox=True)
+        lines.append(f"  connect: {sl.get('urls', {}).get('connect_url', '')}")
+        lines.append(f"  version: {sl.get('version', APP_VERSION)} git: {sl.get('git_head', '') or 'n/a'}")
+        h = sl.get("health") or {}
+        lines.append(f"  host health: {'OK' if h.get('ok') else h.get('error', 'fail')}")
+        for note in sl.get("dropbox_written") or []:
+            lines.append(f"  {note}")
+        if not sl.get("ok"):
+            errors += 1
+            lines.append("  ERROR: share link sync incomplete")
+    except Exception as exc:
+        lines.append(f"  share_links_sync failed: {exc}")
+        errors += 1
+    lines.append("")
+
     lines.append(f"SUMMARY: {errors} issue(s)")
     if errors == 0:
         lines.append("Overall: LIVE UPDATE OK — files, packages, and verification checks passed.")

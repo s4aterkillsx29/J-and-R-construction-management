@@ -113,13 +113,19 @@ if (Test-Path (Join-Path $Src "scripts\Ensure-DesktopShortcuts.ps1")) {
     }
 }
 
-# Phone Cursor + Dropbox workspace (00_START_HERE files) — use office tools when available
+# Phone Cursor + Dropbox workspace — full release sync (share links, git status, business folders)
 $OfficeTools = "c:\Users\enrag\projects\JRC-Construction-Office\tools"
-foreach ($script in @("Sync-JRCBusinessFolders.ps1", "Refresh-ReadableBusinessReports.ps1")) {
-    $sp = if (Test-Path (Join-Path $OfficeTools $script)) { Join-Path $OfficeTools $script } else { Join-Path $Src "scripts\$script" }
-    if (Test-Path $sp) {
-        Write-Host "Running $script ..."
-        & powershell -NoProfile -ExecutionPolicy Bypass -File $sp 2>&1 | ForEach-Object { Write-Host $_ }
+$releaseSync = Join-Path $OfficeTools "Update-JRCProgramReleaseSync.ps1"
+if (Test-Path $releaseSync) {
+    Write-Host "Running Update-JRCProgramReleaseSync (share links + Dropbox + repo check) ..."
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $releaseSync 2>&1 | ForEach-Object { Write-Host $_ }
+} else {
+    foreach ($script in @("Sync-JRCBusinessFolders.ps1", "Refresh-ReadableBusinessReports.ps1")) {
+        $sp = if (Test-Path (Join-Path $OfficeTools $script)) { Join-Path $OfficeTools $script } else { Join-Path $Src "scripts\$script" }
+        if (Test-Path $sp) {
+            Write-Host "Running $script ..."
+            & powershell -NoProfile -ExecutionPolicy Bypass -File $sp 2>&1 | ForEach-Object { Write-Host $_ }
+        }
     }
 }
 
