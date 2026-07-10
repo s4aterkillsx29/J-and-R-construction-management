@@ -1,0 +1,45 @@
+J & R CONSTRUCTION — FIELD LOG (PENDING OFFICE SYNC)
+Generated: 2026-07-09 (cloud agent — merge to Dropbox on desktop)
+Job code: JRC-042R
+Target: 01_Jobs/Active/JRC-042R_Ray_Callback
+Also append to: 03_BUSINESS_ADMIN/Daily_Logs/2026-07-09__JR_Construction_Daily_Log.txt
+
+================================================================================
+DATE/TIME: 2026-07-09 (field)
+JOB CODE: JRC-042R
+JOB: Ray Joyner / 42 Cumberland — Active Callback
+CUSTOMER: Ray Joyner
+ADDRESS: 42 Cumberland
+PARENT JOB: JRC-042 — shower doors (Closed Paid $5,000)
+WHO: Owner (J&R)
+================================================================================
+
+JOB REGISTER STATUS (office records):
+  JRC-042R | Ray Joyner / 42 Cumberland | Active - Callback
+  Scope: Shower door callback prep + shower wall hole repair
+  Materials OOP logged (2026-07-05): $80.00
+
+WHAT HAPPENED (2026-07-09):
+  - Small shower wall hole repair — filler applied.
+  - Color slightly off from surround white gloss; patch slightly proud of surface.
+  - Blue painter's tape masked adjacent area during prep/repair.
+  - Photos taken on site (before sand/polish).
+
+NEXT STEP (same day):
+  - Quick stop: light sand with 600 grit — minimal removal, edges only; do not sand through filler or expose substrate.
+  - Finish with shower polish to restore gloss.
+  - Text Ray completion photos after sand/polish.
+  - Collect payment if amount agreed; log to Income_Deposit_Balance_Register.csv.
+
+BILLING (active callback — JRC-042R):
+  - Active callback job — completion text + photos today is correct.
+  - Recover at minimum: $80.00 materials OOP already logged + labor for callback visit(s).
+  - State repair total in completion text to Ray (no price on file in register — owner confirms amount).
+  - On payment: update JRC-042R status → Closed Paid; Tax_Savings_Tracker_2026.csv.
+
+DESKTOP SYNC CHECKLIST:
+  1. scripts\Sync-JRCBusinessFolders.ps1
+  2. Merge into JRC-042R_Ray_Callback job folder field notes
+  3. Append to daily log in dropbox-records
+  4. Construction Manager → Office Records Sync
+  5. Income_Deposit_Balance_Register.csv + Tax_Savings_Tracker_2026.csv when paid
