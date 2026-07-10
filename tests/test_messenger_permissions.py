@@ -12,8 +12,9 @@ class MessengerPermissionTests(unittest.TestCase):
         self.assertIn("admin_broadcast", allowed_channels("admin"))
 
     def test_customer_isolated(self) -> None:
-        self.assertEqual(allowed_channels("customer"), {"job"})
+        self.assertEqual(allowed_channels("customer"), {"job", "admin_broadcast"})
         self.assertFalse(can_send("customer", "team"))
+        self.assertFalse(can_send("customer", "admin_broadcast"))
 
     def test_worker_team_chat(self) -> None:
         self.assertTrue(can_read("worker", "team"))

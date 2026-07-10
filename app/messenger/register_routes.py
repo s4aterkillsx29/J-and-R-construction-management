@@ -26,8 +26,9 @@ def register_messenger_routes(
         role = normalize_role(user.get("role", ""))
         conn = db_fn()
         schema.ensure_messenger_schema(conn)
-        sessions = service.list_sessions(conn, role)
-        return jsonify({"ok": True, "sessions": sessions})
+        sessions = service.list_sessions(conn, role, username=user.get("username", ""))
+        unread = service.total_unread(conn, user.get("username", ""), role)
+        return jsonify({"ok": True, "sessions": sessions, "unread_total": unread})
 
     @app.route("/api/messenger/poll")
     @login_required()
@@ -51,8 +52,9 @@ def register_messenger_routes(
     def api_messenger_send():
         user = current_user()
         role = normalize_role(user.get("role", ""))
-        session_id = request.form.get("session_id", type=int) or request.json.get("session_id") if request.is_json else None
-        body = request.form.get("body") or (request.json or {}).get("body", "")
+        data = request.get_json(silent=True) or {}
+        session_id = request.form.get("session_id", type=int) or data.get("session_id")
+        body = request.form.get("body") or data.get("body", "")
         conn = db_fn()
         ch_row = conn.execute(
             "SELECT channel_type FROM live_chat_sessions WHERE id=?", (session_id,)
@@ -68,6 +70,39 @@ def register_messenger_routes(
                 channel_type=channel,
             )
         )
+
+    @app.route("/api/messenger/mark-read", methods=["POST"])
+    @login_required()
+    def api_messenger_mark_read():
+        user = current_user()
+        data = request.get_json(silent=True) or {}
+        session_id = data.get("session_id") or request.form.get("session_id", type=int)
+        if not session_id:
+            return jsonify({"ok": False, "error": "session_id required"})
+        conn = db_fn()
+        service.mark_read(conn, user.get("username", ""), int(session_id))
+        return jsonify({"ok": True})
+
+    @app.route("/api/messenger/dm/start", methods=["POST"])
+    @login_required()
+    def api_messenger_dm_start():
+        user = current_user()
+        role = normalize_role(user.get("role", ""))
+        if "dm" not in permissions.allowed_channels(role):
+            return jsonify({"ok": False, "error": "DM not allowed for your role"})
+        data = request.get_json(silent=True) or {}
+        target = (data.get("target_username") or request.form.get("target_username") or "").strip()
+        if not target:
+            return jsonify({"ok": False, "error": "target_username required"})
+        conn = db_fn()
+        schema.ensure_messenger_schema(conn)
+        sid = service.find_or_create_dm(
+            conn,
+            user.get("username", ""),
+            target,
+            created_by=user.get("username", ""),
+        )
+        return jsonify({"ok": True, "session_id": sid})
 
     @app.route("/admin/command-center", methods=["GET"])
     @login_required("view_admin")
@@ -96,7 +131,8 @@ def register_messenger_routes(
         <p><a class="btn" href="/admin/live-sessions">Live Sessions</a>
         <a class="btn btn2" href="/admin/reliability">Guardian</a>
         <a class="btn btn2" href="/office-ai/approvals">Approvals</a>
-        <a class="btn btn2" href="/chat">Messenger</a></p></div>
+        <a class="btn btn2" href="/chat">Messenger</a>
+        <a class="btn btn2" href="/admin/popup-demo">Admin Popups</a></p></div>
         <div class="card"><h2>Recent Sessions</h2>
         <table><tr><th>User</th><th>IP</th><th>Last seen</th></tr>{sess_rows or '<tr><td colspan=3>None</td></tr>'}</table></div>
         """
@@ -114,12 +150,14 @@ def register_messenger_routes(
             f"<td>{html.escape(str(r.get('role','')))}</td>"
             f"<td>{html.escape(str(r.get('ip_address','')))}</td>"
             f"<td>{html.escape(str(r.get('user_agent','')))[:60]}</td>"
-            f"<td>{html.escape(str(r.get('last_seen','')))}</td></tr>"
+            f"<td>{html.escape(str(r.get('last_seen','')))}</td>"
+            f"<td><button type='button' class='btn btn2 jrc-admin-popup-btn' "
+            f"data-user-id='' data-username='{html.escape(str(r['username']))}'>Quick popup</button></td></tr>"
             for r in rows
         )
         body = f"""<div class="card"><h2>Live Sessions</h2>
-        <p class="muted">Auto-refreshes every 10s</p>
-        <table><tr><th>User</th><th>Role</th><th>IP</th><th>Device</th><th>Last seen</th></tr>
-        {trs or '<tr><td colspan=5>No active sessions logged</td></tr>'}</table>
+        <p class="muted">Auto-refreshes every 10s · use Quick popup for session actions</p>
+        <table><tr><th>User</th><th>Role</th><th>IP</th><th>Device</th><th>Last seen</th><th>Action</th></tr>
+        {trs or '<tr><td colspan=6>No active sessions logged</td></tr>'}</table>
         <script src="/static/admin-live-sessions.js"></script></div>"""
         return layout("Live Sessions", body, "admin")

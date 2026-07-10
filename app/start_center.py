@@ -45,7 +45,7 @@ except Exception:
     is_jrc_server = None
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "8.1.0 Unified Office Edition"
+APP_VERSION = "8.2.0 Live Messenger & Admin Popups Edition"
 BUSINESS = "J & R Construction"
 OWNER = "Jacob Cosentino"
 DEFAULT_PORT = int(os.environ.get("JRC_PORT", "8765"))

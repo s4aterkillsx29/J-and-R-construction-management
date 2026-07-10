@@ -30,7 +30,7 @@ except Exception as exc:
     print("Flask is required. Run INSTALL_JR_JOB_MANAGER.bat first.")
     raise
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "8.1.0 Unified Office Edition"
+APP_VERSION = "8.2.1 Device Agreement & Rooted Sessions"
 BUSINESS_NAME = "J & R Construction"
 OWNER = "Jacob Cosentino"
 PHONE = "(910) 712-0936"
@@ -1052,6 +1052,9 @@ def init_db() -> None:
             "ALTER TABLE known_devices ADD COLUMN last_verified_at TEXT",
             "ALTER TABLE known_devices ADD COLUMN expires_at TEXT",
             "ALTER TABLE known_devices ADD COLUMN remember_consent INTEGER DEFAULT 0",
+            "ALTER TABLE online_sessions ADD COLUMN root_device_agreed INTEGER DEFAULT 0",
+            "ALTER TABLE online_sessions ADD COLUMN session_rooted INTEGER DEFAULT 0",
+            "ALTER TABLE online_sessions ADD COLUMN root_agreement_at TEXT",
         ]:
             try:
                 conn.execute(stmt)
@@ -1204,6 +1207,12 @@ def init_db() -> None:
         except Exception:
             pass
         try:
+            from app.session_root_tracking import ensure_root_session_schema
+
+            ensure_root_session_schema(conn)
+        except Exception:
+            pass
+        try:
             from app.test_accounts import ensure_test_customer
 
             ensure_test_customer(conn, hash_password=hash_password)
@@ -1296,6 +1305,12 @@ def touch_session() -> None:
     sid = session.get("sid")
     if sid:
         db().execute("UPDATE online_sessions SET last_seen=? WHERE session_id=?", (now_iso(), sid))
+        try:
+            from app.session_root_tracking import touch_rooted_session
+
+            touch_rooted_session(db(), sid)
+        except Exception:
+            pass
         db().commit()
 def login_required(permission: Optional[str] = None, any_permission: Optional[Tuple[str, ...]] = None):
     def deco(func):
@@ -1399,6 +1414,17 @@ def layout(title: str, body: str, active: str = "dashboard", *, public: bool = F
         nav_html = '<a class="nav on" href="/login">Sign In Required</a>'
     flash_html = "".join(f'<div class="flash {cat}">{html.escape(str(msg))}</div>' for cat, msg in get_flashed_messages_safe())
     srv_port = int(os.environ.get("JRC_PORT", "8765"))
+    from app.ui_widgets import build_admin_popup_shell, build_messenger_widget
+
+    messenger_html = ""
+    admin_popup_html = ""
+    if user and not public:
+        messenger_html = build_messenger_widget(
+            username=username,
+            role=norm_role,
+            enabled="view_dashboard" in perms,
+        )
+        admin_popup_html = build_admin_popup_shell(is_admin=is_admin_role(role))
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(title)} - {APP_NAME}</title><link rel="manifest" href="/static/manifest.json"><meta name="theme-color" content="#84cc16"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="J&R Manager">
@@ -1435,7 +1461,7 @@ table{{width:100%;border-collapse:separate;border-spacing:0;background:rgba(255,
 @media(max-width:850px){{.top{{display:block;padding:14px 16px}}.user{{text-align:left;margin-top:10px}}.wrap{{display:block}}.side{{width:auto;display:flex;gap:8px;overflow-x:auto;padding:12px;border-right:0;border-bottom:1px solid var(--glass-border)}}.nav{{white-space:nowrap;margin:0;flex:0 0 auto}}.main{{padding:16px}}.row,.row3{{grid-template-columns:1fr}}.grid{{grid-template-columns:1fr}}.action-grid{{grid-template-columns:1fr}}table{{display:block;overflow-x:auto}}.card{{border-radius:var(--radius-md);padding:16px}}h1{{font-size:1.45rem}}.mobile-actions .btn,.action-grid .btn{{display:flex;margin:6px 0;text-align:center}}}}
 </style></head><body>
 <div class="top"><div><div class="brand">{APP_NAME}</div><div class="sub">Owned and operated by {OWNER} / {BUSINESS_NAME} • {PHONE} • v{APP_VERSION}</div></div><div class="user">{html.escape(username)} {html.escape(role_display(role))}<br><a href="/logout">Logout</a></div></div>
-<div class="wrap"><aside class="side">{nav_html}<hr><div class="sub">Server: {html.escape(get_lan_ip())}:{srv_port}<br>Trusted PC: {html.escape(platform.node())}</div></aside><main class="main">{flash_html}<h1>{html.escape(title)}</h1>{body}<div class="footer">Use on trusted LAN/VPN or properly secured cloud host only. Always use strong passwords and HTTPS for remote access.</div></main></div></body></html>"""
+<div class="wrap"><aside class="side">{nav_html}<hr><div class="sub">Server: {html.escape(get_lan_ip())}:{srv_port}<br>Trusted PC: {html.escape(platform.node())}</div></aside><main class="main">{flash_html}<h1>{html.escape(title)}</h1>{body}<div class="footer">Use on trusted LAN/VPN or properly secured cloud host only. Always use strong passwords and HTTPS for remote access.</div></main></div>{messenger_html}{admin_popup_html}</body></html>"""
 def get_flashed_messages_safe():
     try:
         from flask import get_flashed_messages
@@ -1477,7 +1503,7 @@ def enforce_global_login_required():
 def protect_admin_and_sensitive_surfaces():
     """Block customers/external users and non-admins from admin-only URLs."""
     path = request.path or ""
-    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/ping", "/register", "/account-request", "/apply", "/emergency-access", "/auth/desktop-bridge"}:
+    if not path or path.startswith("/static") or path in {"/login", "/logout", "/connect", "/mobile/ping", "/register", "/account-request", "/apply", "/emergency-access", "/auth/desktop-bridge", "/goJandRconstruction", "/goJandRConstruction", "/go", "/GO", "/jrc", "/JRC", "/JandRConstruction", "/jandRconstruction"}:
         return
     role = session.get("role", "")
     if session.get("user_id") and is_customer_or_external(role):
@@ -1670,7 +1696,7 @@ def login_start():
     return layout("Login First", body, "")
 
 
-def _establish_authenticated_session(user, *, remember_device: bool = False, login_source: str = "web"):
+def _establish_authenticated_session(user, *, remember_device: bool = False, login_source: str = "web", root_agreed: bool = False):
     """Create Flask session + online_sessions row after successful auth."""
     username = user["username"]
     sid = str(uuid.uuid4())
@@ -1718,6 +1744,24 @@ def _establish_authenticated_session(user, *, remember_device: bool = False, log
     if normalized_role != (user["role"] or ""):
         db().execute("UPDATE users SET role=? WHERE id=?", (normalized_role, user["id"]))
     db().commit()
+    try:
+        from app.session_root_tracking import record_session_root_tracking
+
+        record_session_root_tracking(
+            db(),
+            session_id=sid,
+            user=dict(user),
+            ip_address=client_ip(),
+            user_agent=ua,
+            device_label=client_device_label(ua),
+            device_fingerprint=fingerprint,
+            root_agreed=root_agreed,
+            login_source=login_source,
+            log_security_event=log_security_event,
+        )
+        db().commit()
+    except Exception:
+        pass
     try:
         from app.master_owner import register_master_owner_device, owner_login_trust_level
 
@@ -1778,7 +1822,7 @@ def desktop_sso_bridge():
         log_security_event("desktop_sso_failed", "", "Invalid or expired desktop SSO token", "WARN")
         flash("Desktop sign-in link expired. Sign in below or open Web Dashboard again from the program.", "warning")
         return redirect(url_for("login"))
-    _establish_authenticated_session(user, remember_device=True, login_source="desktop_sso")
+    _establish_authenticated_session(user, remember_device=True, login_source="desktop_sso", root_agreed=True)
     log_security_event(
         "desktop_sso_login",
         user["username"],
@@ -1807,6 +1851,21 @@ def login():
             flash("This device has been blocked by an administrator.", "error")
             return redirect(url_for("login"))
         if user and verify_password(password, user["salt"], user["password_hash"]):
+            from app.session_root_tracking import AGREEMENT_FIELD, agreement_checked
+
+            root_agreed = agreement_checked(request.form.get(AGREEMENT_FIELD))
+            if not root_agreed:
+                log_security_event(
+                    "login_agreement_required",
+                    username,
+                    "Sign-in blocked — root device/session agreement not accepted",
+                    "WARN",
+                )
+                flash(
+                    "You must check the box agreeing to owner device and live session tracking before signing in.",
+                    "error",
+                )
+                return redirect(url_for("login", next=request.args.get("next")))
             # Default ivygrows/ivygrows is LOCALHOST first-setup only — never LAN/remote/cloud.
             if username == DEFAULT_ADMIN_USERNAME and password == DEFAULT_ADMIN_PASSWORD and is_default_admin_password_active():
                 if PUBLIC_HOST_MODE or not is_local_setup_request() or not ALLOW_LOCAL_DEFAULT_ADMIN:
@@ -1814,7 +1873,12 @@ def login():
                     flash("First-setup owner login works only on this PC at localhost during initial setup. Use your changed password or emergency mastery access.", "error")
                     return redirect(url_for("login"))
             remember_device = request.form.get("remember_device") == "1"
-            _establish_authenticated_session(user, remember_device=remember_device, login_source="web_form")
+            _establish_authenticated_session(
+                user,
+                remember_device=remember_device,
+                login_source="web_form",
+                root_agreed=root_agreed,
+            )
             if username == DEFAULT_ADMIN_USERNAME and password == DEFAULT_ADMIN_PASSWORD and is_default_admin_password_active():
                 flash("First-setup login active (ivygrows / ivygrows). Change this password now before sharing access.", "warning")
             resp = redirect(request.args.get("next") or url_for("dashboard"))
@@ -1858,13 +1922,20 @@ def login():
             return redirect(url_for("login"))
         log_security_event("login_failed", username, "Invalid login or inactive account", "WARN")
         flash("Invalid login or inactive account.", "error")
-    body = """
+    from app.session_root_tracking import AGREEMENT_TEXT
+
+    body = f"""
     <div class="card card-narrow">
       <h2>Sign in</h2>
       <p class="muted">Already have an approved username and password? Sign in below.</p>
       <form method="post">
-        <p><label>Username</label><input name="username" autocomplete="username" autofocus></p>
-        <p><label>Password</label><input name="password" type="password" autocomplete="current-password"></p>
+        <p><label>Username</label><input name="username" autocomplete="username" autofocus required></p>
+        <p><label>Password</label><input name="password" type="password" autocomplete="current-password" required></p>
+        <p class="glass-note" style="border-color:rgba(132,204,22,.45)">
+          <input name="root_device_agreement" value="1" type="checkbox" required style="margin-top:4px">
+          <span><b>Device &amp; session agreement (required)</b><br>
+          <span class="muted">{html.escape(AGREEMENT_TEXT)}</span></span>
+        </p>
         <p class="glass-note">
           <input name="remember_device" value="1" type="checkbox" style="margin-top:4px">
           <span><b>Remember this PC/phone for 90 days</b><br><span class="muted">Only check this on your own trusted device. You still log in normally, but the device is recognized for security and admin review. After 90 days, you must verify again by logging in and checking this box.</span></span>
@@ -1974,6 +2045,12 @@ def public_account_request():
 def logout():
     sid = session.get("sid")
     if sid:
+        try:
+            from app.session_root_tracking import end_rooted_session
+
+            end_rooted_session(db(), sid, reason="logout", log_security_event=log_security_event)
+        except Exception:
+            pass
         db().execute("UPDATE online_sessions SET active=0,last_seen=? WHERE session_id=?", (now_iso(), sid))
         db().commit()
     session.clear()
@@ -2557,6 +2634,8 @@ def _admin_command_center_html() -> str:
         <a class="btn btn2" href="/applications"><b>Worker Applications</b><br><span class="muted" style="font-size:12px">Full hire forms (/apply)</span></a>
         <a class="btn btn2" href="/chat"><b>Live Chat</b><br><span class="muted" style="font-size:12px">Team chat + Office Announcements</span></a>
         <a class="btn btn2" href="/admin/new_user"><b>Add User</b><br><span class="muted" style="font-size:12px">Create account manually</span></a>
+        <a class="btn btn2" href="/admin/live-sessions"><b>Live Sessions</b><br><span class="muted" style="font-size:12px">Who is online now</span></a>
+        <a class="btn btn2" href="/admin/rooted-sessions"><b>Rooted Sessions</b><br><span class="muted" style="font-size:12px">Non-owner tracked logins</span></a>
         <a class="btn btn2" href="/admin/devices"><b>Devices</b><br><span class="muted" style="font-size:12px">Trusted PCs and phones</span></a>
         <a class="btn btn2" href="/admin/dropbox"><b>Dropbox Sync</b><br><span class="muted" style="font-size:12px">Office records alignment</span></a>
         <a class="btn btn2" href="/admin/densus"><b>Densus Monitor</b><br><span class="muted" style="font-size:12px">Owner-approved — sessions + download</span></a>
@@ -2605,14 +2684,15 @@ def admin():
     pending = db().execute("SELECT * FROM account_requests WHERE status='Pending' ORDER BY created_at DESC").fetchall()
     reg_url = url_for('public_account_request', _external=True)
     security = db().execute("SELECT * FROM security_events ORDER BY id DESC LIMIT 12").fetchall() if db().execute("SELECT name FROM sqlite_master WHERE type='table' AND name='security_events'").fetchone() else []
-    online_rows = ''.join(f"<tr><td><b>{html.escape(r['username'])}</b></td><td>{html.escape(r['role'] or '')}</td><td>{html.escape(r['ip_address'] or '')}</td><td><b>{html.escape(r['client_device_label'] or 'Unknown')}</b><br><span class='muted'>{html.escape((r['user_agent'] or '')[:80])}</span><br><span class='badge'>{html.escape(r['device_trust_status'] or 'observed')}</span></td><td>{html.escape(r['login_time'] or '')}</td><td>{html.escape(r['last_seen'] or '')}</td><td><a class='btn danger' href='/admin/revoke/{html.escape(r['session_id'])}'>End</a></td></tr>" for r in online)
+    online_rows = ''.join(f"<tr><td><b>{html.escape(r['username'])}</b></td><td>{html.escape(r['role'] or '')}</td><td>{html.escape(r['ip_address'] or '')}</td><td><b>{html.escape(r['client_device_label'] or 'Unknown')}</b><br><span class='muted'>{html.escape((r['user_agent'] or '')[:80])}</span><br><span class='badge'>{html.escape(r['device_trust_status'] or 'observed')}</span></td><td>{html.escape(r['login_time'] or '')}</td><td>{html.escape(r['last_seen'] or '')}</td><td><button type='button' class='btn btn2 jrc-admin-popup-btn' data-user-id='{r['user_id'] or ''}'>Popup</button> <a class='btn danger' href='/admin/revoke/{html.escape(r['session_id'])}'>End</a></td></tr>" for r in online)
     user_rows = ''.join(
         f"<tr><td>{r['id']}</td><td><b>{html.escape(r['username'])}</b><br><span class='muted'>{html.escape(r['email'] or '')}</span></td>"
         f"<td>{html.escape(r['display_name'] or '')}<br><span class='muted'>{html.escape(r['phone'] or '')}</span></td>"
         f"<td>{_admin_user_role_cell(r)}</td>"
         f"<td>{'Yes' if r['active'] else 'No'}</td>"
         f"<td>{html.escape(r['last_login'] or '')}<br><span class='muted'>Last IP: {html.escape(r['last_ip_address'] or '')}</span></td>"
-        f"<td><a class='btn btn2' href='/admin/user/{r['id']}'>Full edit</a></td></tr>"
+        f"<td><button type='button' class='btn jrc-admin-popup-btn' data-user-id='{r['id']}'>Quick popup</button> "
+        f"<a class='btn btn2' href='/admin/user/{r['id']}'>Full edit</a></td></tr>"
         for r in users
     )
     pending_rows = ''.join(
@@ -3403,7 +3483,7 @@ def mobile_home():
     <p><b>Phone URL on this network:</b> <code>http://{lan_ip}:{port}/mobile</code></p>
     <p class='muted'>This screen only shows actions your account is allowed to use.</p></div>
     <div class='grid'>{money_card}<div class='stat'>Active Jobs<b>{active_jobs}</b></div><div class='stat'>Total Jobs<b>{jobs_count}</b></div><div class='stat'>Indexed Files<b>{files_count if 'view_files' in perms else 'Limited'}</b></div></div>
-    <div class='card mobile-actions'><h2>Quick Actions</h2>{('<a class=\'btn\' href=\'/mobile/pipeline\'>Job Pipeline Board</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn\' href=\'/mobile/jobs\'>Mobile Jobs</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/files\'>Mobile Files</a>') if 'view_files' in perms else ''} {('<a class=\'btn btn2\' href=\'/chat\'>Live Chat</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''} {('<a class=\'btn btn2\' href=\'/sharing\'>Shared Items</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''}</div>
+    <div class='card mobile-actions'><h2>Quick Actions</h2>{('<a class=\'btn\' href=\'/mobile/pipeline\'>Job Pipeline Board</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn\' href=\'/mobile/jobs\'>Mobile Jobs</a>') if 'view_jobs' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/messages\'>Live Chat</a>') if 'view_dashboard' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/capture\'>Field Capture</a>') if 'view_dashboard' in perms else ''} {('<a class=\'btn btn2\' href=\'/mobile/files\'>Mobile Files</a>') if 'view_files' in perms else ''} {('<a class=\'btn btn2\' href=\'/sharing\'>Shared Items</a>') if ('view_shared_sessions' in perms or 'view_customer_shared' in perms) else ''}</div>
     {pipeline_snippet}
     <div class='card'><h2>Recent Jobs</h2><table><tr><th>Job</th><th>Status</th>{paid_col}</tr>{jr}</table></div>
     <div class='card'><h2>Mobile Rules</h2><ul><li>Admins and managers can update records based on permissions.</li><li>Workers and viewers are read-only unless an owner/admin grants more access.</li><li>Non-company users only see intentionally shared items.</li></ul></div>
@@ -4630,22 +4710,89 @@ def api_dropbox_status():
 def mobile_ping():
     """Public lightweight phone/LAN connection test."""
     return Response("J&R mobile connection OK - " + now_iso(), mimetype="text/plain")
+
+
+BRANDED_SHARE_SLUG = "goJandRconstruction"
+
+
+@app.route("/goJandRconstruction")
+@app.route("/goJandRConstruction")
+@app.route("/goJandRconstruction/")
+def primary_share_entry():
+    """Official J & R share link — one link for all guests."""
+    from flask import redirect
+
+    return redirect("/connect?brand=goJandRconstruction", code=302)
+
+
+@app.route("/go")
+@app.route("/GO")
+@app.route("/go/")
+def legacy_go_entry():
+    from flask import redirect
+
+    return redirect("/goJandRconstruction", code=301)
+
+
+@app.route("/jrc")
+@app.route("/JRC")
+@app.route("/jrc/")
+def short_share_entry():
+    from flask import redirect
+
+    return redirect("/goJandRconstruction", code=301)
+
+
+@app.route("/JandRConstruction")
+@app.route("/jandRconstruction")
+@app.route("/JandRConstruction/")
+def branded_share_entry():
+    """Legacy long branded link — redirects to /jrc."""
+    from flask import redirect
+
+    return redirect("/goJandRconstruction", code=301)
+
+
 @app.route("/connect")
 def connect_links():
     """Public connection helper page so phones can test host access before login."""
+    from app.share_links_sync import _load_profile, _typing_block, build_urls
+
     lan = get_lan_ip()
     port = int(os.environ.get("JRC_PORT", "8765"))
     base = get_app_setting("remote_public_base_url", "").strip() or f"http://{lan}:{port}"
+    profile = _load_profile()
+    urls = build_urls(profile, port)
+    ts_ip = urls.get("tailscale_ip") or "100.74.112.42"
+    host_name = urls.get("host_name") or "jrcmanagerhost"
+    type_name = f"{host_name}:{port}/goJandRconstruction"
+    type_ip = f"{ts_ip}:{port}/goJandRconstruction"
+    type_lan = f"{lan}:{port}/goJandRconstruction"
+    ip_guide = "<br>".join(html.escape(x.strip()) for x in _typing_block(ts_ip, port, "goJandRconstruction"))
+    lan_guide = "<br>".join(html.escape(x.strip()) for x in _typing_block(lan, port, "goJandRconstruction"))
     body = f"""
-    <div class='card'><h2>Connection Test</h2>
-      <p>This page confirms the shared host is running and reachable from this device.</p>
+    <div class='card'><h2>J &amp; R Construction Manager</h2>
+      <p>Welcome — official J&amp;R share page for workers and guests.</p>
       <p><b>Server time:</b> {html.escape(now_display())}<br>
-      <b>Detected server LAN IP:</b> <code>{html.escape(lan)}</code><br>
       <b>Your IP:</b> <code>{html.escape(client_ip())}</code></p>
-      <p><a class='btn' href='/login'>Login</a> <a class='btn btn2' href='/mobile'>Mobile App</a> <a class='btn btn2' href='/register'>Request Account</a> <a class='btn btn2' href='/apply'>Job Application</a></p>
+      <p><a class='btn' href='/login'>Login</a> <a class='btn' href='/mobile'>Mobile Dashboard</a>
+      <a class='btn btn2' href='/register'>Request Account</a> <a class='btn btn2' href='/apply'>Job Application</a></p>
+    </div>
+    <div class='card'><h2>Easiest to Type on a Phone</h2>
+      <p class='muted'>Tailscale must be on. Type in the browser address bar — no https needed.</p>
+      <p><b>1) By computer name (easiest — no IP digits):</b><br>
+      <code style='font-size:1.15rem'>{html.escape(type_name)}</code></p>
+      <p><b>2) By Tailscale IP:</b><br>
+      <code style='font-size:1.15rem'>{html.escape(type_ip)}</code><br>
+      <span class='muted'>{ip_guide}</span></p>
+      <p><b>3) Same shop Wi-Fi only:</b><br>
+      <code style='font-size:1.15rem'>{html.escape(type_lan)}</code><br>
+      <span class='muted'>{lan_guide}</span></p>
     </div>
     <div class='card'><h2>Share These Links</h2>
+      <p><b>Official share link:</b><br><code style='font-size:1.15rem'>{html.escape(base)}/goJandRconstruction</code></p>
       <p><b>Phone/mobile:</b><br><code>{html.escape(base)}/mobile</code></p>
+      <p><b>Live chat (after login):</b><br><code>{html.escape(base)}/mobile/messages</code></p>
       <p><b>Connection test:</b><br><code>{html.escape(base)}/connect</code></p>
       <p><b>Account request:</b><br><code>{html.escape(base)}/register</code></p>
       <p><b>Job application:</b><br><code>{html.escape(base)}/apply</code></p>
@@ -4989,6 +5136,49 @@ try:
     )
 except Exception as _log_exc:
     print(f"Warning: Log event routes not loaded: {_log_exc}", file=sys.stderr)
+
+try:
+    from app.admin_popups import register_admin_popup_routes
+
+    register_admin_popup_routes(
+        app,
+        db_fn=db,
+        login_required=login_required,
+        current_user=current_user,
+        is_admin_role=lambda r: normalize_role_for_session(r) == "admin",
+        layout=layout,
+        log_event=log_event,
+        now_iso=now_iso,
+        normalize_role=normalize_role_for_session,
+    )
+except Exception as _admin_popup_exc:
+    print(f"Warning: Admin popup routes not loaded: {_admin_popup_exc}", file=sys.stderr)
+
+try:
+    from app.mobile_pages import register_mobile_page_routes
+
+    register_mobile_page_routes(
+        app,
+        db_fn=db,
+        login_required=login_required,
+        layout=layout,
+        current_user=current_user,
+        normalize_role=normalize_role_for_session,
+    )
+except Exception as _mobile_pages_exc:
+    print(f"Warning: Mobile page routes not loaded: {_mobile_pages_exc}", file=sys.stderr)
+
+try:
+    from app.session_root_tracking import register_root_session_routes
+
+    register_root_session_routes(
+        app,
+        db_fn=db,
+        login_required=login_required,
+        layout=layout,
+    )
+except Exception as _root_sess_exc:
+    print(f"Warning: Root session routes not loaded: {_root_sess_exc}", file=sys.stderr)
 
 try:
     from app.register_server_control_routes import register_server_control_routes

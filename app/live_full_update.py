@@ -97,6 +97,17 @@ def sync_tree(src: Path, dst: Path) -> List[str]:
             if item.is_file():
                 shutil.copy2(item, ad / item.name)
         notes.append("Synced assets/")
+    static_src = src / "static"
+    static_dst = dst / "static"
+    if static_src.exists():
+        static_dst.mkdir(parents=True, exist_ok=True)
+        for item in static_src.rglob("*"):
+            if item.is_file():
+                rel = item.relative_to(static_src)
+                target = static_dst / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, target)
+        notes.append("Synced static/")
     return notes
 
 

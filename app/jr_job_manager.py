@@ -57,7 +57,7 @@ except Exception:
     REPORTLAB_OK = False
 
 APP_NAME = "J and R Construction Manager"
-APP_VERSION = "8.1.0 Unified Office Edition"
+APP_VERSION = "8.2.0 Live Messenger & Admin Popups Edition"
 BUSINESS_NAME = "J & R Construction"
 PHONE = "(910) 712-0936"
 BASE_DIR = Path(__file__).resolve().parents[1]

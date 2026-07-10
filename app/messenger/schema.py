@@ -15,6 +15,7 @@ def ensure_messenger_schema(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_a TEXT NOT NULL,
             user_b TEXT NOT NULL,
+            session_id INTEGER,
             created_at TEXT NOT NULL,
             UNIQUE(user_a, user_b)
         );
@@ -26,4 +27,7 @@ def ensure_messenger_schema(conn: sqlite3.Connection) -> None:
         );
         """
     )
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(messenger_dm_threads)").fetchall()}
+    if "session_id" not in cols:
+        conn.execute("ALTER TABLE messenger_dm_threads ADD COLUMN session_id INTEGER")
     conn.commit()

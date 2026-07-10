@@ -117,6 +117,8 @@ def dashboard_tiles(role: str, perms: set[str], *, densus_access: bool = False) 
     account: List[Tile] = [
         ("Change Password", "/account/change-password", "Required after first login", "btn2"),
         ("Mobile Portal", "/mobile", "Phone-friendly view", "btn2"),
+        ("Live Chat", "/mobile/messages", "Team chat + announcements", "btn2"),
+        ("Field Capture", "/mobile/capture", "Photos and jobsite notes", "btn2"),
     ]
     add("My Account", "Security and mobile access.", account)
 

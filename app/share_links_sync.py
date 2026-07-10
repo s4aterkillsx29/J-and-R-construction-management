@@ -130,6 +130,29 @@ def _git_head() -> str:
     return ref[:12]
 
 
+def _host_short_name(profile: Dict[str, str]) -> str:
+    return (profile.get("host_tailscale_name") or profile.get("host_pc_name") or "jrcmanagerhost").strip()
+
+
+def _typing_block(ip: str, port: int = DEFAULT_PORT, slug: str = "go") -> List[str]:
+    """Human-friendly lines for typing the share URL on a phone."""
+    if not ip:
+        return []
+    typed = f"{ip}:{port}/{slug}"
+    octets = ip.split(".")
+    say_ip = " dot ".join(octets)
+    port_digits = " ".join(str(port))
+    lines = [
+        f"  Type exactly:  {typed}",
+        f"  Say out loud:  {say_ip}  colon  {port_digits}  slash  {slug}",
+    ]
+    if len(octets) == 4:
+        lines.append(
+            f"  Chunked:       {octets[0]}.{octets[1]}  ·  {octets[2]}.{octets[3]}  :  {port}  /  {slug}"
+        )
+    return lines
+
+
 def build_urls(profile: Dict[str, str], port: int = DEFAULT_PORT) -> Dict[str, str]:
     ts_ip = profile.get("host_tailscale_ip", "")
     lan_ip = profile.get("host_lan_ip", "")
@@ -148,19 +171,30 @@ def build_urls(profile: Dict[str, str], port: int = DEFAULT_PORT) -> Dict[str, s
     ts_base = base(ts_ip)
     lan_base = base(lan_ip)
     magic_base = base(magic) if magic else ""
+    host_name = _host_short_name(profile)
+    host_base = f"http://{host_name}:{port}" if host_name else ""
 
     urls = {
         "cloud_base_url": ts_base,
         "tailscale_url": ts_base,
         "lan_url": lan_base,
         "magic_dns": magic_base,
+        "host_name": host_name,
+        "host_name_url": f"{host_base}/goJandRconstruction" if host_base else "",
         "connect_url": f"{ts_base}/connect" if ts_base else "",
+        "branded_url": f"{ts_base}/goJandRconstruction" if ts_base else "",
+        "branded_slug": "goJandRconstruction",
         "mobile_url": f"{ts_base}/mobile" if ts_base else "",
+        "mobile_messages_url": f"{ts_base}/mobile/messages" if ts_base else "",
         "register_url": f"{ts_base}/register" if ts_base else "",
         "login_url": f"{ts_base}/login" if ts_base else "",
         "connect_lan": f"{lan_base}/connect" if lan_base else "",
+        "branded_lan": f"{lan_base}/goJandRconstruction" if lan_base else "",
         "connect_magic": f"{magic_base}/connect" if magic_base else "",
+        "branded_magic": f"{magic_base}/goJandRconstruction" if magic_base else "",
         "github_repo": GITHUB_REPO,
+        "tailscale_ip": ts_ip,
+        "lan_ip": lan_ip,
     }
     return urls
 
@@ -193,7 +227,10 @@ def write_cloud_connect(install_dir: Path, urls: Dict[str, str], version: str) -
         "tailscale_url": urls.get("tailscale_url", ""),
         "lan_url": urls.get("lan_url", ""),
         "connect_url": urls.get("connect_url", ""),
+        "branded_url": urls.get("branded_url", ""),
+        "host_name_url": urls.get("host_name_url", ""),
         "mobile_url": urls.get("mobile_url", ""),
+        "mobile_messages_url": urls.get("mobile_messages_url", ""),
         "register_url": urls.get("register_url", ""),
         "magic_dns": urls.get("magic_dns", ""),
         "connect_magic": urls.get("connect_magic", ""),
@@ -218,6 +255,10 @@ def _format_share_doc(
     health_line = "OK" if health.get("ok") else f"UNREACHABLE — {health.get('error', 'unknown')}"
     host_ver = health.get("version") or health.get("app_version") or "(not probed)"
     git_line = f"{git_head}" if git_head else "(local only — not a git checkout)"
+    ts_ip = urls.get("tailscale_ip", "")
+    lan_ip = urls.get("lan_ip", "")
+    host_name = urls.get("host_name", "")
+    slug = urls.get("branded_slug", "go")
 
     lines = [
         "J & R CONSTRUCTION MANAGER — SHARE LINKS (auto-synced)",
@@ -228,42 +269,80 @@ def _format_share_doc(
         f"Profile: {profile_path or '(defaults)'}",
         "",
         "=" * 78,
-        "COPY/PASTE FOR GUESTS (Tailscale on same tailnet)",
+        "EASIEST TO TYPE (share this first)",
         "=" * 78,
-        f"  Best link (connection + mobile bookmark):",
-        f"    {urls.get('connect_url', '')}",
-        "",
-        f"  Mobile home (login required):",
-        f"    {urls.get('mobile_url', '')}",
-        "",
-        f"  Request guest account:",
-        f"    {urls.get('register_url', '')}",
-        "",
-        f"  MagicDNS (same tailnet):",
-        f"    {urls.get('connect_magic', '')}",
-        "",
-        "=" * 78,
-        "SAME Wi-Fi ONLY (at shop — no VPN needed)",
-        "=" * 78,
-        f"  {urls.get('connect_lan', '')}",
-        "",
-        "=" * 78,
-        "HOST HEALTH (last probe)",
-        "=" * 78,
-        f"  Status: {health_line}",
-        f"  Host reports version: {host_ver}",
-        f"  Health URL: {health.get('health_url', '')}",
-        "",
-        "=" * 78,
-        "GITHUB REPO (program source)",
-        "=" * 78,
-        f"  {GITHUB_REPO}",
-        f"  Local commit: {git_line}",
-        "",
-        "DO NOT SHARE: owner passwords, emergency keys, RustDesk IDs.",
-        "",
-        f"Auto-generated {date_slug} by share_links_sync.py — updates on every program release.",
     ]
+    if host_name:
+        lines.extend(
+            [
+                f"  By computer name (Tailscale — easiest, no IP digits):",
+                f"    {host_name}:8765/{slug}",
+                f"  Say:  {host_name}  colon  8 7 6 5  slash  {slug}",
+                "",
+            ]
+        )
+    if ts_ip:
+        lines.append("  By Tailscale IP:")
+        lines.extend(_typing_block(ts_ip, DEFAULT_PORT, slug))
+        lines.append("")
+    lines.extend(
+        [
+            "=" * 78,
+            "COPY/PASTE FOR GUESTS (Tailscale on same tailnet)",
+            "=" * 78,
+            f"  Short link:",
+            f"    {urls.get('branded_url', '')}",
+            "",
+            f"  By computer name:",
+            f"    {urls.get('host_name_url', '')}",
+            "",
+            f"  Best link (connection + mobile bookmark):",
+            f"    {urls.get('connect_url', '')}",
+            "",
+            f"  Mobile home (login required):",
+            f"    {urls.get('mobile_url', '')}",
+            "",
+            f"  Live chat (after login):",
+            f"    {urls.get('mobile_messages_url', '')}",
+            "",
+            f"  Request guest account:",
+            f"    {urls.get('register_url', '')}",
+            "",
+            f"  MagicDNS (same tailnet):",
+            f"    {urls.get('connect_magic', '')}",
+            "",
+            "=" * 78,
+            "SAME Wi-Fi ONLY (at shop — no VPN needed)",
+            "=" * 78,
+        ]
+    )
+    if lan_ip:
+        lines.append("  Type on phone (shop Wi-Fi):")
+        lines.extend(_typing_block(lan_ip, DEFAULT_PORT, slug))
+        lines.append("")
+    lines.extend(
+        [
+            f"  {urls.get('connect_lan', '')}",
+            f"  Short: {urls.get('branded_lan', '')}",
+            "",
+            "=" * 78,
+            "HOST HEALTH (last probe)",
+            "=" * 78,
+            f"  Status: {health_line}",
+            f"  Host reports version: {host_ver}",
+            f"  Health URL: {health.get('health_url', '')}",
+            "",
+            "=" * 78,
+            "GITHUB REPO (program source)",
+            "=" * 78,
+            f"  {GITHUB_REPO}",
+            f"  Local commit: {git_line}",
+            "",
+            "DO NOT SHARE: owner passwords, emergency keys, RustDesk IDs.",
+            "",
+            f"Auto-generated {date_slug} by share_links_sync.py — updates on every program release.",
+        ]
+    )
     return "\n".join(lines) + "\n"
 
 
@@ -293,6 +372,10 @@ def write_dropbox_share_docs(
     kaleb = prog / "2026-07-08__JRC-ADM__Kaleb_Share_Links.txt"
     kaleb.write_text(body, encoding="utf-8")
     notes.append(f"Refreshed {kaleb.name}")
+
+    easy = readable / "JRC_EASY_SHARE_LINK.txt"
+    easy.write_text(body, encoding="utf-8")
+    notes.append(f"Wrote {easy.name}")
 
     return notes
 

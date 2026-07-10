@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-APP_VERSION = "8.1.0 Unified Office Edition"
+APP_VERSION = "8.2.1 Device Agreement & Rooted Sessions"
 
 REQUIRED_PACKAGES = ("flask", "waitress", "reportlab", "gunicorn")
 

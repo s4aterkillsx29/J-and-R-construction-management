@@ -281,12 +281,23 @@ def run_live_release_verify(base_dir: Path | None = None) -> Tuple[int, Path]:
     ns = (base / "app" / "network_server.py").read_text(encoding="utf-8", errors="ignore")
     lc = (base / "app" / "live_chat.py").read_text(encoding="utf-8", errors="ignore")
     dc = (base / "app" / "dashboard_config.py").read_text(encoding="utf-8", errors="ignore")
+    msg = (base / "app" / "messenger" / "register_routes.py").read_text(encoding="utf-8", errors="ignore")
+    src_bundle = ns + msg
     checks = [
         ("live_chat routes registered", "register_live_chat_routes" in ns),
+        ("messenger routes registered", "register_messenger_routes" in ns),
+        ("admin popup routes", "register_admin_popup_routes" in ns),
+        ("mobile messages route", "/mobile/messages" in ns),
+        ("mobile capture route", "/mobile/capture" in ns),
+        ("branded share link", "goJandRconstruction" in ns),
+        ("messenger widget in layout", "build_messenger_widget" in ns),
+        ("admin popup shell in layout", "build_admin_popup_shell" in ns),
         ("chat nav item", "Live Chat" in dc or "Live Chat" in ns),
         ("admin broadcast channel", "admin_broadcast" in lc),
         ("customer chat restricted", "is_customer_or_external" in lc),
         ("api chat sessions", "/api/chat/sessions" in lc),
+        ("messenger poll api", "/api/messenger/poll" in src_bundle),
+        ("messenger mark read", "/api/messenger/mark-read" in src_bundle),
         ("create team session", "create_team_session" in lc or "New team chat" in lc),
         ("global login gate", "enforce_global_login_required" in ns),
         ("unified dashboard config", "dashboard_config" in ns or "render_dashboard_sections" in ns),
@@ -296,6 +307,12 @@ def run_live_release_verify(base_dir: Path | None = None) -> Tuple[int, Path]:
         ("file access security module", (base / "app" / "file_access_security.py").is_file()),
         ("indexed file role guard", "role_may_open_indexed_file" in ns),
         ("admin inline role change", "quick_change_user_role" in ns and "apply_user_role_change" in ns),
+        ("mobile manifest", (base / "static" / "manifest.json").is_file()),
+        ("mobile css", (base / "static" / "mobile" / "mobile.css").is_file()),
+        ("messenger js", (base / "static" / "messenger.js").is_file()),
+        ("root device agreement on login", "root_device_agreement" in ns),
+        ("rooted sessions admin page", "/admin/rooted-sessions" in ns),
+        ("session root tracking module", (base / "app" / "session_root_tracking.py").is_file()),
     ]
     for name, ok in checks:
         lines.append(f"  {'OK' if ok else 'ERROR'}: {name}")

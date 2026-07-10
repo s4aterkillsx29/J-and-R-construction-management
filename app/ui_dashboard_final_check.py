@@ -36,6 +36,8 @@ def main() -> int:
         "Customer dashboard limited": "Customer privacy" in ns and "customer_portal" in dc,
         "External dashboard limited": "External Dashboard" in ns,
         "Global login gate": "enforce_global_login_required" in ns,
+        "Root device agreement checkbox": "root_device_agreement" in ns,
+        "Rooted sessions admin": "/admin/rooted-sessions" in ns,
         "Admin hub nav item": "Admin Hub" in dc,
         "Worker applications tile": "Worker Applications" in dc or "/applications" in ns,
         "Live chat in nav": "Live Chat" in dc,
