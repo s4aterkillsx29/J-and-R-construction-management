@@ -1,0 +1,4 @@
+{
+  "install": "mkdir -p \"$HOME/bin\" && ln -sf \"$(command -v python3)\" \"$HOME/bin/python\" && export PATH=\"$HOME/bin:$PATH\" && python3 -m pip install --user -r requirements.txt && python3 -m app.mobile_cloud_access --status || true",
+  "start": "export PATH=\"$HOME/bin:$PATH\"; python3 -m app.mobile_cloud_access --status; if python3 -c \"from app.dropbox_workspace import has_dropbox_credentials; raise SystemExit(0 if has_dropbox_credentials() else 1)\"; then python3 -m app.mobile_cloud_access --bootstrap || true; fi"
+}

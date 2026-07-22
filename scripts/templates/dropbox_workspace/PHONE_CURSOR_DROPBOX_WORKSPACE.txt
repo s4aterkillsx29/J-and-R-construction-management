@@ -40,6 +40,18 @@ BOOKMARK THESE FILES ON PHONE (see IPHONE_CURSOR_BOOKMARK_SETUP.txt)
   00_INBOX_To_File/iPhone_Uploads/   (drop photos here from phone)
 
 ================================================================================
+CLOUD / PHONE CURSOR AGENTS (GitHub repo path)
+================================================================================
+
+If you opened the GitHub repo in Cursor mobile (cloud agent) instead of the
+Dropbox folder, connect Dropbox once via Cursor secrets, then:
+
+  python3 -m app.mobile_cloud_access --bootstrap
+  python3 -m app.mobile_cloud_access --status
+
+Full steps: docs/guides/MOBILE_CLOUD_CURSOR_ACCESS.txt
+
+================================================================================
 DAILY WORKFLOW
 ================================================================================
 
