@@ -1,0 +1,29 @@
+J & R CONSTRUCTION — PHONE ↔ OFFICE SYNC OWNERSHIP LOCK
+Created: 2026-07-23 | Admin mobile connect verify
+
+PURPOSE
+  Confirm phone Cursor is on the Dropbox business workspace (not GitHub),
+  and that phone edits sync to the office PC via Dropbox.
+
+OWNER
+  Office PC remains the owner for scripts, PDFs, Outlook drafts, Manager.
+  Phone edits Dropbox business files; Dropbox syncs; office PC receives them.
+  After a phone session on the office PC, say: log sync
+
+PHONE VERIFY (open this path in Dropbox Cursor workspace)
+  00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt
+
+SUCCESS
+  1. You can open the ownership lock file above from phone Cursor.
+  2. You can open 00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt
+  3. Say in phone chat: admin mobile setup done
+
+FAIL
+  File not found → wrong workspace (GitHub repo) or Dropbox not synced.
+  Fix: open INNER folder JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22 in Cursor,
+  wait for Dropbox green check, retry.
+
+CLOUD AGENT NOTE
+  GitHub cloud agents cannot see this file until DROPBOX_ACCESS_TOKEN
+  (or refresh trio) is set in Cursor Personal secrets.
+  Prefer opening the Dropbox folder on phone for business work.

@@ -11,6 +11,9 @@ TEMPLATES = BASE_DIR / "scripts" / "templates" / "dropbox_workspace"
 
 VERIFY_QUOTE_MARKER = "$10,440"
 VERIFY_QUOTE_FILE = "00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt"
+VERIFY_OWNERSHIP_LOCK = (
+    "00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt"
+)
 
 
 def _business_root_candidates() -> List[Path]:
@@ -88,11 +91,14 @@ def verify_phone_workspace(business_root: Optional[Path] = None) -> Dict[str, An
     for name in (
         "00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt",
         "00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt",
+        VERIFY_OWNERSHIP_LOCK,
     ):
         p = root / name.replace("/", "\\") if "\\" in str(root) else root / name
         if not p.is_file():
             report["errors"].append(f"Missing bookmark file: {name}")
             report["ok"] = False
+        elif name == VERIFY_OWNERSHIP_LOCK:
+            report["notes"].append("Ownership lock file present — phone/office sync verify path OK.")
     return report
 
 

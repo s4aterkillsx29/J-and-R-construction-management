@@ -37,7 +37,14 @@ BOOKMARK THESE FILES ON PHONE (see IPHONE_CURSOR_BOOKMARK_SETUP.txt)
   00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
   00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt
   00_START_HERE/IPHONE_PHOTO_RECEIPT_UPLOAD_GUIDE.txt
+  00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt
   00_INBOX_To_File/iPhone_Uploads/   (drop photos here from phone)
+
+ADMIN MOBILE CONNECT VERIFY (2026-07-23)
+  Open: 00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt
+  Then open READABLE/BUSINESS_DASHBOARD.txt
+  Then say: admin mobile setup done
+  Office PC stays owner of scripts/PDFs/Outlook/Manager; phone edits Dropbox files.
 
 ================================================================================
 CLOUD / PHONE CURSOR AGENTS (GitHub repo path)
