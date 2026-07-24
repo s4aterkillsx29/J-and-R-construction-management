@@ -326,11 +326,13 @@ ESSENTIAL_MIRROR_PATHS: Tuple[str, ...] = (
     "08_Admin_Standards/CURRENT_TO_DO.txt",
     "08_Admin_Standards/BUSINESS_HOURS_STANDARD.txt",
     "08_Admin_Standards/WEEKLY_CALENDAR_AGENDA.txt",
+    "00_START_HERE/READABLE/CURRENT_TO_DO.txt",
     "00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt",
     "00_START_HERE/IPHONE_CURSOR_BOOKMARK_SETUP.txt",
     "00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt",
     "00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt",
     "00_START_HERE/IPHONE_PHOTO_RECEIPT_UPLOAD_GUIDE.txt",
+    "00_START_HERE/2026-07-23__JRC-ADM__PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt",
     "00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt",
 )
 
@@ -519,7 +521,8 @@ def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
             "GitHub stores application source only — business files live in Dropbox.",
             "Mobile cloud agents: set DROPBOX secrets in Cursor → Cloud Agents → Secrets (Personal scope).",
             "Preferred long-lived setup: DROPBOX_REFRESH_TOKEN + DROPBOX_APP_KEY + DROPBOX_APP_SECRET.",
-            "Also set DROPBOX_API_ROOT=/dropbox-records (Environment Variable, not secret).",
+            "Also set DROPBOX_API_ROOT to the INNER business folder:\n"
+            "  /All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22",
         ],
     }
     for path in business_root_candidates(base):

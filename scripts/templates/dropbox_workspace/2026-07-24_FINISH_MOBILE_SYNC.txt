@@ -22,7 +22,7 @@ You are already signed into Dropbox on the phone. Skip Microsoft login fights.
    Optional long-lived (better):
      DROPBOX_REFRESH_TOKEN / DROPBOX_APP_KEY / DROPBOX_APP_SECRET
 6. Environment variable:
-     DROPBOX_API_ROOT=/dropbox-records
+     DROPBOX_API_ROOT=/All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
 7. Start a NEW mobile Cursor agent and say:
      bootstrap mobile dropbox
 

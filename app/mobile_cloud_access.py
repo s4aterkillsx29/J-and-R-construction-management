@@ -26,7 +26,8 @@ ONE-TIME SETUP (Jacob — phone or office PC in DuckDuckGo / Cursor settings)
    OR short-lived fallback:
      DROPBOX_ACCESS_TOKEN  = <generated access token>
 6. Add Environment Variable (not secret):
-     DROPBOX_API_ROOT=/dropbox-records
+     DROPBOX_API_ROOT=/All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
+   (Older docs said /dropbox-records — that path does not exist on Jacob's Dropbox.)
 7. Start a NEW mobile Cursor agent after saving secrets.
 8. Ask it: "bootstrap mobile dropbox" or run:
      python3 -m app.mobile_cloud_access --bootstrap

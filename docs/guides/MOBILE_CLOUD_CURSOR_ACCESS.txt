@@ -32,7 +32,8 @@ Do this once (office PC, DuckDuckGo Desktop — not Edge/Chrome):
    Fallback (expires in hours — only if you cannot use refresh):
      DROPBOX_ACCESS_TOKEN  = <access token>
 6. Add Environment Variable:
-     DROPBOX_API_ROOT=/dropbox-records
+     DROPBOX_API_ROOT=/All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
+   (Not /dropbox-records — that folder name is not on this Dropbox account.)
 7. Start a NEW mobile Cursor agent (this chat VM cannot see secrets added later).
 
 
@@ -84,7 +85,8 @@ TROUBLESHOOTING
     → Access token expired → switch to refresh token trio
 
   Job register missing after bootstrap
-    → DROPBOX_API_ROOT wrong (should be /dropbox-records or your real records path)
+    → DROPBOX_API_ROOT wrong — use:
+      /All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
 
   Agent talks only about GitHub / no business files
     → Run bootstrap; do not treat this repo as the business file store
