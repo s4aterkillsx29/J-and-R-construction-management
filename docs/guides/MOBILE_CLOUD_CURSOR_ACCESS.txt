@@ -35,6 +35,11 @@ Do this once (office PC, DuckDuckGo Desktop — not Edge/Chrome):
      DROPBOX_API_ROOT=/dropbox-records
 7. Start a NEW mobile Cursor agent (this chat VM cannot see secrets added later).
 
+
+FAST FINISH (iPhone already in Dropbox)
+  See scripts/templates/dropbox_workspace/2026-07-24_FINISH_MOBILE_SYNC.txt
+  Or paste a Dropbox access token in chat and say: apply dropbox token
+
 ================================================================================
 EVERY NEW MOBILE AGENT SESSION
 ================================================================================
