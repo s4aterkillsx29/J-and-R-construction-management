@@ -37,7 +37,30 @@ BOOKMARK THESE FILES ON PHONE (see IPHONE_CURSOR_BOOKMARK_SETUP.txt)
   00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt
   00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt
   00_START_HERE/IPHONE_PHOTO_RECEIPT_UPLOAD_GUIDE.txt
+  00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt
   00_INBOX_To_File/iPhone_Uploads/   (drop photos here from phone)
+
+ADMIN MOBILE CONNECT VERIFY (2026-07-23)
+  Open: 00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt
+  Then open READABLE/BUSINESS_DASHBOARD.txt
+  Then say: admin mobile setup done
+  Office PC stays owner of scripts/PDFs/Outlook/Manager; phone edits Dropbox files.
+
+================================================================================
+CLOUD / PHONE CURSOR AGENTS (GitHub repo path)
+================================================================================
+
+If you opened the GitHub repo in Cursor mobile (cloud agent) instead of the
+Dropbox folder, connect Dropbox once via Cursor secrets, then:
+
+  python3 -m app.mobile_cloud_access --bootstrap
+  python3 -m app.mobile_cloud_access --status
+
+Fast finish checklist:
+  scripts/templates/dropbox_workspace/2026-07-24_FINISH_MOBILE_SYNC.txt
+  (or ask agent: "finish mobile sync")
+
+Full steps: docs/guides/MOBILE_CLOUD_CURSOR_ACCESS.txt
 
 ================================================================================
 DAILY WORKFLOW

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -135,11 +136,86 @@ def resolve_business_root(base_dir: Optional[Path] = None) -> Optional[Path]:
     return None
 
 
-def get_dropbox_access_token() -> str:
+_CACHED_ACCESS_TOKEN: Optional[str] = None
+
+
+def get_dropbox_refresh_credentials() -> Tuple[str, str, str]:
+    """Return (refresh_token, app_key, app_secret) when configured for long-lived access."""
     return (
+        os.environ.get("DROPBOX_REFRESH_TOKEN", "").strip()
+        or os.environ.get("JRC_DROPBOX_REFRESH_TOKEN", "").strip(),
+        os.environ.get("DROPBOX_APP_KEY", "").strip()
+        or os.environ.get("JRC_DROPBOX_APP_KEY", "").strip(),
+        os.environ.get("DROPBOX_APP_SECRET", "").strip()
+        or os.environ.get("JRC_DROPBOX_APP_SECRET", "").strip(),
+    )
+
+
+def refresh_dropbox_access_token(*, force: bool = False) -> str:
+    """Exchange refresh token for a short-lived access token (Dropbox OAuth2)."""
+    global _CACHED_ACCESS_TOKEN
+    if _CACHED_ACCESS_TOKEN and not force:
+        return _CACHED_ACCESS_TOKEN
+    refresh, app_key, app_secret = get_dropbox_refresh_credentials()
+    if not (refresh and app_key and app_secret):
+        raise RuntimeError(
+            "Dropbox refresh credentials missing. Set DROPBOX_REFRESH_TOKEN, "
+            "DROPBOX_APP_KEY, and DROPBOX_APP_SECRET as Cursor Personal secrets."
+        )
+    url = "https://api.dropboxapi.com/oauth2/token"
+    body = urllib.parse.urlencode(
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh,
+            "client_id": app_key,
+            "client_secret": app_secret,
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Dropbox token refresh failed ({exc.code}): {detail}") from exc
+    token = (data.get("access_token") or "").strip()
+    if not token:
+        raise RuntimeError("Dropbox token refresh returned no access_token.")
+    _CACHED_ACCESS_TOKEN = token
+    os.environ["DROPBOX_ACCESS_TOKEN"] = token
+    return token
+
+
+def get_dropbox_access_token() -> str:
+    global _CACHED_ACCESS_TOKEN
+    direct = (
         os.environ.get("DROPBOX_ACCESS_TOKEN", "").strip()
         or os.environ.get("JRC_DROPBOX_ACCESS_TOKEN", "").strip()
     )
+    if direct:
+        _CACHED_ACCESS_TOKEN = direct
+        return direct
+    refresh, app_key, app_secret = get_dropbox_refresh_credentials()
+    if refresh and app_key and app_secret:
+        return refresh_dropbox_access_token()
+    return ""
+
+
+def has_dropbox_credentials() -> bool:
+    direct = (
+        os.environ.get("DROPBOX_ACCESS_TOKEN", "").strip()
+        or os.environ.get("JRC_DROPBOX_ACCESS_TOKEN", "").strip()
+        or (_CACHED_ACCESS_TOKEN or "")
+    )
+    if direct:
+        return True
+    refresh, app_key, app_secret = get_dropbox_refresh_credentials()
+    return bool(refresh and app_key and app_secret)
 
 
 def get_api_root() -> str:
@@ -153,7 +229,7 @@ def get_api_root() -> str:
 def access_mode() -> str:
     if resolve_business_root():
         return "local"
-    if get_dropbox_access_token():
+    if has_dropbox_credentials():
         return "api"
     return "none"
 
@@ -177,6 +253,16 @@ def _api_json(endpoint: str, payload: Optional[Dict[str, Any]] = None) -> Any:
             return json.loads(raw.decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
+        # One retry after refresh when short-lived token expired.
+        if exc.code == 401 and get_dropbox_refresh_credentials()[0]:
+            refresh_dropbox_access_token(force=True)
+            headers["Authorization"] = f"Bearer {get_dropbox_access_token()}"
+            req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                raw = resp.read()
+                if not raw:
+                    return {}
+                return json.loads(raw.decode("utf-8"))
         raise RuntimeError(f"Dropbox API {endpoint} failed ({exc.code}): {detail}") from exc
 
 
@@ -224,7 +310,31 @@ def api_download(dropbox_path: str) -> bytes:
             return resp.read()
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
+        if exc.code == 401 and get_dropbox_refresh_credentials()[0]:
+            refresh_dropbox_access_token(force=True)
+            headers["Authorization"] = f"Bearer {get_dropbox_access_token()}"
+            req = urllib.request.Request(url, data=b"", headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return resp.read()
         raise RuntimeError(f"Dropbox download failed ({exc.code}): {detail}") from exc
+
+
+# Essential relative paths mirrored for mobile Cursor cloud agents.
+ESSENTIAL_MIRROR_PATHS: Tuple[str, ...] = (
+    "08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv",
+    "08_Admin_Standards/2026-07-14__JRC-ADM__CURSOR_UNFINISHED_WORK_NOTE.txt",
+    "08_Admin_Standards/CURRENT_TO_DO.txt",
+    "08_Admin_Standards/BUSINESS_HOURS_STANDARD.txt",
+    "08_Admin_Standards/WEEKLY_CALENDAR_AGENDA.txt",
+    "00_START_HERE/READABLE/CURRENT_TO_DO.txt",
+    "00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt",
+    "00_START_HERE/IPHONE_CURSOR_BOOKMARK_SETUP.txt",
+    "00_START_HERE/JRC-315_LILY_FENCE_QUOTE_CURRENT.txt",
+    "00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt",
+    "00_START_HERE/IPHONE_PHOTO_RECEIPT_UPLOAD_GUIDE.txt",
+    "00_START_HERE/2026-07-23__JRC-ADM__PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt",
+    "00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt",
+)
 
 
 def mirror_file(dropbox_path: str, local_path: Optional[Path] = None) -> Path:
@@ -242,6 +352,153 @@ def mirror_file(dropbox_path: str, local_path: Optional[Path] = None) -> Path:
     return local_path
 
 
+def _dropbox_api_path(relative_path: str) -> str:
+    """Build a Dropbox API path from a relative path under DROPBOX_API_ROOT."""
+    rel = relative_path.replace("\\", "/").lstrip("/")
+    root = get_api_root()
+    if not root:
+        return f"/{rel}" if rel else "/"
+    return f"{root}/{rel}" if rel else root
+
+
+def api_upload(local_path: Path, dropbox_relative_path: str, *, overwrite: bool = True) -> Dict[str, Any]:
+    """Upload one local file to Dropbox (requires files.content.write scope)."""
+    token = get_dropbox_access_token()
+    if not token:
+        raise RuntimeError("DROPBOX_ACCESS_TOKEN is not set.")
+    if not local_path.is_file():
+        raise FileNotFoundError(f"Local file not found: {local_path}")
+    dropbox_path = _dropbox_api_path(dropbox_relative_path)
+    url = "https://content.dropboxapi.com/2/files/upload"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/octet-stream",
+        "Dropbox-API-Arg": json.dumps(
+            {"path": dropbox_path, "mode": "overwrite" if overwrite else "add", "autorename": not overwrite}
+        ),
+    }
+    data = local_path.read_bytes()
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            raw = resp.read()
+            return json.loads(raw.decode("utf-8")) if raw else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        if exc.code == 401 and get_dropbox_refresh_credentials()[0]:
+            refresh_dropbox_access_token(force=True)
+            headers["Authorization"] = f"Bearer {get_dropbox_access_token()}"
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                raw = resp.read()
+                return json.loads(raw.decode("utf-8")) if raw else {}
+        raise RuntimeError(f"Dropbox upload failed ({exc.code}): {detail}") from exc
+
+
+def api_upload_folder(
+    local_dir: Path,
+    dropbox_relative_dir: str,
+    *,
+    overwrite: bool = True,
+) -> List[Dict[str, Any]]:
+    """Upload all files under local_dir to Dropbox, preserving relative paths."""
+    if not local_dir.is_dir():
+        raise NotADirectoryError(f"Local folder not found: {local_dir}")
+    results: List[Dict[str, Any]] = []
+    for path in sorted(local_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(local_dir).as_posix()
+        target = f"{dropbox_relative_dir.rstrip('/')}/{rel}" if dropbox_relative_dir else rel
+        meta = api_upload(path, target, overwrite=overwrite)
+        results.append({"local": str(path), "dropbox": meta.get("path_display", target), "size": meta.get("size")})
+    return results
+
+
+def api_list_folder(dropbox_path: str = "", *, recursive: bool = False) -> List[Dict[str, Any]]:
+    """List files/folders under a Dropbox path (absolute API path or under API root)."""
+    path = dropbox_path.strip()
+    if path and not path.startswith("/"):
+        path = _dropbox_api_path(path)
+    payload: Dict[str, Any] = {
+        "path": path or get_api_root() or "",
+        "recursive": recursive,
+        "include_non_downloadable_files": False,
+    }
+    data = _api_json("files/list_folder", payload)
+    entries: List[Dict[str, Any]] = list(data.get("entries") or [])
+    cursor = data.get("cursor")
+    while data.get("has_more") and cursor:
+        data = _api_json("files/list_folder/continue", {"cursor": cursor})
+        entries.extend(data.get("entries") or [])
+        cursor = data.get("cursor")
+    return entries
+
+
+def bootstrap_essential_mirror(
+    *,
+    extra_paths: Optional[List[str]] = None,
+    include_templates: bool = True,
+) -> Dict[str, Any]:
+    """Download essential business files into dropbox-business for mobile cloud agents."""
+    report: Dict[str, Any] = {
+        "ok": False,
+        "mirrored": [],
+        "missing": [],
+        "errors": [],
+        "mirror_dir": str(CLOUD_MIRROR_DIR),
+    }
+    if not has_dropbox_credentials():
+        report["errors"].append(
+            "No Dropbox credentials. Add DROPBOX_ACCESS_TOKEN (or refresh trio) as Cursor Personal secrets."
+        )
+        return report
+
+    CLOUD_MIRROR_DIR.mkdir(parents=True, exist_ok=True)
+    if include_templates:
+        templates = BASE_DIR / "scripts" / "templates" / "dropbox_workspace"
+        if templates.is_dir():
+            import shutil
+
+            dest = CLOUD_MIRROR_DIR / "00_START_HERE"
+            dest.mkdir(parents=True, exist_ok=True)
+            for src in templates.rglob("*"):
+                if not src.is_file():
+                    continue
+                target = dest / src.relative_to(templates)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, target)
+                report["mirrored"].append(f"template:{src.relative_to(templates).as_posix()}")
+
+    paths = list(ESSENTIAL_MIRROR_PATHS)
+    if extra_paths:
+        paths.extend(extra_paths)
+
+    for rel in paths:
+        api_path = _dropbox_api_path(rel)
+        try:
+            local = mirror_file(api_path)
+            report["mirrored"].append(str(local))
+        except Exception as exc:
+            msg = str(exc)
+            if "path/not_found" in msg or "not_found" in msg.lower():
+                report["missing"].append(rel)
+            else:
+                report["errors"].append(f"{rel}: {exc}")
+
+    # Prefer live register as the readiness signal.
+    if _has_register(CLOUD_MIRROR_DIR):
+        report["ok"] = True
+    elif report["mirrored"] and not report["errors"]:
+        report["ok"] = True
+        report["errors"].append(
+            "Mirrored some files but job register not found — check DROPBOX_API_ROOT points at dropbox-records."
+        )
+        report["ok"] = False
+    (CLOUD_MIRROR_DIR / ".jrc_dropbox_mirror").write_text("api\n", encoding="utf-8")
+    return report
+
+
 def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
     """Report how this environment can reach the J&R Dropbox business workspace."""
     base = base_dir or BASE_DIR
@@ -252,10 +509,20 @@ def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
         "mirror_dir": str(CLOUD_MIRROR_DIR),
         "candidates_checked": [],
         "api_account": None,
+        "credentials": {
+            "access_token": bool(
+                os.environ.get("DROPBOX_ACCESS_TOKEN", "").strip()
+                or os.environ.get("JRC_DROPBOX_ACCESS_TOKEN", "").strip()
+            ),
+            "refresh_configured": bool(all(get_dropbox_refresh_credentials())),
+        },
         "errors": [],
         "notes": [
             "GitHub stores application source only — business files live in Dropbox.",
-            "Set DROPBOX_ACCESS_TOKEN in Cursor agent secrets for cloud Dropbox API access.",
+            "Mobile cloud agents: set DROPBOX secrets in Cursor → Cloud Agents → Secrets (Personal scope).",
+            "Preferred long-lived setup: DROPBOX_REFRESH_TOKEN + DROPBOX_APP_KEY + DROPBOX_APP_SECRET.",
+            "Also set DROPBOX_API_ROOT to the INNER business folder:\n"
+            "  /All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22",
         ],
     }
     for path in business_root_candidates(base):
@@ -270,8 +537,7 @@ def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
         report["business_root"] = str(root)
     if records:
         report["dropbox_records"] = str(records)
-    token = get_dropbox_access_token()
-    if token:
+    if has_dropbox_credentials():
         try:
             acct = api_account_check()
             report["api_account"] = {
@@ -280,13 +546,15 @@ def check_access(base_dir: Optional[Path] = None) -> Dict[str, Any]:
                 "root": get_api_root() or "/",
             }
             if report["mode"] == "api":
-                report["notes"].append("Using Dropbox API — search and download available.")
+                report["notes"].append(
+                    "Using Dropbox API — run: python3 -m app.mobile_cloud_access --bootstrap"
+                )
         except Exception as exc:
             report["errors"].append(f"Dropbox API token invalid or unreachable: {exc}")
     elif report["mode"] == "none":
         report["errors"].append(
-            "No local Dropbox sync and no DROPBOX_ACCESS_TOKEN. "
-            "Install Dropbox on this PC or add a Dropbox API token to agent secrets."
+            "No local Dropbox sync and no Dropbox credentials. "
+            "Add DROPBOX_ACCESS_TOKEN (or refresh trio) as Cursor Personal secrets, then start a new agent."
         )
     return report
 
@@ -361,7 +629,44 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print(path)
         return 0
 
-    print("Usage: python -m app.dropbox_workspace [--check | --search <query>]")
+    if args[0] in ("--bootstrap", "bootstrap"):
+        rep = bootstrap_essential_mirror()
+        print(json.dumps(rep, indent=2))
+        return 0 if rep.get("ok") else 1
+
+    if args[0] in ("--upload", "upload"):
+        if len(args) < 3:
+            print("Usage: python -m app.dropbox_workspace --upload <local_path> <dropbox_relative_path>")
+            return 2
+        if not has_dropbox_credentials():
+            report = check_access(base)
+            print(format_check_report(report))
+            return 1
+        local_path = Path(args[1]).expanduser()
+        meta = api_upload(local_path, args[2])
+        print(f"Uploaded {local_path} -> {meta.get('path_display')}")
+        return 0
+
+    if args[0] in ("--upload-folder", "upload-folder"):
+        if len(args) < 3:
+            print("Usage: python -m app.dropbox_workspace --upload-folder <local_dir> <dropbox_relative_dir>")
+            return 2
+        if not has_dropbox_credentials():
+            report = check_access(base)
+            print(format_check_report(report))
+            return 1
+        local_dir = Path(args[1]).expanduser()
+        results = api_upload_folder(local_dir, args[2])
+        for row in results:
+            print(f"{row['local']} -> {row['dropbox']} ({row.get('size')} bytes)")
+        print(f"Uploaded {len(results)} file(s).")
+        return 0
+
+    print(
+        "Usage: python -m app.dropbox_workspace "
+        "[--check | --search <query> | --bootstrap | "
+        "--upload <local> <dropbox_rel> | --upload-folder <local_dir> <dropbox_rel_dir>]"
+    )
     return 2
 
 

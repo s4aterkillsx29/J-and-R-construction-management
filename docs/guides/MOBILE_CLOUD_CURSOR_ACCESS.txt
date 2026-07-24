@@ -1,0 +1,94 @@
+J & R CONSTRUCTION — MOBILE CURSOR CLOUD ACCESS POINT
+Updated: 2026-07-22 | Jacob Cosentino
+
+PURPOSE
+  Use Cursor on your phone (cloud agents against this GitHub repo) as a full
+  business access point with Dropbox — same records as the office PC Cursor.
+
+IMPORTANT
+  GitHub = app code only.
+  Dropbox = quotes, jobs, unfinished notes, receipts, payroll, tax.
+
+================================================================================
+ONE-TIME: CONNECT DROPBOX TO CURSOR CLOUD AGENTS
+================================================================================
+
+Do this once (office PC, DuckDuckGo Desktop — not Edge/Chrome):
+
+1. Open https://www.dropbox.com/developers/apps
+2. Create or open your J&R Dropbox app (Scoped access, Full Dropbox).
+3. Permissions ON:
+     - files.metadata.read
+     - files.content.read
+     - files.content.write
+4. Preferred long-lived login (recommended):
+     - Generate a refresh token (OAuth offline access)
+     - Copy App key + App secret + refresh token
+5. In Cursor (phone or PC) → Settings / Dashboard → Cloud Agents → Secrets
+   Choose PERSONAL scope (Environment-scoped secrets often fail to inject):
+     DROPBOX_REFRESH_TOKEN = <refresh token>
+     DROPBOX_APP_KEY       = <app key>
+     DROPBOX_APP_SECRET    = <app secret>
+   Fallback (expires in hours — only if you cannot use refresh):
+     DROPBOX_ACCESS_TOKEN  = <access token>
+6. Add Environment Variable:
+     DROPBOX_API_ROOT=/All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
+   (Not /dropbox-records — that folder name is not on this Dropbox account.)
+7. Start a NEW mobile Cursor agent (this chat VM cannot see secrets added later).
+
+
+FAST FINISH (iPhone already in Dropbox)
+  See scripts/templates/dropbox_workspace/2026-07-24_FINISH_MOBILE_SYNC.txt
+  Or paste a Dropbox access token in chat and say: apply dropbox token
+
+================================================================================
+EVERY NEW MOBILE AGENT SESSION
+================================================================================
+
+Ask the agent:
+  "bootstrap mobile dropbox"   or   "mobile access status"
+
+Or it runs automatically when secrets are present:
+  python3 -m app.mobile_cloud_access --bootstrap
+  python3 -m app.mobile_cloud_access --status
+
+READY means:
+  - Dropbox API account connected
+  - dropbox-business mirror has 08_Admin_Standards/JRC_JOB_RELATION_REGISTER.csv
+  - Unfinished work note + CURRENT_TO_DO available when present in Dropbox
+
+================================================================================
+DAILY PHONE WORKFLOW
+================================================================================
+
+ON PHONE (this cloud access point):
+  - Field notes, receipt logging, quote lookups, unfinished-work updates
+  - Agent reads/writes via Dropbox API into dropbox-business mirror + uploads back
+
+ON OFFICE PC (after phone work):
+  - Dropbox syncs automatically
+  - Optional: scripts\Sync-JRCBusinessFolders.ps1
+  - Tell desktop Cursor: "log" / "log sync"
+
+ALTERNATE PHONE PATH (local Dropbox folder in Cursor — no cloud API needed):
+  Open Dropbox folder JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22 (INNER folder)
+  See 00_START_HERE/PHONE_CURSOR_DROPBOX_WORKSPACE.txt
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+  Status = NOT READY / no credentials
+    → Secrets missing or not Personal scope → re-add → NEW agent
+
+  API token invalid
+    → Access token expired → switch to refresh token trio
+
+  Job register missing after bootstrap
+    → DROPBOX_API_ROOT wrong — use:
+      /All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
+
+  Agent talks only about GitHub / no business files
+    → Run bootstrap; do not treat this repo as the business file store
+
+Owned and operated by Jacob Cosentino / J & R Construction

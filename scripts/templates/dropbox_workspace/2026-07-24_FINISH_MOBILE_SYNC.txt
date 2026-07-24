@@ -1,0 +1,60 @@
+JRC FINISH MOBILE SYNC — iPhone Cursor + Office PC
+Updated: 2026-07-24
+
+GOAL
+  Phone Cursor cloud agents + office PC Cursor both see the same Dropbox
+  business files (quotes, jobs, unfinished notes).
+
+================================================================================
+FASTEST PATH (do this on iPhone — ~2 minutes)
+================================================================================
+
+You are already signed into Dropbox on the phone. Skip Microsoft login fights.
+
+1. On iPhone Safari / DuckDuckGo open:
+     https://www.dropbox.com/developers/apps
+2. Create app (or open existing JRC app):
+     Scoped access → Full Dropbox
+3. Permissions ON: files.content.read, files.content.write, files.metadata.read
+4. Settings → Generate access token → copy it (starts with sl.)
+5. Cursor → Settings → Cloud Agents → Secrets → PERSONAL scope:
+     DROPBOX_ACCESS_TOKEN = <paste token>
+   Optional long-lived (better):
+     DROPBOX_REFRESH_TOKEN / DROPBOX_APP_KEY / DROPBOX_APP_SECRET
+6. Environment variable:
+     DROPBOX_API_ROOT=/All Files/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22/JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22
+7. Start a NEW mobile Cursor agent and say:
+     bootstrap mobile dropbox
+
+OR paste the token in this chat and say: apply dropbox token
+(Agent will bootstrap without waiting for a new VM.)
+
+================================================================================
+ALTERNATE: DROPBOX FOLDER WORKSPACE (no API token)
+================================================================================
+
+Open in Cursor iPhone (workspace = Dropbox folder, not GitHub):
+  JRC_COMPLETE_BUSINESS_FOLDER_2026-06-22  (INNER folder)
+
+Verify:
+  00_START_HERE/2026-07-23_JRC-ADM_PHONE_OFFICE_SYNC_OWNERSHIP_LOCK.txt
+  00_START_HERE/READABLE/BUSINESS_DASHBOARD.txt
+
+Office PC Dropbox sync keeps both sides aligned automatically.
+
+================================================================================
+OFFICE PC AFTER PHONE WORK
+================================================================================
+
+1. Dropbox desktop sync (automatic)
+2. Optional: scripts\Sync-JRCBusinessFolders.ps1
+3. Desktop Cursor: "log" / "log sync"
+
+================================================================================
+STATUS CHECK (cloud agent on GitHub repo)
+================================================================================
+
+  python3 -m app.mobile_cloud_access --status
+  → READY = Dropbox API + job register mirrored
+
+Owned and operated by Jacob Cosentino / J & R Construction
