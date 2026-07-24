@@ -87,7 +87,12 @@ class MobileCloudAccessTests(unittest.TestCase):
                 else:
                     os.environ[key] = value
 
-    def test_bootstrap_reports_missing_credentials(self):
+    def test_apply_access_token_rejects_short(self):
+        from app.mobile_cloud_access import apply_access_token
+
+        result = apply_access_token("short")
+        self.assertFalse(result["ok"])
+        self.assertIn("short", result["error"].lower())
         from app.dropbox_workspace import bootstrap_essential_mirror
 
         old = {

@@ -99,6 +99,35 @@ def _next_steps(access: Dict[str, Any], register: Optional[Path]) -> List[str]:
     return steps
 
 
+def apply_access_token(token: str) -> Dict[str, Any]:
+    """Apply a Dropbox access token for this session, verify API, then bootstrap."""
+    from app import dropbox_workspace as dw
+
+    cleaned = (token or "").strip().strip('"').strip("'")
+    if not cleaned or len(cleaned) < 20:
+        return {"ok": False, "error": "Token missing or too short."}
+    os.environ["DROPBOX_ACCESS_TOKEN"] = cleaned
+    dw._CACHED_ACCESS_TOKEN = cleaned  # noqa: SLF001 — session cache for this process
+    try:
+        acct = dw.api_account_check()
+    except Exception as exc:  # noqa: BLE001 — surface API errors to operator
+        return {"ok": False, "error": f"Dropbox API rejected token: {exc}"}
+    # Normalize account fields for status printing
+    account = {
+        "name": (acct.get("name") or {}).get("display_name") or acct.get("email"),
+        "email": acct.get("email"),
+        "root": (acct.get("root_info") or {}).get(".tag"),
+        "raw": {k: acct.get(k) for k in ("account_id", "email", "country") if k in acct},
+    }
+    boot = bootstrap()
+    return {
+        "ok": True,
+        "account": account,
+        "bootstrap": boot.get("bootstrap"),
+        "status": boot.get("status"),
+    }
+
+
 def bootstrap() -> Dict[str, Any]:
     from app.dropbox_workspace import bootstrap_essential_mirror
 
@@ -142,7 +171,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cmd in ("--help", "help", "-h"):
         print(
             "Usage: python3 -m app.mobile_cloud_access "
-            "[--status | --bootstrap | --setup-help | --json]"
+            "[--status | --bootstrap | --setup-help | --apply-token TOKEN | --json]"
         )
         return 0
 
@@ -151,6 +180,35 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     as_json = "--json" in args or cmd == "--json"
+
+    if cmd in ("--apply-token", "apply-token"):
+        token = ""
+        if len(args) >= 2 and not args[1].startswith("--"):
+            token = args[1]
+        elif not sys.stdin.isatty():
+            token = sys.stdin.read()
+        result = apply_access_token(token)
+        if as_json or "--json" in args:
+            # Never echo the token back
+            safe = {k: v for k, v in result.items() if k != "token"}
+            if safe.get("status"):
+                cred = ((safe["status"].get("access") or {}).get("credentials") or {})
+                safe["credentials_present"] = bool(cred.get("access_token") or cred.get("refresh_configured"))
+            print(json.dumps(safe, indent=2, default=str))
+        else:
+            if not result.get("ok"):
+                print(f"Apply token failed: {result.get('error')}")
+                return 1
+            acct = result.get("account") or {}
+            print(
+                f"Dropbox connected: {acct.get('name')} <{acct.get('email')}> "
+                f"root={acct.get('root')}"
+            )
+            boot = result.get("bootstrap") or {}
+            print(f"Bootstrap ok={boot.get('ok')} mirrored={len(boot.get('mirrored') or [])}")
+            print()
+            print(format_status(result["status"]))
+        return 0 if result.get("ok") and (result.get("status") or {}).get("ready") else (0 if result.get("ok") else 1)
 
     if cmd in ("--bootstrap", "bootstrap"):
         result = bootstrap()
